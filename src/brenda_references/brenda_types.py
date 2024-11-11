@@ -2,7 +2,6 @@ from pydantic import BaseModel, PositiveInt
 
 
 class BaseReference(BaseModel):
-    reference_id: PositiveInt
     authors: str
     title: str
     journal: str
@@ -34,3 +33,7 @@ class Organism(BaseOrganism):
 
 class EC(BaseEC):
     synonyms: list[str]
+
+
+class DocumentStore(BaseModel):
+    documents: dict[PositiveInt, Document]
