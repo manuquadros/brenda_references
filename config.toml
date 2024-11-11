@@ -1,7 +1,11 @@
+documents = "data/documents.json"
+entities = "data/entities.json"
+
 [database]
 host = "dmz-dbcluster.dmz.dsmz.de"
 database = "brenda_conn"
 backend = "mysql"
 
-[entities]
+[names]
 bacteria = "data/bacteria.txt"
+
