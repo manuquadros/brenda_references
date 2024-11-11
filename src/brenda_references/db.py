@@ -4,11 +4,8 @@ from sqlalchemy.engine import TupleResult
 from sqlalchemy.sql.functions import random
 from sqlmodel import Field, Session, SQLModel, create_engine, join, select
 
-from brenda_references.brenda_types import (
-    BaseReference,
-    BaseOrganism,
-    BaseEC,
-)
+from brenda_references.brenda_types import BaseReference, BaseOrganism, BaseEC
+
 from brenda_references.config import config
 
 
@@ -22,7 +19,7 @@ class Protein_Connect(SQLModel, table=True):  # type: ignore
     protein_id: int = Field(nullable=False)
 
 
-class _Reference(SQLModel, table=True):  # type: ignore
+class _Reference(SQLModel, BaseReference, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "reference"
     reference_id: int = Field(primary_key=True)
