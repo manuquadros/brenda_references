@@ -1,16 +1,15 @@
-import tomllib
-
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL
 from sqlalchemy.engine import TupleResult
 from sqlalchemy.sql.functions import random
 from sqlmodel import Field, Session, SQLModel, create_engine, join, select
 
-from brenda_references.types import (
+from brenda_references.brenda_types import (
     BaseReference,
     BaseOrganism,
     BaseEC,
 )
+from brenda_references.config import config
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore
@@ -23,34 +22,31 @@ class Protein_Connect(SQLModel, table=True):  # type: ignore
     protein_id: int = Field(nullable=False)
 
 
-class ReferenceTable(SQLModel, BaseReference, table=True):  # type: ignore
+class _Reference(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "reference"
     reference_id: int = Field(primary_key=True)
 
 
-class OrganismTable(SQLModel, BaseOrganism, table=True):  # type: ignore
+class _Organism(SQLModel, BaseOrganism, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "organism"
     organism_id: int = Field(primary_key=True)
 
 
-class ECTable(SQLModel, BaseEC, table=True):  # type: ignore
+class _EC(SQLModel, BaseEC, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "ec_class"
     ec_class_id: int = Field(primary_key=True)
 
 
-class ProteinTable(SQLModel, table=True):  # type: ignore
+class _Protein(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein"
     protein_id: int = Field(primary_key=True)
 
 
-with open("config.toml", mode="rb") as cf:
-    config = tomllib.load(cf)
-
-with open(config["entities"]["bacteria"], "r") as sl:
+with open(config["names"]["bacteria"], "r") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 
@@ -73,18 +69,16 @@ def protein_connect_records(user: str, password: str) -> TupleResult:
 
     with Session(engine) as session:
         query = (
-            select(Protein_Connect, Organism, EC_Class, Protein, Reference)
-            .join(Organism, Protein_Connect.organism_id == Organism.organism_id)
-            .join(EC_Class, Protein_Connect.ec_class_id == EC_Class.ec_class_id)
-            .join(Protein, Protein_Connect.protein_id == Protein.protein_id)
+            select(Protein_Connect, _Organism, _EC, _Protein, _Reference)
+            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
+            .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
+            .join(_Protein, Protein_Connect.protein_id == _Protein.protein_id)
             .join(
-                Reference,
-                Protein_Connect.reference_id == Reference.reference_id,
+                _Reference,
+                Protein_Connect.reference_id == _Reference.reference_id,
             )
+            .limit(100)
         )
+        records = session.exec(query).fetchall()
 
-        return (
-            record
-            for record in session.exec(query)
-            if is_bacteria(record.Organism.organism)
-        )
+        return (record for record in records if is_bacteria(record._Organism.organism))
