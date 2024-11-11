@@ -14,6 +14,7 @@ python = "^3.11"
 rapidfuzz = "^3.10.1"
 sqlmodel = "0.*"
 mysqlclient = "^2.2.5"
+tqdm = "^4.67.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.29.0"
