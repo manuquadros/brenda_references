@@ -23,17 +23,13 @@ class BaseEC(BaseModel):
 
 
 class Document(BaseReference):
-    pmc_id: str | None
-    doi: str | None
+    pmc_id: str | None = None
+    doi: str | None = None
 
 
 class Organism(BaseOrganism):
-    synonyms: list[str]
+    synonyms: list[str] | None = None
 
 
 class EC(BaseEC):
-    synonyms: list[str]
-
-
-class DocumentStore(BaseModel):
-    documents: dict[PositiveInt, Document]
+    synonyms: list[str] | None = None
