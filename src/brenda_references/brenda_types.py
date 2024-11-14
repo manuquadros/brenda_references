@@ -33,3 +33,7 @@ class Organism(BaseOrganism):
 
 class EC(BaseEC):
     synonyms: list[str] | None = None
+
+
+type Bacteria = Organism
+type Strain = Organism
