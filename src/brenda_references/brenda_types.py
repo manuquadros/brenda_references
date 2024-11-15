@@ -1,4 +1,6 @@
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, PositiveInt, AwareDatetime, Field
+import datetime
+from typing import Any
 
 
 class BaseReference(BaseModel):
@@ -12,9 +14,16 @@ class BaseReference(BaseModel):
 
 
 class Document(BaseReference):
+    def model_post_init(self, __context: Any) -> None:
+        self.modified = self.created
+
     pmc_id: str | None = None
     pmc_open: bool | None = None
     doi: str | None = None
+    created: AwareDatetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
+    )
+    modified: AwareDatetime | None = None
 
 
 class BaseOrganism(BaseModel):
