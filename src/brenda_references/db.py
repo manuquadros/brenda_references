@@ -78,4 +78,4 @@ def protein_connect_records(user: str, password: str) -> TupleResult:
         )
         records = session.exec(query).fetchall()
 
-        return (record for record in records if is_bacteria(record._Organism.organism))
+    return (record for record in records if is_bacteria(record._Organism.organism))
