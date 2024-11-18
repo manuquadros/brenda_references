@@ -1,11 +1,12 @@
+import os
+
 from rapidfuzz import fuzz, process
-from sqlalchemy import URL
+from sqlalchemy import URL, Engine
 from sqlalchemy.engine import TupleResult
 from sqlalchemy.sql.functions import random
 from sqlmodel import Field, Session, SQLModel, create_engine, join, select
 
-from brenda_references.brenda_types import BaseReference, BaseOrganism, BaseEC
-
+from brenda_references.brenda_types import BaseEC, BaseOrganism, BaseReference
 from brenda_references.config import config
 
 
@@ -43,17 +44,35 @@ class _Protein(SQLModel, table=True):  # type: ignore
     protein_id: int = Field(primary_key=True)
 
 
+class EC_Synonyms_Connect(SQLModel, table=True):  # type: ignore
+    __table_args__ = {"keep_existing": True}
+    __tablename__ = "synonyms_connect"
+    synonyms_connect_id: int = Field(primary_key=True)
+    ec_class_id: int
+    synonyms_id: int
+    reference_id: int
+
+
+class EC_Synonyms(SQLModel, table=True):  # type: ignore
+    __table_args__ = {"keep_existing": True}
+    __tablename__ = "synonyms"
+    synonyms_id: int = Field(primary_key=True)
+    synonyms: str
+
+
 with open(config["names"]["bacteria"], "r") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 
-def is_bacteria(organism: str) -> bool:
-    _, ratio, _ = process.extract(organism, bacteria, scorer=fuzz.QRatio, limit=1)[0]
+def get_engine():
+    try:
+        user, password = os.environ["BRENDA_USER"], os.environ["BRENDA_PASSWORD"]
+    except KeyError as err:
+        err.add_note(
+            "Please set the BRENDA_USER and BRENDA_PASSWORD environment variables"
+        )
+        raise
 
-    return ratio > 90
-
-
-def protein_connect_records(user: str, password: str) -> TupleResult:
     db_conn_info = config["database"]
     url_object = URL.create(
         drivername=db_conn_info["backend"],
@@ -62,8 +81,17 @@ def protein_connect_records(user: str, password: str) -> TupleResult:
         username=user,
         password=password,
     )
-    engine = create_engine(url_object, echo=True)
 
+    return create_engine(url_object, echo=True)
+
+
+def is_bacteria(organism: str) -> bool:
+    _, ratio, _ = process.extract(organism, bacteria, scorer=fuzz.QRatio, limit=1)[0]
+
+    return ratio > 90
+
+
+def protein_connect_records(engine: Engine) -> TupleResult:
     with Session(engine) as session:
         query = (
             select(Protein_Connect, _Organism, _EC, _Protein, _Reference)
@@ -79,3 +107,30 @@ def protein_connect_records(user: str, password: str) -> TupleResult:
         records = session.exec(query).fetchall()
 
     return (record for record in records if is_bacteria(record._Organism.organism))
+
+
+def ec_synonyms(
+    engine: Engine, ec_class_id: int, doc_id: int | None = None
+) -> list[str]:
+    """
+    For a given EC class, fetch a deduplicated list of its synonyms.
+
+    If `doc_id` is provided, return only the synonyms referenced in that article.
+    """
+    with Session(engine) as session:
+        query = (
+            select(EC_Synonyms.synonyms)
+            .join_from(
+                EC_Synonyms,
+                EC_Synonyms_Connect,
+                EC_Synonyms_Connect.synonyms_id == EC_Synonyms.synonyms_id,
+            )
+            .where(EC_Synonyms_Connect.ec_class_id == ec_class_id)
+        )
+
+        if doc_id:
+            query = query.where(EC_Synonyms_Connect.reference_id == doc_id)
+
+        synonyms = session.exec(query).unique().all()
+
+    return synonyms

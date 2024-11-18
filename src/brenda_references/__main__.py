@@ -1,13 +1,13 @@
 import json
-import tomllib
 import os
+import tomllib
+
+from ncbi import get_article_ids, is_pmc_open
 from tqdm import tqdm
 
 from brenda_references import db
+from brenda_references.brenda_types import EC, Document, Organism
 from brenda_references.config import config
-from brenda_references.brenda_types import Document, Organism, EC
-
-from ncbi import get_article_ids, is_pmc_open
 
 try:
     api_key = os.environ["NCBI_API_KEY"]
@@ -40,24 +40,17 @@ def expand_doc(doc: Document) -> Document:
 
 def expand_organism(organism: Organism) -> Organism:
     """Retrieve available synonyms for `organism`"""
-    pass
+    return organism
 
 
 def sync_doc_db():
-    try:
-        user = os.environ["BRENDA_USER"]
-        password = os.environ["BRENDA_PASSWORD"]
-    except KeyError as err:
-        err.add_note(
-            "Please set the BRENDA_USER and BRENDA_PASSWORD environment variables"
-        )
-        raise
-
     try:
         with open(config["documents"], "r") as docs:
             store = json.load(docs)
     except (FileNotFoundError, json.JSONDecodeError):
         store = {}
+
+    db_engine = db.get_engine()
 
     entities = store.setdefault("entity", {})
     documents = store.setdefault("document", {})
@@ -65,7 +58,7 @@ def sync_doc_db():
     bacteria = entities.setdefault("bacteria", {})
     strains = entities.setdefault("strains", [])
 
-    for record in tqdm(db.protein_connect_records(user, password)):
+    for record in tqdm(db.protein_connect_records(db_engine)):
         doc_id = record._Reference.reference_id
         ec_id = record._EC.ec_class_id
         organism_id = record._Organism.organism_id
@@ -77,10 +70,13 @@ def sync_doc_db():
             documents[doc_id] = doc.model_dump()
 
         if ec_id not in entities:
-            synonyms = get_ec_synonyms(record._EC.ec_class_id)
-            ecs[ec_id] = EC.parse_obj(record._EC.model_dump()).model_dump(
-                exclude={"ec_class_id"}
+            synonyms = db.ec_synonyms(db_engine, record._EC.ec_class_id)
+            ec = EC.model_validate(record._EC, from_attributes=True).copy(
+                update={"synonyms": synonyms}
             )
+            ecs[ec_id] = ec.model_dump(exclude={"ec_class_id"})
+
+        synonyms_in_doc = db.ec_synonyms(db_engine, doc_id, ec_id)
 
         if organism_id not in bacteria:
             bacteria[organism_id] = Organism.parse_obj(
