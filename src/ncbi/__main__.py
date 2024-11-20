@@ -4,7 +4,7 @@ import requests
 import xmltodict
 import log
 
-logger = log.get_logger()
+logger = log.logger()
 
 
 def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str]:

@@ -6,6 +6,7 @@ host = "dmz-dbcluster.dmz.dsmz.de"
 database = "brenda_conn"
 backend = "mysql"
 
-[names]
+[sources]
 bacteria = "data/bacteria.txt"
+lpsn = "data/lpsn_gss_2024-11-19.csv"
 

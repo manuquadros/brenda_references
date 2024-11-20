@@ -1,13 +1,15 @@
 import json
 import os
 import tomllib
+from log import logger
 
 from ncbi import get_article_ids, is_pmc_open
 from tqdm import tqdm
 
 from brenda_references import db
-from brenda_references.brenda_types import EC, Document, Organism
-from brenda_references.config import config
+from .brenda_types import EC, Bacteria, Document, Organism
+from .config import config
+from .lpsn_interface import lpsn_id, lpsn_synonyms
 
 try:
     api_key = os.environ["NCBI_API_KEY"]
@@ -38,11 +40,6 @@ def expand_doc(doc: Document) -> Document:
     )
 
 
-def expand_organism(organism: Organism) -> Organism:
-    """Retrieve available synonyms for `organism`"""
-    return organism
-
-
 def sync_doc_db():
     try:
         with open(config["documents"], "r") as docs:
@@ -64,9 +61,14 @@ def sync_doc_db():
         organism_id = record._Organism.organism_id
         strain_id = record.Protein_Connect.protein_organism_strain_id
 
+        ec_synonyms_in_doc = db.ec_synonyms(db_engine, doc_id, ec_id)
+
         if doc_id not in documents:
             doc = Document.model_validate(record._Reference.model_dump())
             doc = expand_doc(doc)
+            doc = doc.copy(
+                update={"enzymes": doc.enzymes.update({ec_id: ec_synonyms_in_doc})}
+            )
             documents[doc_id] = doc.model_dump()
 
         if ec_id not in entities:
@@ -76,17 +78,24 @@ def sync_doc_db():
             )
             ecs[ec_id] = ec.model_dump(exclude={"ec_class_id"})
 
-        synonyms_in_doc = db.ec_synonyms(db_engine, doc_id, ec_id)
-
         if organism_id not in bacteria:
-            bacteria[organism_id] = Organism.parse_obj(
-                record._Organism.model_dump()
-            ).model_dump(exclude={"organism_id"})
+            organism = Bacteria.model_validate(record._Organism, from_attributes=True)
+
+            synonyms = lpsn_synonyms(organism.lpsn_id)
+            organism = organism.model_copy(
+                update={
+                    "synonyms": synonyms,
+                },
+            )
+
+            bacteria[organism_id] = organism.model_dump(exclude={"organism_id"})
 
         if strain_id and strain_id not in strains:
             strains.append(strain_id)
 
-    print(store)
+    from pprint import pprint
+
+    pprint(store)
 
     # with open(config["documents"], "w") as docs:
     #     print(store)

@@ -1,22 +1,31 @@
 import logging
 from logging import handlers
 from pathlib import Path
+from cacheout import Cache
+
+cache = Cache()
 
 logfile = (
     Path(__file__).absolute().parent.parent.parent / "brenda_references.log"
 ).as_posix()
 
 
-def get_logger(level=logging.WARNING, filename=logfile):
+@cache.memoize()
+def logger(level=logging.DEBUG, filename=logfile):
+    logging.basicConfig(
+        encoding="utf-8",
+    )
     handler = handlers.RotatingFileHandler(
         filename=filename, maxBytes=512000, backupCount=5
     )
-    logging.basicConfig(
-        encoding="utf-8",
-        level=level,
-        handlers=(handler,),
-        format=f"%(asctime)s, %(module)s.%(funcName)s, %(levelname)s, %(message)s",
-        datefmt="%d %b %Y %H:%M:%S",
+    handler.setFormatter(
+        logging.Formatter(
+            fmt=f"%(asctime)s, %(module)s.%(funcName)s, %(levelname)s, %(message)s",
+            datefmt="%d %b %Y %H:%M:%S",
+        )
     )
+    _logger = logging.getLogger(__name__)
+    _logger.setLevel(level)
+    _logger.addHandler(handler)
 
-    return logging.getLogger("brenda-references")
+    return _logger

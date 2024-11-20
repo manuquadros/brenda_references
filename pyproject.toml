@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [
   { include = "brenda_references", from = "src" }
 ]
-include = ["config.toml", "data/bacteria.txt"]
+include = ["config.toml", "data/bacteria.txt", "data/lpsn_gss_2024-11-19.csv"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -17,6 +17,8 @@ mysqlclient = "^2.2.5"
 tqdm = "^4.67.0"
 requests = "^2.32.3"
 xmltodict = "^0.14.2"
+pandas = "^2.2.3"
+cacheout = "^0.16.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -27,6 +29,7 @@ python-lsp-isort = "^0.2.0"
 pylsp-rope = "^0.1.16"
 pytest = "^8.3.3"
 types-sqlalchemy = "^1.4.53.38"
+memray = "^1.14.0"
 
 [build-system]
 requires = ["poetry-core"]

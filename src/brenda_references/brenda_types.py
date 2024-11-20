@@ -1,6 +1,8 @@
-from pydantic import BaseModel, PositiveInt, AwareDatetime, Field
+from pydantic import BaseModel, PositiveInt, AwareDatetime, Field, computed_field
+from functools import cached_property
 import datetime
 from typing import Any
+from .lpsn_interface import lpsn_id
 
 
 class BaseReference(BaseModel):
@@ -11,6 +13,9 @@ class BaseReference(BaseModel):
     pages: str
     pubmed_id: str
     path: str
+
+
+type EntityNames = dict[int, frozenset[str]]
 
 
 class Document(BaseReference):
@@ -24,6 +29,9 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
+    enzymes: EntityNames = {}
+    bacteria: EntityNames = {}
+    strains: EntityNames = {}
 
 
 class BaseOrganism(BaseModel):
@@ -32,11 +40,20 @@ class BaseOrganism(BaseModel):
 
 
 class Organism(BaseOrganism):
-    synonyms: list[str] | None = None
+    synonyms: frozenset[str] | None = None
 
 
-type Bacteria = Organism
-type Strain = Organism
+class Bacteria(Organism):
+    @computed_field  # type: ignore
+    @cached_property
+    def lpsn_id(self) -> int | None:
+        return lpsn_id(self.organism)
+
+
+class Strain(Organism):
+    straininfo_id: int | None = None
+    taxon: str
+    cultures: frozenset[str] | None
 
 
 class BaseEC(BaseModel):
@@ -46,4 +63,4 @@ class BaseEC(BaseModel):
 
 
 class EC(BaseEC):
-    synonyms: list[str] | None = None
+    synonyms: frozenset[str] | None = None

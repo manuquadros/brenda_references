@@ -60,7 +60,7 @@ class EC_Synonyms(SQLModel, table=True):  # type: ignore
     synonyms: str
 
 
-with open(config["names"]["bacteria"], "r") as sl:
+with open(config["sources"]["bacteria"], "r") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 
@@ -111,7 +111,7 @@ def protein_connect_records(engine: Engine) -> TupleResult:
 
 def ec_synonyms(
     engine: Engine, ec_class_id: int, doc_id: int | None = None
-) -> list[str]:
+) -> frozenset[str]:
     """
     For a given EC class, fetch a deduplicated list of its synonyms.
 
@@ -133,4 +133,4 @@ def ec_synonyms(
 
         synonyms = session.exec(query).unique().all()
 
-    return synonyms
+    return frozenset(synonyms)
