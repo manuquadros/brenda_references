@@ -44,6 +44,15 @@ class _Protein(SQLModel, table=True):  # type: ignore
     protein_id: int = Field(primary_key=True)
 
 
+class _Strain(SQLModel, table=True):  # type: ignore
+    __table_args__ = {"keep_existing": True}
+    __tablename__ = "protein_organism_strain"
+    id: int = Field(
+        sa_column_kwargs={"name": "protein_organism_strain_id"}, primary_key=True
+    )
+    name: str = Field(sa_column_kwargs={"name": "organism_strain"}, nullable=False)
+
+
 class EC_Synonyms_Connect(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "synonyms_connect"
@@ -102,6 +111,7 @@ def protein_connect_records(engine: Engine) -> TupleResult:
                 _Reference,
                 Protein_Connect.reference_id == _Reference.reference_id,
             )
+            .join(_Strain, Protein_Connect.protein_organism_strain_id == _Strain.id)
             .limit(100)
         )
         records = session.exec(query).fetchall()
