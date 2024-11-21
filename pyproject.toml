@@ -30,6 +30,7 @@ pylsp-rope = "^0.1.16"
 pytest = "^8.3.3"
 types-sqlalchemy = "^1.4.53.38"
 memray = "^1.14.0"
+pytest-memray = "^1.7.0"
 
 [build-system]
 requires = ["poetry-core"]
