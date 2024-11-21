@@ -1,6 +1,6 @@
 from brenda_references.lpsn_interface import lpsn_synonyms, lpsn_id, get_lpsn
-from brenda_references.brenda_types import Organism, Bacteria
-from brenda_references.straininfo import get_strain_ids
+from brenda_references.brenda_types import Organism, Bacteria, Strain
+from brenda_references.straininfo import get_strain_ids, get_strain_data
 
 
 get_lpsn()
@@ -25,3 +25,53 @@ def test_lpsn_id_works():
 
 def test_strain_id_retrieval():
     assert get_strain_ids("K-12") == [11469, 35283, 38539, 39812, 66369, 309797, 341518]
+
+
+def test_strain_data_retrieval():
+    resp = get_strain_data(11469)
+    assert resp is not None
+
+    strain = next(iter(resp))
+    assert strain == {
+        "straininfo_id": 11469,
+        "taxon": "Escherichia coli",
+        "synonyms": {
+            "LMG 18221t2",
+            "K12 O Rough H48",
+            "Lederberg strain K12",
+            "Lederberg K12",
+            "K12",
+            "CIP 54.117, IFO 3301",
+            "K-12",
+            "CCTM La 2193",
+            "LMG 18221t1",
+            "J. Lederberg. K12 O Rough H48",
+            "CCUG46621",
+            "PCM 2560",
+            "E. Wollman, Inst. Pasteur",
+            "NCTC 10538 - CIP",
+        },
+        "cultures": {
+            "LMG 18221",
+            "IFO 3301",
+            "NCFB 1984",
+            "NCIMB 10083",
+            "NCTC 10538",
+            "DSM 11250",
+            "NCDO 1984",
+            "NCIB 10083",
+            "NCDO1990",
+            "CIP 54.117",
+            "CECT 433",
+            "CCUG 46621",
+            "HUT 8106",
+            "NBRC 3301",
+            "BCRC 16081",
+            "CCRC 16081",
+            "CCUG 49263",
+            "CGMCC 1.3344",
+            "CFBP 5947",
+            "VTT E-032275",
+            "CNCTC 7388",
+        },
+    }
