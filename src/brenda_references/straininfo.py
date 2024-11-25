@@ -6,24 +6,25 @@ from collections.abc import Iterable
 api_root = "https://api.straininfo.dsmz.de/v1/"
 
 
-def response(api_fn: str, query: str | int | list[int]) -> list[Any] | None:
-    match api_fn:
-        case "str_des":
-            url = api_root + "search/strain/str_des/" + cast(str, query)
-        case "data_strain_max":
-            id_query = (
-                str(query) if isinstance(query, int) else ",".join(map(str, query))
-            )
-            url = api_root + "data/strain/max/" + id_query
+def strain_info_api_url(query: list[int | str]) -> str:
+    match type(query[0]).__name__:
+        case "str":
+            root = api_root + "search/strain/str_des/"
+        case "int":
+            root = api_root + "data/strain/max/"
         case _:
             raise requests.exceptions.InvalidURL("Unknown API function (StrainInfo v1)")
 
+    return root + ",".join(map(str, query))
+
+
+def response(url: str) -> list[dict] | None:
     with requests.get(
         url,
         headers={
-            "accept": "application/json",
-            "cache-control": "no-store",
-            "accept-encoding": "gzip, deflate",
+            "Accept": "application/json",
+            "Cache-Control": "no-store",
+            "Accept-Encoding": "gzip, deflate",
         },
     ) as r:
         match r.status_code:
@@ -38,12 +39,19 @@ def response(api_fn: str, query: str | int | list[int]) -> list[Any] | None:
                 raise requests.HTTPError("Failed with HTTP Status {code}")
 
 
-def get_strain_ids(query: str) -> list[int] | None:
-    return response("str_des", query)
+def get_strain_ids(query: str | list[str]) -> list[int] | None:
+    if not isinstance(query, list):
+        query = [query]
+    return response(strain_info_api_url(query))
 
 
-def get_strain_data(query: int | list[int]) -> Iterable[dict[str, Any]] | None:
-    def subset_fields(d: dict):
+def get_strain_data(
+    query: int | str | list[str | int],
+) -> Iterable[dict[str, Any]] | None:
+    def subset_fields(d: dict | int):
+        if isinstance(d, int):
+            return d
+
         return {
             "straininfo_id": d["strain"]["id"],
             "taxon": d["strain"]["taxon"]["name"],
@@ -54,7 +62,10 @@ def get_strain_data(query: int | list[int]) -> Iterable[dict[str, Any]] | None:
             "synonyms": frozenset(frozenset(d["strain"]["relation"]["designation"])),
         }
 
-    data = cast(list[dict], response("data_strain_max", query))
+    if not isinstance(query, list):
+        query = [query]
+
+    data = cast(list[dict], response(strain_info_api_url(query)))
 
     if isinstance(data, list) and len(data):
         return (subset_fields(d) for d in data)

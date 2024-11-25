@@ -1,7 +1,10 @@
 from brenda_references.lpsn_interface import lpsn_synonyms, lpsn_id, get_lpsn
 from brenda_references.brenda_types import Organism, Bacteria, Strain
-from brenda_references.straininfo import get_strain_ids, get_strain_data
-
+from brenda_references.straininfo import (
+    get_strain_ids,
+    get_strain_data,
+    strain_info_api_url,
+)
 
 get_lpsn()
 caldanaerobacter = Organism(organism_id=1, organism="Caldanaerobacter subterraneus")
@@ -75,3 +78,20 @@ def test_strain_data_retrieval():
             "CNCTC 7388",
         },
     }
+
+
+def test_strain_info_api_url():
+    assert (
+        strain_info_api_url(["K-12", "NE1"])
+        == "https://api.straininfo.dsmz.de/v1/search/strain/str_des/K-12,NE1"
+    )
+
+    assert (
+        strain_info_api_url(["K-12"])
+        == "https://api.straininfo.dsmz.de/v1/search/strain/str_des/K-12"
+    )
+
+    assert (
+        strain_info_api_url([39812, 66469])
+        == "https://api.straininfo.dsmz.de/v1/data/strain/max/39812,66469"
+    )
