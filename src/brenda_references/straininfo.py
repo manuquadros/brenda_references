@@ -65,6 +65,9 @@ def get_strain_data(
     if not isinstance(query, list):
         query = [query]
 
+    if isinstance(query[0], str):
+        query = get_strain_ids(query)
+
     data = cast(list[dict], response(strain_info_api_url(query)))
 
     if isinstance(data, list) and len(data):
