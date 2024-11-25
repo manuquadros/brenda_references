@@ -2,9 +2,8 @@ from typing import Any
 from collections import Counter
 import requests
 import xmltodict
-import log
-
-logger = log.logger()
+from log import logger
+import pprint
 
 
 def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str]:
@@ -21,12 +20,18 @@ def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str
             err = (
                 f"Request for PubMed ID {pubmed_id} failed with status {r.status_code}"
             )
-            logger.error(err)
+            logger().error(err)
             raise requests.HTTPError(err)
 
         metadata = xmltodict.parse(r.text)
 
-    return format_esummary_fields(metadata)["ArticleIds"]
+    try:
+        return format_esummary_fields(metadata)["ArticleIds"]
+    except KeyError as e:
+        logger().error(
+            f"Failed on {pubmed_id}." f" Full record:\n {pprint.pformat(metadata)}"
+        )
+        raise e
 
 
 def is_pmc_open(pmcid: str | None) -> bool:
@@ -45,7 +50,7 @@ def is_pmc_open(pmcid: str | None) -> bool:
     with requests.get(url, headers={"Accept-Encoding": "gzip, deflate"}) as r:
         if r.status_code != 200:
             err = f"Request for PMCID {pmcid} failed with status {r.status_code}"
-            logger.error(err)
+            logger().error(err)
             raise requests.HTTPError(err)
 
         meta = xmltodict.parse(r.text)
@@ -88,6 +93,11 @@ def format_esummary_fields(fields: list[dict] | dict) -> dict[str, Any]:
                     fields["eSummaryResult"]["DocSum"]["Item"]
                 )
             except KeyError as e:
-                raise ValueError(f"Invalid ESummary structure: missing {e}")
+                # This may happen when BRENDA has the wrong Pubmed ID for an item.
+                logger().error(
+                    f"Invalid ESummary structure: missing {e}."
+                    f" Error:\n {fields["eSummaryResult"]["ERROR"]}"
+                )
+                return {}
 
     return {field["@Name"]: parse_field(field) for field in fields}

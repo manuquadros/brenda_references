@@ -1,6 +1,7 @@
 from .config import config
 import pandas as pd
 from cacheout import Cache
+from typing import cast
 import time
 from log import logger
 
@@ -27,7 +28,7 @@ def lpsn_name(record: pd.Series) -> str:
     return " ".join((record["genus_name"], record["sp_epithet"], subs_epithet)).strip()
 
 
-def lpsn_synonyms(query: int | str) -> set[str]:
+def lpsn_synonyms(query: int | str) -> frozenset[str]:
     qtype = type(query).__name__
     match qtype:
         case "int":
@@ -42,12 +43,12 @@ def lpsn_synonyms(query: int | str) -> set[str]:
             return frozenset(names)
 
         case "str":
-            return lpsn_synonyms(lpsn_id(query))
+            _id = lpsn_id(cast(str, query))
+            return lpsn_synonyms(_id) if _id else frozenset()
 
         case _:
-            raise TypeError(
-                f"Invalid LPSN synonym query: {qtype} is not int or string."
-            )
+            logger().error(f"Invalid LPSN synonym query: {qtype} is not int or string.")
+            return frozenset()
 
 
 def lpsn_id(name: str) -> int | None:
