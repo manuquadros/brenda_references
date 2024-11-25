@@ -13,7 +13,6 @@ include = ["config.toml", "data/bacteria.txt", "data/lpsn_gss_2024-11-19.csv"]
 python = "^3.11"
 rapidfuzz = "^3.10.1"
 sqlmodel = "0.*"
-mysqlclient = "^2.2.5"
 tqdm = "^4.67.0"
 requests = "^2.32.3"
 xmltodict = "^0.14.2"
