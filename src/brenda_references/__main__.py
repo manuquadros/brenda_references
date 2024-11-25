@@ -25,15 +25,21 @@ def expand_doc(doc: Document) -> Document:
     if not doc.pubmed_id:
         return doc
 
-    article_ids = get_article_ids(doc.pubmed_id)
-    pmc_id = article_ids.get("pmc")
+    try:
+        article_ids = get_article_ids(doc.pubmed_id)
+    except KeyError:
+        print(doc)
+        pmc_id = doi = None
+    else:
+        pmc_id = article_ids.get("pmc")
+        doi = article_ids.get("doi")
 
     if isinstance(pmc_id, str):
         pmc_id = pmc_id.replace("PMC", "")
 
     return doc.model_copy(
         update={
-            "doi": article_ids.get("doi"),
+            "doi": doi,
             "pmc_id": pmc_id,
             "pmc_open": is_pmc_open(article_ids.get("pmc")),
         }
