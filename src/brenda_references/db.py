@@ -118,17 +118,13 @@ def protein_connect_records(engine: Engine) -> TupleResult:
     return (record for record in records if is_bacteria(record._Organism.organism))
 
 
-def ec_synonyms(
-    engine: Engine, ec_class_id: int, doc_id: int | None = None
-) -> set[str]:
+def ec_synonyms(engine: Engine, ec_class_id: int) -> list[tuple[str, int]]:
     """
-    For a given EC class, fetch a deduplicated list of its synonyms.
-
-    If `doc_id` is provided, return only the synonyms referenced in that article.
+    For a given EC class, fetch a synonym, reference_id pairs.
     """
     with Session(engine) as session:
         query = (
-            select(EC_Synonyms.synonyms)
+            select(EC_Synonyms.synonyms, EC_Synonyms_Connect.reference_id)
             .join_from(
                 EC_Synonyms,
                 EC_Synonyms_Connect,
@@ -137,9 +133,6 @@ def ec_synonyms(
             .where(EC_Synonyms_Connect.ec_class_id == ec_class_id)
         )
 
-        if doc_id:
-            query = query.where(EC_Synonyms_Connect.reference_id == doc_id)
+        synonyms = session.exec(query).all()
 
-        synonyms = session.exec(query).unique().all()
-
-    return set(synonyms)
+    return synonyms

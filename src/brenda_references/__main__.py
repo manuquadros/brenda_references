@@ -70,30 +70,24 @@ def sync_doc_db():
 
     db_engine = db.get_engine()
 
-    # entities = store.setdefault("entity", {})
-    # documents = store.setdefault("document", {})
-    # ecs = entities.setdefault("EC", dict())
-    # bacteria = entities.setdefault("bacteria", dict())
-    # strains = entities.setdefault("strains", dict())
-
     for record in tqdm(db.protein_connect_records(db_engine)):
         doc_id = record._Reference.reference_id
-        ec_id = record._EC.ec_class_id
         organism_id = record._Organism.organism_id
         strain_mention = record._Strain.name
 
         doc = get_document(store, record)
 
+        ec_id = record._EC.ec_class_id
+        ec_synonyms = db.ec_synonyms(db_engine, ec_id)
+
         if ec_id not in store.enzymes:
-            synonyms = db.ec_synonyms(db_engine, record._EC.ec_class_id)
-            ec = EC.model_validate(record._EC, from_attributes=True).copy(
-                update={"synonyms": synonyms}
-            )
-            store.enzymes[ec_id] = ec.model_dump(exclude={"ec_class_id"})
+            ec = EC.model_validate(record._EC, from_attributes=True)
+            ec.synonyms = frozenset(pair[0] for pair in ec_synonyms)
+            store.enzymes[ec_id] = ec
 
         # Add to doc those EC synonyms that are attested in the article
         doc.enzymes.setdefault(ec_id, set()).update(
-            db.ec_synonyms(db_engine, ec_id, record._Reference.reference_id)
+            set(pair[0] for pair in ec_synonyms if pair[1] == doc_id)
         )
 
         if organism_id not in store.bacteria:
