@@ -17,9 +17,6 @@ class BaseReference(BaseModel):
     path: str
 
 
-type EntityNames = dict[int, frozenset[str]]
-
-
 class Document(BaseReference):
     def model_post_init(self, __context: Any) -> None:
         self.modified = self.created
@@ -31,9 +28,9 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
-    enzymes: EntityNames = {}
-    bacteria: EntityNames = {}
-    strains: EntityNames = {}
+    enzymes: dict[int, set[str]] = dict()
+    bacteria: dict[int, set[str]] = dict()
+    strains: dict[int, set[str]] = dict()
 
 
 class BaseOrganism(BaseModel):
@@ -52,12 +49,6 @@ class Bacteria(Organism):
         return lpsn_id(self.organism)
 
 
-class Strain(Organism):
-    straininfo_id: int | None = None
-    taxon: str
-    cultures: frozenset[str] | None
-
-
 class BaseEC(BaseModel):
     ec_class_id: PositiveInt
     ec_class: str
@@ -66,3 +57,29 @@ class BaseEC(BaseModel):
 
 class EC(BaseEC):
     synonyms: frozenset[str] | None = None
+
+
+class Culture(BaseModel, frozen=True):
+    id: int
+    strain_number: str
+
+
+class Taxon(BaseModel):
+    name: str
+    lpsn: int | None = None
+    ncbi: int | None = None
+
+
+class Relation(BaseModel):
+    culture: list[Culture] | None = None
+    designation: list[str] | None = None
+
+
+class Strain(BaseModel):
+    id: int = Field(description="The strain id on StrainInfo")
+    doi: str | None = None
+    merged: list[int] | None = None
+    bacdive: int | None = None
+    taxon: Taxon
+    cultures: frozenset[Culture]
+    designations: frozenset[str]

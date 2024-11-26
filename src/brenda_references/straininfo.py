@@ -1,12 +1,24 @@
 import requests
 from log import logger
 from typing import Any, cast
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
+from functools import singledispatch
+from pydantic import BaseModel, Field, ValidationError, TypeAdapter
+from debug import print
+from typing import Optional
+from .brenda_types import Strain
+
 
 api_root = "https://api.straininfo.dsmz.de/v1/"
 
 
-def strain_info_api_url(query: list[int | str]) -> str:
+@singledispatch
+def strain_info_api_url(query: Any):
+    raise TypeError("<query> must be a str | int | Sequence[str] | Sequence[int]")
+
+
+@strain_info_api_url.register(list)
+def _(query: Sequence[str] | Sequence[int]) -> str:
     match type(query[0]).__name__:
         case "str":
             root = api_root + "search/strain/str_des/"
@@ -18,7 +30,12 @@ def strain_info_api_url(query: list[int | str]) -> str:
     return root + ",".join(map(str, query))
 
 
-def response(url: str) -> list[dict] | None:
+@strain_info_api_url.register
+def _(query: str | int) -> str:
+    return strain_info_api_url([query])
+
+
+def response(url: str) -> list[dict] | list[int]:
     with requests.get(
         url,
         headers={
@@ -32,46 +49,34 @@ def response(url: str) -> list[dict] | None:
                 return r.json()
             case 404:
                 logger().error(f"{url.split("/")[-1]} not found on StrainInfo.")
-                return None
+                return []
             case 503:
                 raise requests.HTTPError("StrainInfo is unavailable.")
             case code:
                 raise requests.HTTPError("Failed with HTTP Status {code}")
 
 
-def get_strain_ids(query: str | list[str]) -> list[int] | None:
-    if not isinstance(query, list):
-        query = [query]
-    return response(strain_info_api_url(query))
+def get_strain_ids(query: str | Sequence[str]) -> list[int]:
+    resp = response(strain_info_api_url(query))
+
+    if resp and isinstance(resp[0], int):
+        return cast(list[int], resp)
+
+    return []
 
 
-def get_strain_data(
-    query: int | str | list[str | int],
-) -> Iterable[dict[str, Any]] | None:
-    def subset_fields(d: dict | int):
-        if isinstance(d, int):
-            return d
+def get_strain_data(query: int | Sequence[int]) -> Iterable[Strain]:
+    data = cast(list[dict], response(strain_info_api_url(query))) if query else []
 
-        return {
-            "straininfo_id": d["strain"]["id"],
-            "taxon": d["strain"]["taxon"]["name"],
-            "cultures": frozenset(
-                culture["strain_number"]
-                for culture in d["strain"]["relation"]["culture"]
-            ),
-            "synonyms": frozenset(frozenset(d["strain"]["relation"]["designation"])),
-        }
-
-    if not isinstance(query, list):
-        query = [query]
-
-    if isinstance(query[0], str):
-        query = get_strain_ids(query)
-
-    data = cast(list[dict], response(strain_info_api_url(query)))
-
-    if isinstance(data, list) and len(data):
-        return (subset_fields(d) for d in data)
-    else:
-        logger().error(f"failed with {query}")
-        return None
+    try:
+        return (
+            Strain(
+                **item["strain"],
+                cultures=item["strain"]["relation"].get("culture", frozenset()),
+                designations=item["strain"]["relation"].get("designation", frozenset()),
+            )
+            for item in data
+        )
+    except ValidationError as e:
+        print(data)
+        raise e

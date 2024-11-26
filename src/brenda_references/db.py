@@ -103,7 +103,7 @@ def is_bacteria(organism: str) -> bool:
 def protein_connect_records(engine: Engine) -> TupleResult:
     with Session(engine) as session:
         query = (
-            select(Protein_Connect, _Organism, _EC, _Protein, _Reference)
+            select(Protein_Connect, _Organism, _EC, _Protein, _Reference, _Strain)
             .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
             .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
             .join(_Protein, Protein_Connect.protein_id == _Protein.protein_id)
@@ -121,7 +121,7 @@ def protein_connect_records(engine: Engine) -> TupleResult:
 
 def ec_synonyms(
     engine: Engine, ec_class_id: int, doc_id: int | None = None
-) -> frozenset[str]:
+) -> set[str]:
     """
     For a given EC class, fetch a deduplicated list of its synonyms.
 
@@ -143,4 +143,4 @@ def ec_synonyms(
 
         synonyms = session.exec(query).unique().all()
 
-    return frozenset(synonyms)
+    return set(synonyms)
