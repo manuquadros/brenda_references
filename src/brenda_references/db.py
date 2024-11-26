@@ -3,8 +3,7 @@ import os
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Engine
 from sqlalchemy.engine import TupleResult
-from sqlalchemy.sql.functions import random
-from sqlmodel import Field, Session, SQLModel, create_engine, join, select
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from brenda_references.brenda_types import BaseEC, BaseOrganism, BaseReference
 from brenda_references.config import config

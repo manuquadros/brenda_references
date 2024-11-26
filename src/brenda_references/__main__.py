@@ -1,17 +1,15 @@
 import json
 import os
-import tomllib
 
-from log import logger
 from ncbi import get_article_ids, is_pmc_open
 from tqdm import tqdm
 
 from brenda_references import db
 
-from .brenda_types import EC, Bacteria, Document, Organism
+from .brenda_types import EC, Bacteria, Document
 from .config import config
 from debug import print
-from .lpsn_interface import lpsn_id, lpsn_synonyms
+from .lpsn_interface import lpsn_synonyms
 from .straininfo import get_strain_data, get_strain_ids
 
 try:

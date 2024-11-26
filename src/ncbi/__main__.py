@@ -1,5 +1,4 @@
 from typing import Any
-from collections import Counter
 import requests
 import xmltodict
 from log import logger

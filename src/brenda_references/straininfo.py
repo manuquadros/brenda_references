@@ -3,9 +3,8 @@ from log import logger
 from typing import Any, cast
 from collections.abc import Iterable, Sequence
 from functools import singledispatch
-from pydantic import BaseModel, Field, ValidationError, TypeAdapter
+from pydantic import ValidationError
 from debug import print
-from typing import Optional
 from .brenda_types import Strain
 
 

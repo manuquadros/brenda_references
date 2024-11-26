@@ -18,6 +18,7 @@ requests = "^2.32.3"
 xmltodict = "^0.14.2"
 pandas = "^2.2.3"
 cacheout = "^0.16.0"
+prospector = {version = "^1.13.3", extras = ["with_everything"]}
 
 
 [tool.poetry.group.dev.dependencies]

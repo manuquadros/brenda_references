@@ -3,8 +3,6 @@ from functools import cached_property
 import datetime
 from typing import Any
 from .lpsn_interface import lpsn_id
-from log import logger
-from pprint import pformat
 
 
 class BaseReference(BaseModel):

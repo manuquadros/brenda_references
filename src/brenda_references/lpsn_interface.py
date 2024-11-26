@@ -2,7 +2,6 @@ from .config import config
 import pandas as pd
 from cacheout import Cache
 from typing import cast
-import time
 from log import logger
 
 cache = Cache()
