@@ -30,6 +30,7 @@ pytest = "^8.3.3"
 types-sqlalchemy = "^1.4.53.38"
 memray = "^1.14.0"
 pytest-memray = "^1.7.0"
+rich = "^13.9.4"
 
 [build-system]
 requires = ["poetry-core"]
