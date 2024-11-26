@@ -109,10 +109,5 @@ def sync_doc_db():
 
         documents[doc_id] = doc.model_dump()
 
-        print(doc)
-
-    print(store)
-
-    # with open(config["documents"], "w") as docs:
-    #     print(store)
-    #     json.dump(store, docs, indent=4)
+    with open(config["documents"], "w") as docs:
+        json.dump(store, docs, indent=4)
