@@ -6,11 +6,12 @@ from tqdm import tqdm
 
 from brenda_references import db
 
-from .brenda_types import EC, Bacteria, Document
+from .brenda_types import EC, Bacteria, Document, Store
 from .config import config
 from debug import print
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import get_strain_data, get_strain_ids
+from sqlalchemy.engine import TupleResult
 
 try:
     api_key = os.environ["NCBI_API_KEY"]
@@ -49,20 +50,31 @@ def expand_doc(doc: Document) -> Document:
     )
 
 
+def get_document(store: Store, record: TupleResult) -> Document:
+    reference = record._Reference
+
+    try:
+        return store.documents[reference.reference_id]
+    except KeyError:
+        doc = expand_doc(Document.model_validate(reference.model_dump()))
+        store.documents[reference.reference_id] = doc
+        return doc
+
+
 def sync_doc_db():
     try:
         with open(config["documents"], "r") as docs:
-            store = json.load(docs)
-    except (FileNotFoundError, json.JSONDecodeError):
-        store = {}
+            store = Store.model_validate_json(docs.read())
+    except FileNotFoundError:
+        store = Store()
 
     db_engine = db.get_engine()
 
-    entities = store.setdefault("entity", {})
-    documents = store.setdefault("document", {})
-    ecs = entities.setdefault("EC", dict())
-    bacteria = entities.setdefault("bacteria", dict())
-    strains = entities.setdefault("strains", dict())
+    # entities = store.setdefault("entity", {})
+    # documents = store.setdefault("document", {})
+    # ecs = entities.setdefault("EC", dict())
+    # bacteria = entities.setdefault("bacteria", dict())
+    # strains = entities.setdefault("strains", dict())
 
     for record in tqdm(db.protein_connect_records(db_engine)):
         doc_id = record._Reference.reference_id
@@ -70,23 +82,21 @@ def sync_doc_db():
         organism_id = record._Organism.organism_id
         strain_mention = record._Strain.name
 
-        if doc_id not in documents:
-            doc = Document.model_validate(record._Reference.model_dump())
-            doc = expand_doc(doc)
+        doc = get_document(store, record)
 
-        if ec_id not in entities:
+        if ec_id not in store.enzymes:
             synonyms = db.ec_synonyms(db_engine, record._EC.ec_class_id)
             ec = EC.model_validate(record._EC, from_attributes=True).copy(
                 update={"synonyms": synonyms}
             )
-            ecs[ec_id] = ec.model_dump(exclude={"ec_class_id"})
+            store.enzymes[ec_id] = ec.model_dump(exclude={"ec_class_id"})
 
         # Add to doc those EC synonyms that are attested in the article
         doc.enzymes.setdefault(ec_id, set()).update(
-            db.ec_synonyms(db_engine, ec_id, doc_id)
+            db.ec_synonyms(db_engine, ec_id, record._Reference.reference_id)
         )
 
-        if organism_id not in bacteria:
+        if organism_id not in store.bacteria:
             organism = Bacteria.model_validate(record._Organism, from_attributes=True)
 
             synonyms = lpsn_synonyms(organism.lpsn_id)
@@ -96,16 +106,20 @@ def sync_doc_db():
                 },
             )
 
-            bacteria[organism_id] = organism.model_dump(exclude={"organism_id"})
+            store.bacteria[organism_id] = organism.model_dump(exclude={"organism_id"})
             doc.bacteria.setdefault(organism_id, set()).add(organism.organism)
 
         if strain_mention:
             # straininfo_id key error
             for item in get_strain_data(get_strain_ids(strain_mention)):
                 doc.strains.setdefault(item.id, set()).add(strain_mention)
-                strains[item.id] = item
+                store.strains[item.id] = item
 
-        documents[doc_id] = doc.model_dump()
+        store.documents[doc_id] = doc.model_dump()
 
-    with open(config["documents"], "w") as docs:
-        json.dump(store, docs, indent=4)
+        break
+
+    print(store)
+
+    # with open(config["documents"], "w") as docs:
+    #     json.dump(store, docs, indent=4)

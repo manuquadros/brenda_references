@@ -32,7 +32,6 @@ class Document(BaseReference):
 
 
 class BaseOrganism(BaseModel):
-    organism_id: PositiveInt
     organism: str
 
 
@@ -48,7 +47,6 @@ class Bacteria(Organism):
 
 
 class BaseEC(BaseModel):
-    ec_class_id: PositiveInt
     ec_class: str
     recommended_name: str
 
@@ -81,3 +79,10 @@ class Strain(BaseModel):
     taxon: Taxon
     cultures: frozenset[Culture]
     designations: frozenset[str]
+
+
+class Store(BaseModel):
+    documents: dict[int, Document] = dict()
+    enzymes: dict[int, EC] = dict()
+    bacteria: dict[int, Bacteria] = dict()
+    strains: dict[int, Strain] = dict()
