@@ -1,13 +1,26 @@
 import os
+from typing import Iterable, Any
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Engine
-from sqlalchemy.engine import TupleResult
+from sqlalchemy.engine import Row, TupleResult
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from .brenda_types import BaseEC, BaseOrganism, BaseReference, Document
+from .brenda_types import (
+    EC,
+    Bacteria,
+    BaseEC,
+    BaseOrganism,
+    BaseReference,
+    BrendaStrain,
+    Document,
+    HasEnzyme,
+    HasSpecies,
+    Organism,
+    RelationTriple,
+)
 from .config import config
-from typing import Iterable
+from .straininfo import get_strain_ids
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore
@@ -101,7 +114,13 @@ def is_bacteria(organism: str) -> bool:
     return ratio > 90
 
 
-def brenda_bacterial_references(engine: Engine) -> Iterable[Document]:
+def brenda_references(engine: Engine) -> list[_Reference]:
+    with Session(engine) as session:
+        query = select(_Reference).limit(10)
+        return session.exec(query).fetchall()
+
+
+def brenda_bacterial_references(engine: Engine) -> Iterable[TupleResult]:
     with Session(engine) as session:
         query = (
             select(_Reference, Protein_Connect, _Organism)
@@ -120,6 +139,72 @@ def brenda_bacterial_references(engine: Engine) -> Iterable[Document]:
 
         if reference_id not in dispatched and is_bacteria(organism_name):
             yield Document.model_validate(record._Reference, from_attributes=True)
+
+
+def clean_name(model: SQLModel, name_field: str) -> tuple[SQLModel, bool]:
+    _, cleaned, name = getattr(model, name_field).rpartition("no activity in ")
+    return model.copy(update={name_field: name}), bool(cleaned)
+
+
+def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[Any]]:
+    """
+    Return relation triples and their participating entities for `reference_id`
+    """
+    with Session(engine) as session:
+        query = (
+            select(Protein_Connect, _Organism, _EC, _Strain)
+            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
+            .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
+            .outerjoin(
+                _Strain, Protein_Connect.protein_organism_strain_id == _Strain.id
+            )
+            .where(Protein_Connect.reference_id == reference_id)
+        )
+        records = session.exec(query).fetchall()
+
+    output = {
+        key: set()
+        for key in ("triples", "enzymes", "bacteria", "strains", "other_organisms")
+    }
+
+    for record in records:
+        organism, no_activity_organism = clean_name(record._Organism, "organism")
+
+        if record._Strain:
+            strain, no_activity_strain = clean_name(record._Strain, "organism_strain")
+
+            if not no_activity:
+                output["triples"].add(
+                    HasEnzyme(subject=strain.id, object=record._EC.ec_class_id),
+                )
+
+            output["triples"].add(
+                HasSpecies(subject=strain.id, object=organism.organism_id)
+            )
+            output["strains"].add(
+                BrendaStrain.model_validate(strain, from_attributes=True)
+            )
+        else:
+            if not no_activity_organism:
+                output["triples"].add(
+                    HasEnzyme(
+                        subject=organism.organism_id,
+                        object=record._EC.ec_class_id,
+                    )
+                )
+
+        if is_bacteria(organism.organism):
+            output["bacteria"].add(
+                Bacteria.model_validate(organism, from_attributes=True)
+            )
+        else:
+            output["other_organisms"].add(
+                Organism.model_validate(organism, from_attributes=True)
+            )
+
+        output["enzymes"].add(EC.model_validate(record._EC, from_attributes=True))
+
+    return output
 
 
 def protein_connect_records(engine: Engine) -> TupleResult:

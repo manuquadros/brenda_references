@@ -1,12 +1,18 @@
-from pydantic import BaseModel, PositiveInt, AwareDatetime, Field, computed_field
+from pydantic import (
+    BaseModel,
+    PositiveInt,
+    AwareDatetime,
+    Field,
+    computed_field,
+    field_serializer,
+)
 from functools import cached_property
 import datetime
-from typing import Any
+from typing import Any, TypedDict
 from .lpsn_interface import lpsn_id
 
 
 class BaseReference(BaseModel):
-    reference_id: int
     authors: str
     title: str
     journal: str
@@ -14,6 +20,19 @@ class BaseReference(BaseModel):
     pages: str
     pubmed_id: str
     path: str
+
+
+class RelationTriple(BaseModel, frozen=True):
+    subject: int
+    object: int
+
+
+class HasEnzyme(RelationTriple):
+    pass
+
+
+class HasSpecies(RelationTriple):
+    pass
 
 
 class Document(BaseReference):
@@ -30,13 +49,20 @@ class Document(BaseReference):
     enzymes: dict[int, set[str]] = dict()
     bacteria: dict[int, set[str]] = dict()
     strains: dict[int, set[str]] = dict()
+    other_organisms: dict[int, set[str]] = dict()
+    relations: set[HasEnzyme] = set()
+
+    @field_serializer("created", "modified")
+    def serialize_dt(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 class BaseOrganism(BaseModel):
     organism: str
 
 
-class Organism(BaseOrganism):
+class Organism(BaseOrganism, frozen=True):
+    id: int = Field(alias="organism_id")
     synonyms: frozenset[str] | None = None
 
 
@@ -52,7 +78,8 @@ class BaseEC(BaseModel):
     recommended_name: str
 
 
-class EC(BaseEC):
+class EC(BaseEC, frozen=True):
+    id: int = Field(alias="ec_class_id")
     synonyms: frozenset[str] | None = None
 
 
@@ -70,6 +97,11 @@ class Taxon(BaseModel):
 class Relation(BaseModel):
     culture: list[Culture] | None = None
     designation: list[str] | None = None
+
+
+class BrendaStrain(BaseModel):
+    id: int = Field(alias="protein_organism_strain_id")
+    name: str = Field(alias="organism_strain")
 
 
 class Strain(BaseModel):
