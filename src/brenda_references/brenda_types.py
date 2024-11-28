@@ -6,6 +6,7 @@ from .lpsn_interface import lpsn_id
 
 
 class BaseReference(BaseModel):
+    reference_id: int
     authors: str
     title: str
     journal: str

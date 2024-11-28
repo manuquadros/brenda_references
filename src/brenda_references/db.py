@@ -5,12 +5,14 @@ from sqlalchemy import URL, Engine
 from sqlalchemy.engine import TupleResult
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from brenda_references.brenda_types import BaseEC, BaseOrganism, BaseReference
-from brenda_references.config import config
+from .brenda_types import BaseEC, BaseOrganism, BaseReference, Document
+from .config import config
+from typing import Iterable
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
+    __tablename__ = "protein_connect"
     protein_connect_id: int = Field(primary_key=True)
     organism_id: int = Field(nullable=False)
     ec_class_id: int = Field(nullable=False)
@@ -97,6 +99,27 @@ def is_bacteria(organism: str) -> bool:
     _, ratio, _ = process.extract(organism, bacteria, scorer=fuzz.QRatio, limit=1)[0]
 
     return ratio > 90
+
+
+def brenda_bacterial_references(engine: Engine) -> Iterable[Document]:
+    with Session(engine) as session:
+        query = (
+            select(_Reference, Protein_Connect, _Organism)
+            .join(
+                Protein_Connect, Protein_Connect.reference_id == _Reference.reference_id
+            )
+            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
+        ).limit(10)
+        records = session.exec(query).fetchall()
+
+    dispatched: set[int] = set()
+
+    for record in records:
+        reference_id = record._Reference.reference_id
+        organism_name = record._Organism.organism
+
+        if reference_id not in dispatched and is_bacteria(organism_name):
+            yield Document.model_validate(record._Reference, from_attributes=True)
 
 
 def protein_connect_records(engine: Engine) -> TupleResult:
