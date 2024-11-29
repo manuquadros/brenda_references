@@ -3,10 +3,14 @@ import requests
 import xmltodict
 from log import logger
 import pprint
-from utils import retry_if_too_many_requests
+from utils import retry_if_too_many_requests, maybe_wait
+import time
+
+last_call = time.time()
 
 
 @retry_if_too_many_requests
+@maybe_wait
 def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str]:
     url = (
         "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
@@ -16,7 +20,9 @@ def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str
     if api_key:
         url += f"&api_key={api_key}"
 
-    with requests.get(url, headers={"Accept-Encoding": "gzip, deflate"}) as r:
+    with requests.get(
+        url, headers={"Accept-Encoding": "gzip, deflate"}, timeout=1
+    ) as r:
         if r.status_code != 200:
             err = (
                 f"Request for PubMed ID {pubmed_id} failed with status {r.status_code}"
@@ -47,7 +53,9 @@ def is_pmc_open(pmcid: str | None) -> bool:
         f"oai:pubmedcentral.nih.gov:{pmcid}&metadataPrefix=pmc_fm"
     )
 
-    with requests.get(url, headers={"Accept-Encoding": "gzip, deflate"}) as r:
+    with requests.get(
+        url, headers={"Accept-Encoding": "gzip, deflate"}, timeout=1
+    ) as r:
         if r.status_code != 200:
             err = f"Request for PMCID {pmcid} failed with status {r.status_code}"
             logger().error(err)

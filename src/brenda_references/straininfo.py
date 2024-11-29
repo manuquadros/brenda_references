@@ -49,6 +49,7 @@ def response(url: str) -> list[dict] | list[int]:
             "Cache-Control": "no-store",
             "Accept-Encoding": "gzip, deflate",
         },
+        timeout=1,
     ) as r:
         match r.status_code:
             case 200:
