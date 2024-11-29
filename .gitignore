@@ -1,3 +1,7 @@
+# Data files
+init_vars.sh
+data/documents.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
