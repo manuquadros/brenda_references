@@ -30,17 +30,15 @@ def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str
         return format_esummary_fields(metadata)["ArticleIds"]
     except KeyError as e:
         logger().error(
-            f"Failed on {pubmed_id}." f" Full record:\n {pprint.pformat(metadata)}"
+            "Failed on %s. Full record:\n %s", pubmed_id, pprint.pformat(metadata)
         )
         raise e
 
 
 @retry_if_too_many_requests
 def is_pmc_open(pmcid: str | None) -> bool:
-    """
-    Given a PMC ID, get its record in PMC front matter format, and check
-    whether it is available in full-text.
-    """
+    """Given a PMC ID, get its record in PMC front matter format and check
+    whether it is available in full-text."""
     if not pmcid:
         return False
 
@@ -61,8 +59,8 @@ def is_pmc_open(pmcid: str | None) -> bool:
         record = meta["OAI-PMH"]["GetRecord"]["record"]
     except KeyError:
         return False
-    else:
-        return "pmc-open" in record.get("header", {}).get("setSpec", [])
+
+    return "pmc-open" in record.get("header", {}).get("setSpec", [])
 
 
 def format_esummary_fields(fields: list[dict] | dict) -> dict[str, Any]:
@@ -89,17 +87,16 @@ def format_esummary_fields(fields: list[dict] | dict) -> dict[str, Any]:
     if isinstance(fields, dict):
         if "@Name" in fields:
             return {fields["@Name"]: fields.get("#text", "")}
-        else:
-            try:
-                return format_esummary_fields(
-                    fields["eSummaryResult"]["DocSum"]["Item"]
-                )
-            except KeyError as e:
-                # This may happen when BRENDA has the wrong Pubmed ID for an item.
-                logger().error(
-                    f"Invalid ESummary structure: missing {e}."
-                    f" Error:\n {fields["eSummaryResult"]["ERROR"]}"
-                )
-                return {}
+
+        try:
+            return format_esummary_fields(fields["eSummaryResult"]["DocSum"]["Item"])
+        except KeyError as e:
+            # This may happen when BRENDA has the wrong Pubmed ID for an item.
+            logger().error(
+                "Invalid ESummary structure: missing %s. Error:\n %s",
+                e,
+                fields["eSummaryResult"]["ERROR"],
+            )
+            return {}
 
     return {field["@Name"]: parse_field(field) for field in fields}

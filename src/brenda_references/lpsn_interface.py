@@ -48,7 +48,9 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
             return lpsn_synonyms(_id) if _id else frozenset()
 
         case _:
-            logger().error(f"Invalid LPSN synonym query: {qtype} is not int or string.")
+            logger().error(
+                "Invalid LPSN synonym query: %s is not int or string.", qtype
+            )
             return frozenset()
 
 
@@ -64,10 +66,12 @@ def lpsn_id(name: str) -> int | None:
 
     try:
         record = lpsn.query(query).iloc[0]
-    except:
+    except IndexError:
         logger().error(
-            f"Couldn't find an LPSN record for {name}. The query was {query}, where "
-            f"@name_part = {name_parts}."
+            "Couldn't find an LPSN record for %s. The query was %s, where @name_part = %s.",
+            name,
+            query,
+            name_parts,
         )
         return None
 

@@ -80,7 +80,7 @@ class EC_Synonyms(SQLModel, table=True):  # type: ignore
     synonyms: str
 
 
-with open(config["sources"]["bacteria"], "r") as sl:
+with open(config["sources"]["bacteria"], "r", encoding="utf-8") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 
@@ -123,9 +123,7 @@ def clean_name(model: SQLModel, name_field: str) -> tuple[SQLModel, bool]:
 
 
 def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[Any]]:
-    """
-    Return relation triples and their participating entities for `reference_id`
-    """
+    """Return relation triples and their participating entities for `reference_id`."""
     with Session(engine) as session:
         query = (
             select(Protein_Connect, _Organism, _EC, _Strain)
@@ -183,9 +181,7 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
 
 @lru_cache(maxsize=512)
 def ec_synonyms(engine: Engine, ec_class_id: int) -> list[tuple[str, int]]:
-    """
-    For a given EC class, fetch a synonym, reference_id pairs.
-    """
+    """For a given EC class, fetch a synonym, reference_id pairs."""
     with Session(engine) as session:
         query = (
             select(EC_Synonyms.synonyms, EC_Synonyms_Connect.reference_id)

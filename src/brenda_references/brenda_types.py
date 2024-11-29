@@ -6,6 +6,7 @@ from pydantic import (
     field_serializer,
 )
 from functools import cached_property
+from typing import Any
 import datetime
 from .lpsn_interface import lpsn_id
 
@@ -45,10 +46,10 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
-    enzymes: dict[int, set[str]] = dict()
-    bacteria: dict[int, set[str]] = dict()
-    strains: dict[int, set[str]] = dict()
-    other_organisms: dict[int, str] = dict()
+    enzymes: dict[int, set[str]] = {}
+    bacteria: dict[int, set[str]] = {}
+    strains: dict[int, set[str]] = {}
+    other_organisms: dict[int, str] = {}
     relations: set[HasEnzyme] = set()
 
     @field_serializer("created", "modified")
@@ -113,7 +114,7 @@ class Strain(BaseModel):
 
 
 class Store(BaseModel):
-    documents: dict[int, Document] = dict()
-    enzymes: dict[int, EC] = dict()
-    bacteria: dict[int, Bacteria] = dict()
-    strains: dict[int, Strain] = dict()
+    documents: dict[int, Document] = {}
+    enzymes: dict[int, EC] = {}
+    bacteria: dict[int, Bacteria] = {}
+    strains: dict[int, Strain] = {}

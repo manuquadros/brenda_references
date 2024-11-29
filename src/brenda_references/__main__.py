@@ -7,7 +7,6 @@ from brenda_references import db
 
 from .brenda_types import EC, Bacteria, Document
 from .config import config
-from debug import print
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import get_strain_data, get_strain_ids
 import tinydb
@@ -71,7 +70,7 @@ def enzyme_synonyms(
     enzymes: set[EC],
     reference_id: int,
 ) -> dict[int, set[str]]:
-    enzymes_in_doc = dict()
+    enzymes_in_doc = {}
 
     for enzyme in enzymes:
         synonym_refs = synonym_refs_dict[enzyme.id]
@@ -94,7 +93,7 @@ def enzyme_synonyms(
 def bacteria_synonyms(
     docdb: tinydb.TinyDB, bacteria: set[Bacteria]
 ) -> dict[int, set[str]]:
-    syn_in_doc = dict()
+    syn_in_doc = {}
 
     for bac in bacteria:
         syn_in_doc.setdefault(bac.id, set()).add(bac.organism)
@@ -111,7 +110,7 @@ def bacteria_synonyms(
 def strain_synonyms(
     docdb: tinydb.TinyDB, strains: set[db._Strain]
 ) -> dict[int, set[str]]:
-    syn_in_doc = dict()
+    syn_in_doc = {}
 
     for strain in strains:
         syn_in_doc.setdefault(strain.id, set()).add(strain.name)

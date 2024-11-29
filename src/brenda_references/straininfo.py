@@ -3,7 +3,6 @@ from functools import singledispatch, lru_cache
 from typing import Any, cast
 
 import requests
-from debug import print
 from log import logger
 from pydantic import ValidationError
 from utils import retry_if_too_many_requests
@@ -55,12 +54,12 @@ def response(url: str) -> list[dict] | list[int]:
             case 200:
                 return r.json()
             case 404:
-                logger().error(f"{url.split("/")[-1]} not found on StrainInfo.")
+                logger().error("%s not found on StrainInfo.", url.split("/")[-1])
                 return []
             case 503:
                 raise requests.HTTPError("StrainInfo is unavailable.")
             case code:
-                raise requests.HTTPError("Failed with HTTP Status {code}")
+                raise requests.HTTPError("Failed with HTTP Status %s" % code)
 
 
 @lru_cache(maxsize=1024)

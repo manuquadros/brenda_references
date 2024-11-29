@@ -1,4 +1,5 @@
-from .__main__ import sync_doc_db
+from .__main__ import *
+
 import stackprinter
 
 stackprinter.set_excepthook(style="darkbg2")

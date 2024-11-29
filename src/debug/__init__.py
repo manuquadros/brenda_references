@@ -1,1 +1,1 @@
-from .__main__ import rprint
+from .debug import rprint

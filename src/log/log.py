@@ -20,7 +20,7 @@ def logger(level=logging.DEBUG, filename=logfile):
     )
     handler.setFormatter(
         logging.Formatter(
-            fmt=f"%(asctime)s, %(module)s.%(funcName)s, %(levelname)s, %(message)s",
+            fmt="%(asctime)s, %(module)s.%(funcName)s, %(levelname)s, %(message)s",
             datefmt="%d %b %Y %H:%M:%S",
         )
     )
