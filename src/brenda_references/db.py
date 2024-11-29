@@ -61,6 +61,7 @@ class _Protein(SQLModel, table=True):  # type: ignore
 class _Strain(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein_organism_strain"
+    model_config = {"frozen": True}
     id: int = Field(
         sa_column_kwargs={"name": "protein_organism_strain_id"}, primary_key=True
     )
