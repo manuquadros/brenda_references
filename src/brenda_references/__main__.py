@@ -7,7 +7,7 @@ from tqdm import tqdm
 from brenda_references import db
 from collections.abc import Set
 
-from .brenda_types import EC, Bacteria, Document, Store, BrendaStrain, BaseModel
+from .brenda_types import EC, Bacteria, Document, Store, BaseModel
 from .config import config
 from debug import print
 from .lpsn_interface import lpsn_synonyms
@@ -112,7 +112,7 @@ def bacteria_synonyms(
 
 
 def strain_synonyms(
-    docdb: tinydb.TinyDB, strains: set[BrendaStrain]
+    docdb: tinydb.TinyDB, strains: set[db._Strain]
 ) -> dict[int, set[str]]:
     syn_in_doc = dict()
 

@@ -13,7 +13,6 @@ from .brenda_types import (
     BaseEC,
     BaseOrganism,
     BaseReference,
-    BrendaStrain,
     Document,
     HasEnzyme,
     HasSpecies,
@@ -161,9 +160,7 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
             output["triples"].add(
                 HasSpecies(subject=strain.id, object=organism.organism_id)
             )
-            output["strains"].add(
-                BrendaStrain.model_validate(strain, from_attributes=True)
-            )
+            output["strains"].add(strain)
         else:
             if not no_activity_organism:
                 output["triples"].add(

@@ -100,11 +100,6 @@ class Relation(BaseModel):
     designation: list[str] | None = None
 
 
-class BrendaStrain(BaseModel):
-    id: int = Field(alias="protein_organism_strain_id")
-    name: str = Field(alias="organism_strain")
-
-
 class Strain(BaseModel):
     id: int = Field(description="The strain id on StrainInfo")
     doi: str | None = None
