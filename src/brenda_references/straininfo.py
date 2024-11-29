@@ -74,18 +74,18 @@ def get_strain_ids(query: str | Sequence[str]) -> list[int]:
 
 
 @lru_cache(maxsize=1024)
-def get_strain_data(query: int | Sequence[int]) -> set[Strain]:
+def get_strain_data(query: int | Sequence[int]) -> Iterable[Strain]:
     data = cast(list[dict], response(strain_info_api_url(query))) if query else []
 
     try:
-        return {
+        return (
             Strain(
                 **item["strain"],
                 cultures=item["strain"]["relation"].get("culture", frozenset()),
                 designations=item["strain"]["relation"].get("designation", frozenset()),
             )
             for item in data
-        }
+        )
     except ValidationError as e:
         print(data)
         raise e
