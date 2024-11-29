@@ -151,9 +151,9 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
         organism, no_activity_organism = clean_name(record._Organism, "organism")
 
         if record._Strain:
-            strain, no_activity_strain = clean_name(record._Strain, "organism_strain")
+            strain, no_activity_strain = clean_name(record._Strain, "name")
 
-            if not no_activity:
+            if not no_activity_strain:
                 output["triples"].add(
                     HasEnzyme(subject=strain.id, object=record._EC.ec_class_id),
                 )
