@@ -65,7 +65,7 @@ def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
             )
         )
 
-    return doc
+    return Document.model_validate(doc)
 
 
 def enzyme_synonyms(
