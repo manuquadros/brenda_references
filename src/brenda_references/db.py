@@ -5,6 +5,7 @@ from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Engine
 from sqlalchemy.engine import Row, TupleResult
 from sqlmodel import Field, Session, SQLModel, create_engine, select
+from functools import lru_cache
 
 from .brenda_types import (
     EC,
@@ -226,6 +227,7 @@ def protein_connect_records(engine: Engine) -> TupleResult:
     return (record for record in records if is_bacteria(record._Organism.organism))
 
 
+@lru_cache(maxsize=512)
 def ec_synonyms(engine: Engine, ec_class_id: int) -> list[tuple[str, int]]:
     """
     For a given EC class, fetch a synonym, reference_id pairs.
