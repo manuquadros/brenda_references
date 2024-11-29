@@ -117,29 +117,8 @@ def is_bacteria(organism: str) -> bool:
 
 def brenda_references(engine: Engine) -> list[_Reference]:
     with Session(engine) as session:
-        query = select(_Reference).limit(10)
+        query = select(_Reference).limit(100)
         return session.exec(query).fetchall()
-
-
-def brenda_bacterial_references(engine: Engine) -> Iterable[TupleResult]:
-    with Session(engine) as session:
-        query = (
-            select(_Reference, Protein_Connect, _Organism)
-            .join(
-                Protein_Connect, Protein_Connect.reference_id == _Reference.reference_id
-            )
-            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
-        ).limit(10)
-        records = session.exec(query).fetchall()
-
-    dispatched: set[int] = set()
-
-    for record in records:
-        reference_id = record._Reference.reference_id
-        organism_name = record._Organism.organism
-
-        if reference_id not in dispatched and is_bacteria(organism_name):
-            yield Document.model_validate(record._Reference, from_attributes=True)
 
 
 def clean_name(model: SQLModel, name_field: str) -> tuple[SQLModel, bool]:
@@ -206,25 +185,6 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
         output["enzymes"].add(EC.model_validate(record._EC, from_attributes=True))
 
     return output
-
-
-def protein_connect_records(engine: Engine) -> TupleResult:
-    with Session(engine) as session:
-        query = (
-            select(Protein_Connect, _Organism, _EC, _Protein, _Reference, _Strain)
-            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
-            .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
-            .join(_Protein, Protein_Connect.protein_id == _Protein.protein_id)
-            .join(
-                _Reference,
-                Protein_Connect.reference_id == _Reference.reference_id,
-            )
-            .join(_Strain, Protein_Connect.protein_organism_strain_id == _Strain.id)
-            .limit(100)
-        )
-        records = session.exec(query).fetchall()
-
-    return (record for record in records if is_bacteria(record._Organism.organism))
 
 
 @lru_cache(maxsize=512)
