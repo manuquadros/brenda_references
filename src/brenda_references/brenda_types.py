@@ -85,7 +85,9 @@ class EC(BaseEC, frozen=True):
 
 
 class Culture(BaseModel, frozen=True):
-    id: int
+    siid: int = Field(
+        description="The id of the culture on StrainInfo", validation_alias="id"
+    )
     strain_number: str
 
 
@@ -101,7 +103,9 @@ class Relation(BaseModel):
 
 
 class Strain(BaseModel):
-    id: int = Field(description="The strain id on StrainInfo")
+    siid: int = Field(
+        description="The id of the strain on StrainInfo", validation_alias="id"
+    )
     doi: str | None = None
     merged: list[int] | None = None
     bacdive: int | None = None
