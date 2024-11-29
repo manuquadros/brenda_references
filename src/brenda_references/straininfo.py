@@ -16,18 +16,22 @@ api_root = "https://api.straininfo.dsmz.de/v1/"
 
 @singledispatch
 def strain_info_api_url(query: Any):
-    raise TypeError("<query> must be a str | int | Sequence[str] | Sequence[int]")
+    raise TypeError("<query> must be a str | int | Iterable[str] | Iterable[int]")
 
 
-@strain_info_api_url.register(list)
-def _(query: Sequence[str] | Sequence[int]) -> str:
-    match type(query[0]).__name__:
-        case "str":
-            root = api_root + "search/strain/str_des/"
-        case "int":
-            root = api_root + "data/strain/max/"
-        case _:
-            raise requests.exceptions.InvalidURL("Unknown API function (StrainInfo v1)")
+@strain_info_api_url.register(Iterable)
+def _(query: Iterable[str] | Iterable[int]) -> str:
+    for item in query:
+        match type(item).__name__:
+            case "str":
+                root = api_root + "search/strain/str_des/"
+            case "int":
+                root = api_root + "data/strain/max/"
+            case _:
+                raise requests.exceptions.InvalidURL(
+                    "Unknown API function (StrainInfo v1)"
+                )
+        break
 
     return root + ",".join(map(str, query))
 

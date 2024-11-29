@@ -118,10 +118,10 @@ def strain_synonyms(
 
     for strain in strains:
         syn_in_doc.setdefault(strain.id, set()).add(strain.name)
-        straindata = {
-            strain.model_dump(mode="json")
-            for strain in get_strain_data(get_strain_ids(strain.name))
-        }
+        straindata = [
+            data.model_dump(mode="json")
+            for data in get_strain_data(frozenset(get_strain_ids(strain.name)))
+        ]
         docdb.table("strains").upsert(
             tinydb.table.Document(straindata, doc_id=strain.id)
         )
