@@ -63,7 +63,7 @@ class BaseOrganism(BaseModel):
 
 class Organism(BaseOrganism, frozen=True):
     id: int = Field(alias="organism_id")
-    synonyms: set[str] | None = None
+    synonyms: frozenset[str] | None = None
 
 
 class Bacteria(Organism):
@@ -109,8 +109,8 @@ class Strain(BaseModel):
     merged: list[int] | None = None
     bacdive: int | None = None
     taxon: Taxon
-    cultures: set[Culture]
-    designations: set[str]
+    cultures: frozenset[Culture]
+    designations: frozenset[str]
 
 
 class Store(BaseModel):
