@@ -1,9 +1,8 @@
 import os
-from typing import Iterable, Any
+from typing import Any
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Engine
-from sqlalchemy.engine import Row, TupleResult
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from functools import lru_cache
 
@@ -13,14 +12,11 @@ from .brenda_types import (
     BaseEC,
     BaseOrganism,
     BaseReference,
-    Document,
     HasEnzyme,
     HasSpecies,
     Organism,
-    RelationTriple,
 )
 from .config import config
-from .straininfo import get_strain_ids
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore
@@ -117,7 +113,7 @@ def is_bacteria(organism: str) -> bool:
 
 def brenda_references(engine: Engine) -> list[_Reference]:
     with Session(engine) as session:
-        query = select(_Reference).limit(100)
+        query = select(_Reference).limit(20)
         return session.exec(query).fetchall()
 
 

@@ -1,6 +1,5 @@
 from pydantic import (
     BaseModel,
-    PositiveInt,
     AwareDatetime,
     Field,
     computed_field,
@@ -8,7 +7,6 @@ from pydantic import (
 )
 from functools import cached_property
 import datetime
-from typing import Any, TypedDict
 from .lpsn_interface import lpsn_id
 
 

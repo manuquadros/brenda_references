@@ -1,18 +1,15 @@
-import json
 import os
 
 from ncbi import get_article_ids, is_pmc_open
 from tqdm import tqdm
 
 from brenda_references import db
-from collections.abc import Set
 
-from .brenda_types import EC, Bacteria, Document, Store, BaseModel
+from .brenda_types import EC, Bacteria, Document
 from .config import config
 from debug import print
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import get_strain_data, get_strain_ids
-from sqlalchemy.engine import TupleResult
 import tinydb
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
