@@ -6,6 +6,8 @@ import requests
 from debug import print
 from log import logger
 from pydantic import ValidationError
+from utils import retry_if_too_many_requests
+
 
 from .brenda_types import Strain
 
@@ -35,6 +37,7 @@ def _(query: str | int) -> str:
     return strain_info_api_url([query])
 
 
+@retry_if_too_many_requests
 def response(url: str) -> list[dict] | list[int]:
     with requests.get(
         url,

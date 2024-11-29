@@ -3,8 +3,10 @@ import requests
 import xmltodict
 from log import logger
 import pprint
+from utils import retry_if_too_many_requests
 
 
+@retry_if_too_many_requests
 def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str]:
     url = (
         "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
@@ -33,6 +35,7 @@ def get_article_ids(pubmed_id: str, api_key: str | None = None) -> dict[str, str
         raise e
 
 
+@retry_if_too_many_requests
 def is_pmc_open(pmcid: str | None) -> bool:
     """
     Given a PMC ID, get its record in PMC front matter format, and check
