@@ -64,7 +64,7 @@ class BaseOrganism(BaseModel):
 
 class Organism(BaseOrganism, frozen=True):
     id: int = Field(alias="organism_id")
-    synonyms: frozenset[str] | None = None
+    synonyms: set[str] | None = None
 
 
 class Bacteria(Organism):
@@ -81,7 +81,7 @@ class BaseEC(BaseModel):
 
 class EC(BaseEC, frozen=True):
     id: int = Field(alias="ec_class_id")
-    synonyms: frozenset[str] | None = None
+    synonyms: set[str] | None = None
 
 
 class Culture(BaseModel, frozen=True):
@@ -106,8 +106,8 @@ class Strain(BaseModel):
     merged: list[int] | None = None
     bacdive: int | None = None
     taxon: Taxon
-    cultures: frozenset[Culture]
-    designations: frozenset[str]
+    cultures: set[Culture]
+    designations: set[str]
 
 
 class Store(BaseModel):
