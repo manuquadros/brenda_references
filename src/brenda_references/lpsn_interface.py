@@ -3,6 +3,7 @@ import pandas as pd
 from cacheout import Cache
 from typing import cast
 from log import logger
+from functools import lru_cache
 
 cache = Cache()
 
@@ -27,6 +28,7 @@ def lpsn_name(record: pd.Series) -> str:
     return " ".join((record["genus_name"], record["sp_epithet"], subs_epithet)).strip()
 
 
+@lru_cache
 def lpsn_synonyms(query: int | str) -> frozenset[str]:
     qtype = type(query).__name__
     match qtype:
@@ -50,6 +52,7 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
             return frozenset()
 
 
+@lru_cache
 def lpsn_id(name: str) -> int | None:
     lpsn = get_lpsn()
     keys = {0: "genus_name", 1: "sp_epithet", 2: "subsp_epithet"}
