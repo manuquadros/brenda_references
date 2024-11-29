@@ -18,6 +18,7 @@ class BaseReference(BaseModel):
     journal: str
     volume: str
     pages: str
+    year: int
     pubmed_id: str
     path: str
 
