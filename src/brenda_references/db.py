@@ -106,7 +106,7 @@ def get_engine():
         password=password,
     )
 
-    return create_engine(url_object, echo=True)
+    return create_engine(url_object)
 
 
 def is_bacteria(organism: str) -> bool:
