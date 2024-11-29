@@ -6,12 +6,15 @@ from tqdm import tqdm
 
 from brenda_references import db
 
-from .brenda_types import EC, Bacteria, Document, Store
+from .brenda_types import EC, Bacteria, Document, Store, BrendaStrain
 from .config import config
 from debug import print
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import get_strain_data, get_strain_ids
 from sqlalchemy.engine import TupleResult
+import tinydb
+from tinydb.middlewares import CachingMiddleware
+from tinydb.storages import JSONStorage
 
 try:
     api_key = os.environ["NCBI_API_KEY"]
@@ -50,70 +53,97 @@ def expand_doc(doc: Document) -> Document:
     )
 
 
-def get_document(store: Store, record: TupleResult) -> Document:
-    reference = record._Reference
+def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
+    doc = docdb.table("documents").get(doc_id=reference.reference_id)
 
-    try:
-        return store.documents[reference.reference_id]
-    except KeyError:
+    if not doc:
         doc = expand_doc(Document.model_validate(reference.model_dump()))
-        store.documents[reference.reference_id] = doc
-        return doc
+        docdb.table("documents").insert(
+            tinydb.table.Document(doc.model_dump(), doc_id=reference.reference_id)
+        )
+
+    return doc
+
+
+def enzyme_synonyms(
+    docdb: tinydb.TinyDB,
+    synonym_refs: dict[int, tuple[str, int]],
+    enzymes: set[EC],
+    reference_id: int,
+) -> dict[int, set[str]]:
+    enzymes_in_doc = dict()
+
+    for enzyme in enzymes:
+        enzymes_in_doc[enzyme.id] = {
+            syn[0] for syn in synonym_refs if syn[1] == reference_id
+        }
+
+        enzyme = item.model_copy(update={"synonyms": {syn[0] for syn in synonym_refs}})
+        docdb.table("enzymes").upsert(
+            tinydb.table.Document(enzyme.model_dump(exclude="id"), doc_id=enzyme.id)
+        )
+
+    return enzymes_in_doc
+
+
+def bacteria_synonyms(
+    docdb: tinydb.TinyDB, bacteria: set[Bacteria]
+) -> dict[int, set[str]]:
+    syn_in_doc = dict()
+
+    for bac in bacteria:
+        syn_in_doc.setdefault(bac.id, set()).add(bac.organism)
+        bac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
+        docdb.table("bacteria").upsert(
+            tinydb.table.Document(bac.model_dump(exclude="id"), doc_id=bac.id)
+        )
+
+    return syn_in_doc
+
+
+def strain_synonyms(
+    docdb: tinydb.TinyDB, strains: set[BrendaStrain]
+) -> dict[int, set[str]]:
+    syn_in_doc = dict()
+
+    for strain in strains:
+        syn_in_doc.setdefault(strain.id, set()).add(strain.name)
+        straindata = get_strain_data(get_strain_ids(strain.name))
+        docdb.table("strains").upsert(
+            tinydb.table.Document(straindata, doc_id=strain.id)
+        )
+
+    return syn_in_doc
 
 
 def sync_doc_db():
-    try:
-        with open(config["documents"], "r") as docs:
-            store = Store.model_validate_json(docs.read())
-    except FileNotFoundError:
-        store = Store()
-
     db_engine = db.get_engine()
 
-    for record in tqdm(db.protein_connect_records(db_engine)):
-        doc_id = record._Reference.reference_id
-        organism_id = record._Organism.organism_id
-        strain_mention = record._Strain.name
+    with tinydb.TinyDB(
+        config["documents"], storage=CachingMiddleware(JSONStorage)
+    ) as docdb:
+        for reference in tqdm(db.brenda_references(db_engine)):
+            # Collect all organism/enzyme relations annotated for the document
+            relations = db.brenda_enzyme_relations(db_engine, reference.reference_id)
+            ec_syn_refs = {
+                enzyme.id: db.ec_synonyms(db_engine, enzime.id)
+                for enzyme in relations["enzymes"]
+            }
 
-        doc = get_document(store, record)
-
-        ec_id = record._EC.ec_class_id
-        ec_synonyms = db.ec_synonyms(db_engine, ec_id)
-
-        if ec_id not in store.enzymes:
-            ec = EC.model_validate(record._EC, from_attributes=True)
-            ec.synonyms = frozenset(pair[0] for pair in ec_synonyms)
-            store.enzymes[ec_id] = ec
-
-        # Add to doc those EC synonyms that are attested in the article
-        doc.enzymes.setdefault(ec_id, set()).update(
-            set(pair[0] for pair in ec_synonyms if pair[1] == doc_id)
-        )
-
-        if organism_id not in store.bacteria:
-            organism = Bacteria.model_validate(record._Organism, from_attributes=True)
-
-            synonyms = lpsn_synonyms(organism.lpsn_id)
-            organism = organism.model_copy(
+            doc = get_document(docdb, reference).model_copy(
                 update={
-                    "synonyms": synonyms,
-                },
+                    "triples": relations["triples"],
+                    "enzymes": enzyme_synonyms(
+                        docdb, ec_syn_refs, relations["enzymes"], reference.reference_id
+                    ),
+                    "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
+                    "strains": strain_synonyms(docdb, relations["strains"]),
+                    "other_organisms": {
+                        org.id: org.organism for org in relations["other_organisms"]
+                    },
+                }
             )
 
-            store.bacteria[organism_id] = organism.model_dump(exclude={"organism_id"})
-            doc.bacteria.setdefault(organism_id, set()).add(organism.organism)
-
-        if strain_mention:
-            # straininfo_id key error
-            for item in get_strain_data(get_strain_ids(strain_mention)):
-                doc.strains.setdefault(item.id, set()).add(strain_mention)
-                store.strains[item.id] = item
-
-        store.documents[doc_id] = doc.model_dump()
-
-        break
-
-    print(store)
-
-    # with open(config["documents"], "w") as docs:
-    #     json.dump(store, docs, indent=4)
+            docdb.table("documents").upsert(
+                tinydb.table.Document(doc.model_dump(), doc_id=reference.reference_id)
+            )

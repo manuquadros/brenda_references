@@ -49,7 +49,7 @@ class Document(BaseReference):
     enzymes: dict[int, set[str]] = dict()
     bacteria: dict[int, set[str]] = dict()
     strains: dict[int, set[str]] = dict()
-    other_organisms: dict[int, set[str]] = dict()
+    other_organisms: dict[int, str] = dict()
     relations: set[HasEnzyme] = set()
 
     @field_serializer("created", "modified")

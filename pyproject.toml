@@ -19,6 +19,7 @@ xmltodict = "^0.14.2"
 pandas = "^2.2.3"
 cacheout = "^0.16.0"
 prospector = {version = "^1.13.3", extras = ["with_everything"]}
+tinydb = "^4.8.2"
 
 
 [tool.poetry.group.dev.dependencies]
