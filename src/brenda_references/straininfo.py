@@ -60,7 +60,7 @@ def response(url: str) -> list[dict] | list[int]:
             case 503:
                 raise requests.HTTPError("StrainInfo is unavailable.")
             case code:
-                raise requests.HTTPError("Failed with HTTP Status %s" % code)
+                raise requests.HTTPError(f"Failed with HTTP Status {code}")
 
 
 @lru_cache(maxsize=1024)

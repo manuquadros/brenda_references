@@ -113,7 +113,7 @@ def is_bacteria(organism: str) -> bool:
 
 def brenda_references(engine: Engine) -> list[_Reference]:
     with Session(engine) as session:
-        query = select(_Reference).limit(20)
+        query = select(_Reference)
         return session.exec(query).fetchall()
 
 
