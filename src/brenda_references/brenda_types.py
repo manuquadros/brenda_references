@@ -4,11 +4,14 @@ from pydantic import (
     Field,
     computed_field,
     field_serializer,
+    model_validator,
 )
 from functools import cached_property
 from typing import Any
 import datetime
 from .lpsn_interface import lpsn_id
+from log import logger
+from debug import rprint
 
 
 class BaseReference(BaseModel):
@@ -108,9 +111,19 @@ class Strain(BaseModel):
     doi: str | None = None
     merged: list[int] | None = None
     bacdive: int | None = None
-    taxon: Taxon
+    taxon: Taxon | None
     cultures: frozenset[Culture]
     designations: frozenset[str]
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_taxon(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "taxon" not in data:
+            logger().warning("StrainInfo has no taxon information for %d" % data["id"])
+            rprint(data)
+            data["taxon"] = None
+
+        return data
 
 
 class Store(BaseModel):
