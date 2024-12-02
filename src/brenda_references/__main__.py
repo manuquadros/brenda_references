@@ -1,6 +1,6 @@
 import os
 
-from ncbi import get_article_ids, is_pmc_open
+from ncbi import NCBIAdapter
 from tqdm import tqdm
 
 from brenda_references import db
@@ -13,22 +13,14 @@ import tinydb
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 
-try:
-    api_key = os.environ["NCBI_API_KEY"]
-except KeyError:
-    print(
-        "Continuing without API key. If you want to go faster, set the ",
-        "NCBI_API_KEY environment variable.",
-    )
 
-
-def expand_doc(doc: Document) -> Document:
+def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     """Check if we can find a PMCID and a DOI for the article."""
     if not doc.pubmed_id:
         return doc
 
     try:
-        article_ids = get_article_ids(doc.pubmed_id)
+        article_ids = ncbi.article_ids(doc.pubmed_id)
     except KeyError:
         print(doc)
         pmc_id = doi = None
@@ -36,7 +28,7 @@ def expand_doc(doc: Document) -> Document:
     else:
         pmc_id = article_ids.get("pmc")
         doi = article_ids.get("doi")
-        pmc_open = is_pmc_open(article_ids.get("pmc"))
+        pmc_open = ncbi.is_pmc_open(article_ids.get("pmc"))
 
     if isinstance(pmc_id, str):
         pmc_id = pmc_id.replace("PMC", "")
@@ -50,11 +42,13 @@ def expand_doc(doc: Document) -> Document:
     )
 
 
-def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
+def get_document(
+    docdb: tinydb.TinyDB, ncbi: NCBIAdapter, reference: db._Reference
+) -> Document:
     doc = docdb.table("documents").get(doc_id=reference.reference_id)
 
     if not doc:
-        doc = expand_doc(Document.model_validate(reference.model_dump()))
+        doc = expand_doc(ncbi, Document.model_validate(reference.model_dump()))
         docdb.table("documents").insert(
             tinydb.table.Document(
                 doc.model_dump(mode="json"), doc_id=reference.reference_id
@@ -128,9 +122,12 @@ def strain_synonyms(
 def sync_doc_db():
     db_engine = db.get_engine()
 
-    with tinydb.TinyDB(
-        config["documents"], storage=CachingMiddleware(JSONStorage)
-    ) as docdb:
+    with (
+        tinydb.TinyDB(
+            config["documents"], storage=CachingMiddleware(JSONStorage)
+        ) as docdb,
+        NCBIAdapter() as ncbi,
+    ):
         for reference in tqdm(db.brenda_references(db_engine)):
             # Collect all organism/enzyme relations annotated for the document
             relations = db.brenda_enzyme_relations(db_engine, reference.reference_id)
@@ -139,7 +136,7 @@ def sync_doc_db():
                 for enzyme in relations["enzymes"]
             }
 
-            doc = get_document(docdb, reference).model_copy(
+            doc = get_document(docdb, ncbi, reference).model_copy(
                 update={
                     "triples": relations["triples"],
                     "enzymes": enzyme_synonyms(
