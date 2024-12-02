@@ -74,11 +74,11 @@ def get_strain_ids(query: str | Sequence[str]) -> list[int]:
 
 
 @lru_cache(maxsize=1024)
-def get_strain_data(query: int | Sequence[int]) -> Iterable[Strain]:
+def get_strain_data(query: int | Sequence[int]) -> tuple[Strain]:
     data = cast(list[dict], response(strain_info_api_url(query))) if query else []
 
     try:
-        return (
+        return tuple(
             Strain(
                 **item["strain"],
                 cultures=item["strain"]["relation"].get("culture", frozenset()),
