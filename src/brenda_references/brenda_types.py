@@ -11,7 +11,6 @@ from typing import Any
 import datetime
 from .lpsn_interface import lpsn_id
 from log import logger
-from debug import rprint
 
 
 class BaseReference(BaseModel):
@@ -120,7 +119,6 @@ class Strain(BaseModel):
     def validate_taxon(cls, data: Any) -> Any:
         if isinstance(data, dict) and "taxon" not in data:
             logger().warning("StrainInfo has no taxon information for %d" % data["id"])
-            rprint(data)
             data["taxon"] = None
 
         return data
