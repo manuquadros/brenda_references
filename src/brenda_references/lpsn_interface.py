@@ -59,7 +59,11 @@ def lpsn_id(name: str) -> int | None:
     lpsn = get_lpsn()
     keys = {0: "genus_name", 1: "sp_epithet", 2: "subsp_epithet"}
     name_parts = (
-        name.replace("subsp.", "").replace("sp.", "").replace("pv.", "").split()
+        name.replace("subsp.", "")
+        .replace("ssp.", "")
+        .replace("sp.", "")
+        .replace("pv.", "")
+        .split()
     )
     name_parts += [""] * (3 - len(name_parts))
     query = " & ".join(
