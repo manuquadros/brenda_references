@@ -12,7 +12,10 @@ the latter.
 
 import os
 
+import tinydb
 from ncbi import NCBIAdapter
+from tinydb.middlewares import CachingMiddleware
+from tinydb.storages import JSONStorage
 from tqdm import tqdm
 
 from brenda_references import db
@@ -21,9 +24,6 @@ from .brenda_types import EC, Bacteria, Document
 from .config import config
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import get_strain_data, get_strain_ids
-import tinydb
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
 
 
 def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
@@ -54,18 +54,24 @@ def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     )
 
 
-def get_document(
-    docdb: tinydb.TinyDB, ncbi: NCBIAdapter, reference: db._Reference
-) -> Document:
+def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
     doc = docdb.table("documents").get(doc_id=reference.reference_id)
 
-    if not doc:
-        doc = expand_doc(ncbi, Document.model_validate(reference.model_dump()))
-        docdb.table("documents").insert(
-            tinydb.table.Document(
-                doc.model_dump(mode="json"), doc_id=reference.reference_id
-            )
+    if doc is None:
+        raise KeyError("{reference.reference_id} does not exist in the documents table")
+
+    return Document.model_validate(doc)
+
+
+def add_document(
+    docdb: tinydb.TinyDB, ncbi: NCBIAdapter, reference: db._Reference
+) -> Document:
+    doc = expand_doc(ncbi, Document.model_validate(reference.model_dump()))
+    docdb.table("documents").insert(
+        tinydb.table.Document(
+            doc.model_dump(mode="json"), doc_id=reference.reference_id
         )
+    )
 
     return Document.model_validate(doc)
 
@@ -146,29 +152,39 @@ def sync_doc_db():
         NCBIAdapter() as ncbi,
     ):
         for reference in tqdm(db.brenda_references(db_engine)):
-            # Collect all organism/enzyme relations annotated for the document
-            relations = db.brenda_enzyme_relations(db_engine, reference.reference_id)
-            ec_syn_refs = {
-                enzyme.id: db.ec_synonyms(db_engine, enzyme.id)
-                for enzyme in relations["enzymes"]
-            }
+            try:
+                doc = get_document(docdb, reference)
+            except KeyError:
+                doc = add_document(docdb, ncbi, reference)
 
-            doc = get_document(docdb, ncbi, reference).model_copy(
-                update={
-                    "triples": relations["triples"],
-                    "enzymes": enzyme_synonyms(
-                        docdb, ec_syn_refs, relations["enzymes"], reference.reference_id
-                    ),
-                    "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
-                    "strains": strain_synonyms(docdb, relations["strains"]),
-                    "other_organisms": {
-                        org.id: org.organism for org in relations["other_organisms"]
-                    },
-                }
-            )
-
-            docdb.table("documents").upsert(
-                tinydb.table.Document(
-                    doc.model_dump(mode="json"), doc_id=reference.reference_id
+                # Collect all organism/enzyme relations annotated for the document
+                relations = db.brenda_enzyme_relations(
+                    db_engine, reference.reference_id
                 )
-            )
+                ec_syn_refs = {
+                    enzyme.id: db.ec_synonyms(db_engine, enzyme.id)
+                    for enzyme in relations["enzymes"]
+                }
+
+                doc = doc.model_copy(
+                    update={
+                        "triples": relations["triples"],
+                        "enzymes": enzyme_synonyms(
+                            docdb,
+                            ec_syn_refs,
+                            relations["enzymes"],
+                            reference.reference_id,
+                        ),
+                        "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
+                        "strains": strain_synonyms(docdb, relations["strains"]),
+                        "other_organisms": {
+                            org.id: org.organism for org in relations["other_organisms"]
+                        },
+                    }
+                )
+
+                docdb.table("documents").upsert(
+                    tinydb.table.Document(
+                        doc.model_dump(mode="json"), doc_id=reference.reference_id
+                    )
+                )
