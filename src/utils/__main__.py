@@ -8,13 +8,18 @@ import time
 
 def retry_if_too_many_requests(func: Callable) -> Callable:
     def handler(exception: Exception):
-        if isinstance(exception, HTTPError | Timeout):
+        if isinstance(exception, HTTPError):
             if exception.code == 429:
                 print(
                     "HTTP Error 429: Too Many Requests... We are retrying in a few seconds."
                 )
             else:
                 print(exception, "retrying")
+
+            return True
+
+        if isinstance(exception, Timeout):
+            print(f"{func.__name__} timed out.")
 
             return True
 
@@ -29,7 +34,7 @@ def retry_if_too_many_requests(func: Callable) -> Callable:
     return wrapped
 
 
-last_call = {}
+last_call: dict[str, float] = {}
 
 
 def maybe_wait(func: Callable) -> Callable:
