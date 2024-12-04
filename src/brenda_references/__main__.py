@@ -1,3 +1,15 @@
+"""Brenda References
+
+This module provides functions to build a database of article references from
+the BRENDA database. Each article reference is linked to the enzymes it is
+associated with on BRENDA as well as with the organisms that are referenced
+by the article as expressing each particular enzyme.
+
+The main function is sync_doc_db, which will fetch references from BRENDA and
+update the JSON database it founds references that are not already stored in
+the latter.
+"""
+
 import os
 
 from ncbi import NCBIAdapter
