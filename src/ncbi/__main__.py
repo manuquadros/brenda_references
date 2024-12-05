@@ -80,7 +80,7 @@ class NCBIAdapter:
 
         record = self.__request(self.record_url(pmcid))
 
-        return "pmc_open" in (
+        return "pmc-open" in (
             record.get("OAI-PMH", {})
             .get("GetRecord", {})
             .get("record", {})
