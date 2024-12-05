@@ -1,9 +1,12 @@
-from .config import config
+import string
+from functools import lru_cache
+from typing import cast
+
 import pandas as pd
 from cacheout import Cache
-from typing import cast
 from log import logger
-from functools import lru_cache
+
+from .config import config
 
 cache = Cache()
 
@@ -74,7 +77,10 @@ def lpsn_id(name: str) -> int | None:
         record = lpsn.query(query).iloc[0]
     except IndexError:
         logger().error(
-            "Couldn't find an LPSN record for %s. The query was %s, where @name_part = %s.",
+            (
+                "Couldn't find an LPSN record for %s. "
+                "The query was %s, where @name_parts = %s."
+            ),
             name,
             query,
             name_parts,

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from tinydb import TinyDB
-from tinydb.storages import JSONStorage
-from tinydb.middlewares import CachingMiddleware
 from brenda_references.config import config
 from ncbi import NCBIAdapter
+from tinydb import TinyDB
+from tinydb.middlewares import CachingMiddleware
+from tinydb.storages import JSONStorage
 from tqdm import tqdm
 
 
@@ -21,4 +21,5 @@ def main():
             return transform
 
         for doc in tqdm(docdb.table("documents")):
-            docdb.table("documents").update(update_pmc_open(), doc_ids=[doc.doc_id])
+            if doc["pmc_id"] and not doc["pmc_open"]:
+                docdb.table("documents").update(update_pmc_open(), doc_ids=[doc.doc_id])

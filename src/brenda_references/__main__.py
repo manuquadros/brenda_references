@@ -1,4 +1,5 @@
-"""Brenda References
+"""
+Brenda References
 
 This module provides functions to build a database of article references from
 the BRENDA database. Each article reference is linked to the enzymes it is

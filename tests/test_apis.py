@@ -1,8 +1,8 @@
-from brenda_references.lpsn_interface import lpsn_synonyms, lpsn_id, get_lpsn
-from brenda_references.brenda_types import Organism, Bacteria, Strain
+import pytest
+from brenda_references.brenda_types import Bacteria, Organism, Strain
+from brenda_references.lpsn_interface import get_lpsn, lpsn_id, lpsn_synonyms
 from brenda_references.straininfo import StrainInfoAdapter
 from ncbi import NCBIAdapter
-import pytest
 
 get_lpsn()
 straininfo = StrainInfoAdapter()
@@ -39,7 +39,7 @@ def test_strain_id_retrieval():
 
 def test_pmc_open():
     with NCBIAdapter() as na:
-        assert na.is_pmc_open("365027") == True
+        assert na.is_pmc_open("365027") is True
 
 
 @pytest.mark.skip(reason="adjust the format of the test data before testing")
@@ -110,3 +110,19 @@ def test_strain_info_api_url():
         straininfo.strain_info_api_url([39812, 66469])
         == "https://api.straininfo.dsmz.de/v1/data/strain/max/39812,66469"
     )
+
+
+def test_expand_doc_gets_pmc_open():
+    doc = Document(
+        authors="",
+        title="",
+        journal="",
+        volume="",
+        pages="",
+        year=1986,
+        pubmed_id="15018644",
+        path="",
+    )
+
+    with NCBIAdapter() as ncbi:
+        assert expand_doc(ncbi, doc).pmc_open is True

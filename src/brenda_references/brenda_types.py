@@ -1,16 +1,19 @@
+import datetime
+from functools import cached_property
+from typing import Any
+
+from log import logger
 from pydantic import (
-    BaseModel,
+    AliasChoices,
     AwareDatetime,
+    BaseModel,
     Field,
     computed_field,
     field_serializer,
     model_validator,
 )
-from functools import cached_property
-from typing import Any
-import datetime
+
 from .lpsn_interface import lpsn_id
-from log import logger
 
 
 class BaseReference(BaseModel):
@@ -64,7 +67,7 @@ class BaseOrganism(BaseModel):
 
 
 class Organism(BaseOrganism, frozen=True):
-    id: int = Field(alias="organism_id")
+    id: int = Field(validation_alias=AliasChoices("id", "organism_id"))
     synonyms: frozenset[str] | None = None
 
 

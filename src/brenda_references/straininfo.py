@@ -104,8 +104,9 @@ class StrainInfoAdapter(APIAdapter):
         """Retrieve StrainInfo data for the strain IDs given in the argument.
 
         :param query: IDs to be queried through the API.
+
         :return: Tuple containing Strain models encapsulating the information
-        retrieved from StrainInfo.
+            retrieved from StrainInfo.
         """
         try:
             data = self.request(self.strain_info_api_url(query))
