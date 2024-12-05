@@ -50,7 +50,7 @@ class Document(BaseReference):
     modified: AwareDatetime | None = None
     enzymes: dict[int, set[str]] = {}
     bacteria: dict[int, set[str]] = {}
-    strains: dict[int, set[str]] = {}
+    strains: set[str | int] = set()
     other_organisms: dict[int, str] = {}
     relations: set[HasEnzyme] = set()
 
