@@ -1,17 +1,19 @@
 import pprint
 import time
-from typing import Any, Self
+from typing import Any
 from urllib3 import Retry
 import os
 
 import requests
 import xmltodict
 from log import logger
-from utils import maybe_wait, retry_if_too_many_requests
+from utils import maybe_wait, retry_if_too_many_requests, APIAdapter
 
 
-class NCBIAdapter:
+class NCBIAdapter(APIAdapter):
     def __init__(self) -> None:
+        super().__init__(headers={"Accept-Encoding": "gzip, deflate"})
+
         try:
             self.api_key = os.environ["NCBI_API_KEY"]
         except KeyError:
@@ -20,21 +22,17 @@ class NCBIAdapter:
                 "NCBI_API_KEY environment variable.",
             )
 
-    def __enter__(self) -> Self:
-        session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(
-            max_retries=Retry(connect=4, backoff_factor=0.5)
-        )
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        session.headers.update({"Accept-Encoding": "gzip, deflate"})
+    @staticmethod
+    def __response_handler(url: str, response: requests.Response) -> dict[str, Any]:
+        if response.status_code != 200:
+            err = f"Request for {url} failed with status {response.status_code}"
+            logger().error(err)
+            raise requests.HTTPError(err)
 
-        self.session = session
+        return xmltodict.parse(response.text)
 
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
-        self.session.close()
+    def request(self, url: str) -> dict[str, Any]:
+        return self.__response_handler(url, super().request(url))
 
     def summary_url(self, pubmed_id: str) -> str:
         url = (
@@ -54,17 +52,8 @@ class NCBIAdapter:
             f"oai:pubmedcentral.nih.gov:{pmcid}&metadataPrefix=pmc_fm"
         )
 
-    def __request(self, url: str) -> dict[str, Any]:
-        resp = self.session.get(url)
-        if resp.status_code != 200:
-            err = f"Request for {url} failed with status {resp.status_code}"
-            logger().error(err)
-            raise requests.HTTPError(err)
-
-        return xmltodict.parse(resp.text)
-
     def article_ids(self, pubmed_id: str) -> dict[str, str]:
-        record = self.__request(self.summary_url(pubmed_id))
+        record = self.request(self.summary_url(pubmed_id))
 
         try:
             return format_esummary_fields(record)["ArticleIds"]
@@ -78,7 +67,7 @@ class NCBIAdapter:
         if not pmcid:
             return False
 
-        record = self.__request(self.record_url(pmcid))
+        record = self.request(self.record_url(pmcid))
 
         return "pmc-open" in (
             record.get("OAI-PMH", {})

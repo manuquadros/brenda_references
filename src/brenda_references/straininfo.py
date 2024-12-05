@@ -1,59 +1,53 @@
 from collections.abc import Iterable, Sequence
-from functools import singledispatch, lru_cache
+from functools import lru_cache, singledispatchmethod
 from typing import Any, cast
 
 import requests
+import tinydb
 from log import logger
 from pydantic import ValidationError
-from utils import retry_if_too_many_requests
-
+from tinydb import Query, TinyDB
+from utils import APIAdapter
 
 from .brenda_types import Strain
 
 api_root = "https://api.straininfo.dsmz.de/v1/"
 
 
-@singledispatch
-def strain_info_api_url(query: Any):
-    raise TypeError("<query> must be a str | int | Iterable[str] | Iterable[int]")
+class StrainInfoAdapter(APIAdapter):
+    def __init__(self) -> None:
+        super().__init__(
+            headers={
+                "Accept": "application/json",
+                "Cache-Control": "no-store",
+                "Accept-Encoding": "gzip, deflate",
+            }
+        )
 
+        self.buffer: set[str] = set()
+        self.storage: TinyDB
 
-@strain_info_api_url.register(Iterable)
-def _(query: Iterable[str] | Iterable[int]) -> str:
-    for item in query:
-        match type(item).__name__:
-            case "str":
-                root = api_root + "search/strain/str_des/"
-            case "int":
-                root = api_root + "data/strain/max/"
-            case _:
-                raise requests.exceptions.InvalidURL(
-                    "Unknown API function (StrainInfo v1)"
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.__flush_buffer()
+
+    def __flush_buffer(self) -> None:
+        ids = self.get_strain_ids(tuple(self.buffer))
+        straininfo_data = self.get_strain_data(ids)
+
+        for si in straininfo_data:
+            self.storage.table("strains").upsert(
+                tinydb.table.Document(
+                    si.model_dump(exclude="siid", mode="json"), doc_id=si.siid
                 )
-        break
+            )
 
-    return root + ",".join(map(str, query))
-
-
-@strain_info_api_url.register
-def _(query: str | int) -> str:
-    return strain_info_api_url([query])
-
-
-@retry_if_too_many_requests
-def response(url: str) -> list[dict] | list[int]:
-    with requests.get(
-        url,
-        headers={
-            "Accept": "application/json",
-            "Cache-Control": "no-store",
-            "Accept-Encoding": "gzip, deflate",
-        },
-        timeout=1,
-    ) as r:
-        match r.status_code:
+    @staticmethod
+    def __response_handler(
+        url: str, response: requests.Response
+    ) -> list[dict] | list[int]:
+        match response.status_code:
             case 200:
-                return r.json()
+                return response.json()
             case 404:
                 logger().error("%s not found on StrainInfo.", url.split("/")[-1])
                 return []
@@ -62,30 +56,73 @@ def response(url: str) -> list[dict] | list[int]:
             case code:
                 raise requests.HTTPError(f"Failed with HTTP Status {code}")
 
+    def request(self, url: str) -> list[dict] | list[int]:
+        return self.__response_handler(url, super().request(url))
 
-@lru_cache(maxsize=1024)
-def get_strain_ids(query: str | Sequence[str]) -> list[int]:
-    resp = response(strain_info_api_url(query))
+    @singledispatchmethod
+    @staticmethod
+    def strain_info_api_url(query: Any):
+        raise TypeError("<query> must be a str | int | Iterable[str] | Iterable[int]")
 
-    if resp and isinstance(resp[0], int):
-        return cast(list[int], resp)
+    @strain_info_api_url.register(Iterable)
+    @staticmethod
+    def _(query: Iterable[str] | Iterable[int]) -> str:
+        if not query:
+            raise ValueError("No query specified")
 
-    return []
+        for item in query:
+            match type(item).__name__:
+                case "str":
+                    root = api_root + "search/strain/str_des/"
+                case "int":
+                    root = api_root + "data/strain/max/"
+                case _:
+                    raise requests.exceptions.InvalidURL(
+                        "Unknown API function (StrainInfo v1)"
+                    )
+            break
 
+        return root + ",".join(map(str, query))
 
-@lru_cache(maxsize=1024)
-def get_strain_data(query: int | Sequence[int]) -> tuple[Strain]:
-    data = cast(list[dict], response(strain_info_api_url(query))) if query else []
+    @strain_info_api_url.register
+    @staticmethod
+    def _(query: str | int) -> str:
+        return StrainInfoAdapter.strain_info_api_url([query])
 
-    try:
-        return tuple(
-            Strain(
-                **item["strain"],
-                cultures=item["strain"]["relation"].get("culture", frozenset()),
-                designations=item["strain"]["relation"].get("designation", frozenset()),
+    def get_strain_ids(self, query: str | Sequence[str]) -> list[int]:
+        if not query:
+            return []
+
+        response = self.request(self.strain_info_api_url(query))
+
+        if response and isinstance(response[0], int):
+            return cast(list[int], response)
+
+        return []
+
+    def get_strain_data(self, query: int | Sequence[int]) -> tuple[Strain, ...]:
+        """Retrieve StrainInfo data for the strain IDs given in the argument.
+
+        :param query: IDs to be queried through the API.
+        :return: Tuple containing Strain models encapsulating the information
+        retrieved from StrainInfo.
+        """
+        try:
+            data = self.request(self.strain_info_api_url(query))
+        except ValueError:
+            return ()
+
+        try:
+            return tuple(
+                Strain(
+                    **item["strain"],
+                    cultures=item["strain"]["relation"].get("culture", frozenset()),
+                    designations=item["strain"]["relation"].get(
+                        "designation", frozenset()
+                    ),
+                )
+                for item in data
             )
-            for item in data
-        )
-    except ValidationError as e:
-        print(data)
-        raise e
+        except ValidationError as e:
+            print(data)
+            raise e

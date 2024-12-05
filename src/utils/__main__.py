@@ -1,9 +1,13 @@
-from retrying import retry
-from typing import Callable
-from functools import wraps
-from urllib.error import HTTPError
-from requests.exceptions import Timeout
 import time
+from functools import wraps
+from typing import Callable, Self, Any
+from urllib.error import HTTPError
+
+import requests
+from log import logger
+from requests.exceptions import Timeout
+from retrying import retry
+from urllib3 import Retry
 
 
 def retry_if_too_many_requests(func: Callable) -> Callable:
@@ -32,6 +36,30 @@ def retry_if_too_many_requests(func: Callable) -> Callable:
         )(func)(*args, **kwargs)
 
     return wrapped
+
+
+class APIAdapter:
+    def __init__(self, headers: dict[str, str] = {}) -> None:
+        session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(
+            max_retries=Retry(connect=4, backoff_factor=0.5)
+        )
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        session.headers.update(headers)
+
+        self.session = session
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.session.close()
+
+    @retry_if_too_many_requests
+    def request(self, url: str) -> Any:
+        return self.session.get(url, timeout=1)
 
 
 last_call: dict[str, float] = {}
