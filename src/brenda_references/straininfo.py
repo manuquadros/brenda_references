@@ -31,6 +31,7 @@ class StrainInfoAdapter(APIAdapter):
         self.__flush_buffer()
 
     def __flush_buffer(self) -> None:
+        print("Flushing strain buffer")
         ids = self.get_strain_ids(tuple(self.buffer))
         straininfo_data = self.get_strain_data(ids)
 
@@ -40,6 +41,8 @@ class StrainInfoAdapter(APIAdapter):
                     si.model_dump(exclude="siid", mode="json"), doc_id=si.siid
                 )
             )
+
+        self.buffer = set()
 
     @staticmethod
     def __response_handler(
@@ -55,6 +58,12 @@ class StrainInfoAdapter(APIAdapter):
                 raise requests.HTTPError("StrainInfo is unavailable.")
             case code:
                 raise requests.HTTPError(f"Failed with HTTP Status {code}")
+
+    def store_strains(self, names: Iterable[str]) -> None:
+        self.buffer.update(names)
+
+        if len(self.buffer) > 100:
+            self.__flush_buffer()
 
     def request(self, url: str) -> list[dict] | list[int]:
         return self.__response_handler(url, super().request(url))
