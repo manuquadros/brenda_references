@@ -1,10 +1,10 @@
 import os
+from functools import lru_cache
 from typing import Any
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Engine
 from sqlmodel import Field, Session, SQLModel, create_engine, select
-from functools import lru_cache
 
 from .brenda_types import (
     EC,
@@ -181,7 +181,7 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
 
 @lru_cache(maxsize=512)
 def ec_synonyms(engine: Engine, ec_class_id: int) -> list[tuple[str, int]]:
-    """For a given EC class, fetch a synonym, reference_id pairs."""
+    """For a given EC class, fetch a list of synonym, reference_id pairs."""
     with Session(engine) as session:
         query = (
             select(EC_Synonyms.synonyms, EC_Synonyms_Connect.reference_id)

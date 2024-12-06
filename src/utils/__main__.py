@@ -4,7 +4,6 @@ from typing import Callable, Self, Any
 from urllib.error import HTTPError
 
 import requests
-from log import logger
 from requests.exceptions import Timeout
 from retrying import retry
 from urllib3 import Retry

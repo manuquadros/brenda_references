@@ -1,12 +1,12 @@
 from collections.abc import Iterable, Sequence
-from functools import lru_cache, singledispatchmethod
+from functools import singledispatchmethod
 from typing import Any, cast
 
 import requests
 import tinydb
 from log import logger
 from pydantic import ValidationError
-from tinydb import Query, TinyDB
+from tinydb import TinyDB
 from utils import APIAdapter
 
 from .brenda_types import Strain

@@ -1,13 +1,11 @@
 import pprint
-import time
 from typing import Any
-from urllib3 import Retry
 import os
 
 import requests
 import xmltodict
 from log import logger
-from utils import maybe_wait, retry_if_too_many_requests, APIAdapter
+from utils import APIAdapter
 
 
 class NCBIAdapter(APIAdapter):
