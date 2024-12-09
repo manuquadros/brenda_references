@@ -38,6 +38,10 @@ memray = "^1.14.0"
 pytest-memray = "^1.7.0"
 rich = "^13.9.4"
 stackprinter = "^0.2.12"
+flake8-pyproject = "^1.2.3"
+
+[tool.flake8]
+max_line_length = 88
 
 [build-system]
 requires = ["poetry-core"]
