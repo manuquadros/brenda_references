@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 from brenda_references import db
 
-from .brenda_types import EC, Bacteria, Document, Strain
+from .brenda_types import EC, Bacteria, Document
 from .config import config
 from .lpsn_interface import lpsn_synonyms, name_parts
 from .straininfo import StrainInfoAdapter
