@@ -1,6 +1,7 @@
-import pprint
-from typing import Any
 import os
+import pprint
+import re
+from typing import Any
 
 import requests
 import xmltodict
@@ -60,6 +61,10 @@ class NCBIAdapter(APIAdapter):
                 "Failed on %s. Full record:\n %s", pubmed_id, pprint.pformat(record)
             )
             raise e
+        except TypeError as e:
+            e.add_note(f"PubMed ID: {pubmed_id}")
+            logger().error(e)
+            return self.article_ids(re.match(r"\d+", pubmed_id)[0])
 
     def is_pmc_open(self, pmcid: str | None) -> bool:
         if not pmcid:
@@ -111,5 +116,7 @@ def format_esummary_fields(fields: list[dict] | dict) -> dict[str, Any]:
                 fields["eSummaryResult"]["ERROR"],
             )
             return {}
+        except TypeError:
+            raise
 
     return {field["@Name"]: parse_field(field) for field in fields}
