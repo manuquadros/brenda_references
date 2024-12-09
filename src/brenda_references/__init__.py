@@ -1,5 +1,5 @@
 import stackprinter
 
-from .__main__ import *
+from .brenda_references import sync_doc_db
 
 stackprinter.set_excepthook(style="darkbg2")
