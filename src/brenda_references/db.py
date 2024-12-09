@@ -4,6 +4,7 @@ from typing import Any
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Engine
+from sqlalchemy.orm import column_property
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from .brenda_types import (
@@ -57,11 +58,14 @@ class _Protein(SQLModel, table=True):  # type: ignore
 class _Strain(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein_organism_strain"
-    model_config = {"frozen": True}
-    id: int = Field(
-        sa_column_kwargs={"name": "protein_organism_strain_id"}, primary_key=True
-    )
-    name: str = Field(sa_column_kwargs={"name": "organism_strain"}, nullable=False)
+
+    protein_organism_strain_id: int = Field(primary_key=True)
+
+    # Map the 'id' property to protein_organism_strain_id using column_property
+    id: int = column_property(protein_organism_strain_id)
+
+    # Map the name field to organism_strain column
+    name: str = Field(sa_column="organism_strain")
 
 
 class EC_Synonyms_Connect(SQLModel, table=True):  # type: ignore
