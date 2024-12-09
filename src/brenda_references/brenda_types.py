@@ -11,9 +11,10 @@ from pydantic import (
     computed_field,
     field_serializer,
     model_validator,
+    field_validator,
 )
 
-from .lpsn_interface import lpsn_id
+from .lpsn_interface import lpsn_id, name_parts
 
 
 class BaseReference(BaseModel):
@@ -76,6 +77,13 @@ class Bacteria(Organism):
     @cached_property
     def lpsn_id(self) -> int | None:
         return lpsn_id(self.organism)
+
+    @field_validator("organism")
+    @classmethod
+    def remove_strain_designation(cls, name: str) -> str:
+        return " ".join(
+            term for key, term in name_parts(name).items() if key != "strain" and term
+        )
 
 
 class BaseEC(BaseModel):

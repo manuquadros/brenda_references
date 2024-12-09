@@ -12,19 +12,22 @@ the latter.
 """
 
 import os
+from functools import lru_cache
+from typing import Iterable
 
 import tinydb
 from ncbi import NCBIAdapter
+from tinydb import Query, TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tqdm import tqdm
 
 from brenda_references import db
 
-from .brenda_types import EC, Bacteria, Document
+from .brenda_types import EC, Bacteria, Document, Strain
 from .config import config
-from .lpsn_interface import lpsn_synonyms
-from .straininfo import get_strain_data, get_strain_ids
+from .lpsn_interface import lpsn_synonyms, name_parts
+from .straininfo import StrainInfoAdapter
 
 
 def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
@@ -41,10 +44,11 @@ def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     else:
         pmc_id = article_ids.get("pmc")
         doi = article_ids.get("doi")
-        pmc_open = ncbi.is_pmc_open(article_ids.get("pmc"))
 
-    if isinstance(pmc_id, str):
-        pmc_id = pmc_id.replace("PMC", "")
+        if isinstance(pmc_id, str):
+            pmc_id = pmc_id.replace("PMC", "")
+
+        pmc_open = ncbi.is_pmc_open(pmc_id)
 
     return doc.model_copy(
         update={
@@ -106,7 +110,7 @@ def enzyme_synonyms(
 def bacteria_synonyms(
     docdb: tinydb.TinyDB, bacteria: set[Bacteria]
 ) -> dict[int, set[str]]:
-    syn_in_doc = {}
+    syn_in_doc: dict[int, set[str]] = {}
 
     for bac in bacteria:
         syn_in_doc.setdefault(bac.id, set()).add(bac.organism)
@@ -120,30 +124,14 @@ def bacteria_synonyms(
     return syn_in_doc
 
 
-def strain_synonyms(
-    docdb: tinydb.TinyDB, strains: set[db._Strain]
-) -> dict[int, set[str]]:
-    syn_in_doc = {}
-
-    for strain in strains:
-        syn_in_doc.setdefault(strain.id, set()).add(strain.name)
-        straininfo = tuple(get_strain_data(frozenset(get_strain_ids(strain.name))))
-        docdb.table("strains").upsert(
-            tinydb.table.Document(
-                {"straininfo_ids": [si.siid for si in straininfo]}, doc_id=strain.id
-            )
-        )
-        for si in straininfo:
-            docdb.table("straininfo").upsert(
-                tinydb.table.Document(
-                    si.model_dump(exclude="siid", mode="json"), doc_id=si.siid
-                )
-            )
-
-    return syn_in_doc
+@lru_cache(maxsize=1024)
+def known_designation(docdb: TinyDB, designation: str) -> bool:
+    return docdb.table("documents").contains(
+        Query().strains.test(lambda attested: designation in attested)
+    )
 
 
-def sync_doc_db():
+def sync_doc_db() -> None:
     db_engine = db.get_engine()
 
     with (
@@ -151,7 +139,9 @@ def sync_doc_db():
             config["documents"], storage=CachingMiddleware(JSONStorage)
         ) as docdb,
         NCBIAdapter() as ncbi,
+        StrainInfoAdapter() as straininfo,
     ):
+        straininfo.storage = docdb
         for reference in tqdm(db.brenda_references(db_engine)):
             try:
                 doc = get_document(docdb, reference)
@@ -166,6 +156,18 @@ def sync_doc_db():
                     enzyme.id: db.ec_synonyms(db_engine, enzyme.id)
                     for enzyme in relations["enzymes"]
                 }
+                strain_names = {strain.name for strain in relations["strains"]}
+
+                # Check if any of the bacteria identified by the entry contains
+                # a strain designation that isn't already in strain_names
+                for bacteria in relations["bacteria"]:
+                    str_des = name_parts(bacteria.organism)["strain"]
+                    if str_des:
+                        strain_names.add(str_des)
+
+                straininfo.store_strains(
+                    name for name in strain_names if not known_designation(docdb, name)
+                )
 
                 doc = doc.model_copy(
                     update={
@@ -177,7 +179,7 @@ def sync_doc_db():
                             reference.reference_id,
                         ),
                         "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
-                        "strains": strain_synonyms(docdb, relations["strains"]),
+                        "strains": strain_names,
                         "other_organisms": {
                             org.id: org.organism for org in relations["other_organisms"]
                         },

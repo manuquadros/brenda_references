@@ -58,9 +58,7 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
 
 
 @lru_cache
-def lpsn_id(name: str) -> int | None:
-    lpsn = get_lpsn()
-    keys = {0: "genus_name", 1: "sp_epithet", 2: "subsp_epithet"}
+def name_parts(name: str) -> dict[str, str]:
     name_parts = (
         name.replace("subsp.", "")
         .replace("ssp.", "")
@@ -68,10 +66,26 @@ def lpsn_id(name: str) -> int | None:
         .replace("pv.", "")
         .split()
     )
-    name_parts += [""] * (3 - len(name_parts))
-    query = " & ".join(
-        f"{keys[key]} == @name_parts[{key}]" for key in range(len(name_parts))
-    )
+    keys = ("genus_name", "sp_epithet", "subsp_epithet", "strain")
+    out = {key: "" for key in keys}
+
+    for index, term in enumerate(name_parts):
+        if any(char not in string.ascii_lowercase for char in term[1:]):
+            out["strain"] = term
+            break
+        else:
+            out[keys[index]] = term
+
+    return out
+
+
+@lru_cache
+def lpsn_id(name: str) -> int | None:
+    lpsn = get_lpsn()
+    keys = ("genus_name", "sp_epithet", "subsp_epithet")
+    parts = name_parts(name)
+
+    query = " & ".join(f"{key} == '{parts[key]}'" for key in keys)
 
     try:
         record = lpsn.query(query).iloc[0]

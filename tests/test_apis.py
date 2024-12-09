@@ -1,6 +1,11 @@
 import pytest
-from brenda_references.brenda_types import Bacteria, Organism, Strain
-from brenda_references.lpsn_interface import get_lpsn, lpsn_id, lpsn_synonyms
+from brenda_references.brenda_types import Bacteria, Organism, Strain, Document
+from brenda_references.lpsn_interface import (
+    get_lpsn,
+    lpsn_id,
+    lpsn_synonymsm,
+    name_parts,
+)
 from brenda_references.straininfo import StrainInfoAdapter
 from ncbi import NCBIAdapter
 
@@ -13,6 +18,12 @@ thermoanaerobacter = Organism(organism_id=2, organism="Thermoanaerobacter subter
 def test_bacteria_post_init_lpsn_id():
     bac = Bacteria.model_validate(caldanaerobacter, from_attributes=True)
     assert bac.lpsn_id == 774333
+
+
+def test_strain_in_bacteria_name_is_detected():
+    bac = Bacteria(id=234, organism="Pyrococcus horikoshii OT3")
+    assert name_parts("Pyrococcus horikoshii OT3")["strain"] == "OT3"
+    assert bac.organism == "Pyrococcus horikoshii"
 
 
 def test_subterraneus_synonyms():
