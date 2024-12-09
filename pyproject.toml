@@ -11,6 +11,7 @@ include = ["config.toml", "data/bacteria.txt", "data/lpsn_gss_2024-11-19.csv"]
 
 [tool.poetry.scripts]
 update_pmc_open = "src.scripts.update_pmc_open:main"
+sync_doc_db = "src.brenda_references.brenda_references:sync_doc_db"
 
 [tool.poetry.dependencies]
 python = "^3.11"
