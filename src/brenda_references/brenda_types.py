@@ -28,16 +28,16 @@ class BaseReference(BaseModel):
     path: str
 
 
-class RelationTriple(BaseModel, frozen=True):
+class Triple(BaseModel, frozen=True):
     subject: int
     object: int
 
 
-class HasEnzyme(RelationTriple):
+class HasEnzyme(Triple):
     pass
 
 
-class HasSpecies(RelationTriple):
+class HasSpecies(Triple):
     pass
 
 
@@ -59,7 +59,7 @@ class Document(BaseReference):
     bacteria: dict[int, set[str]] = {}
     strains: set[str | int] = set()
     other_organisms: dict[int, str] = {}
-    relations: set[HasEnzyme] = set()
+    relations: dict[str, set[Triple]] = {}
 
     @field_serializer("created", "modified")
     def serialize_dt(self, dt: datetime, _info):

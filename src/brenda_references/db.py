@@ -30,6 +30,7 @@ from .brenda_types import (
     BaseReference,
     HasEnzyme,
     HasSpecies,
+    Triple,
     Organism,
 )
 from .config import config
@@ -195,11 +196,11 @@ def clean_name(
     would lead to those fields being stripped of the extraneous string and to
     a return value of `True`, to be handled by the caller.
     """
-    name, count = re.subn(rf"{pattern}", "", getattr(model, name_field))
-    return model.copy(update={name_field: name}), bool(count)
+    name, count = re.subn(rf"{pattern}", "", getattr(model, fieldname))
+    return model.copy(update={fieldname: name}), bool(count)
 
 
-def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[Any]]:
+def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, Any]:
     """Return the relation triples attested in `reference_id`, as well as their
     participating entities."""
     with Session(engine) as session:
@@ -214,10 +215,10 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
         )
         records = session.exec(query).fetchall()
 
-    output = {
-        key: set()
-        for key in ("triples", "enzymes", "bacteria", "strains", "other_organisms")
+    output: dict[str, Any] = {
+        key: set() for key in ("enzymes", "bacteria", "strains", "other_organisms")
     }
+    output["triples"] = {}
 
     for record in records:
         organism, no_activity_organism = clean_name(record._Organism, "organism")
@@ -226,17 +227,17 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[
             strain, no_activity_strain = clean_name(record._Strain, "name")
 
             if not no_activity_strain:
-                output["triples"].add(
+                output["triples"].setdefault("HasEnzyme", set()).add(
                     HasEnzyme(subject=strain.id, object=record._EC.ec_class_id),
                 )
 
-            output["triples"].add(
+            output["triples"].setdefault("HasSpecies", set()).add(
                 HasSpecies(subject=strain.id, object=organism.organism_id)
             )
             output["strains"].add(strain)
         else:
             if not no_activity_organism:
-                output["triples"].add(
+                output["triples"].setdefault("HasEnzyme", set()).add(
                     HasEnzyme(
                         subject=organism.organism_id,
                         object=record._EC.ec_class_id,
