@@ -4,6 +4,14 @@ brenda\_references package
 Submodules
 ----------
 
+brenda\_references.brenda\_references module
+--------------------------------------------
+
+.. automodule:: brenda_references.brenda_references
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 brenda\_references.brenda\_types module
 ---------------------------------------
 

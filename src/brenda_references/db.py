@@ -1,4 +1,20 @@
+"""
+This module provides the interface to the BRENDA database.
+
+`brenda_references`
+    Provides a list of article references from BRENDA.
+  
+`brenda_enzyme_relations`
+    Retrieves all relation triples and their participating entities for a given
+    reference.
+
+`ec_synonyms`
+    Retrieves all synonyms of a given EC Class, linked to the references where
+    they are attested in the database.
+"""
+
 import os
+import re
 from functools import lru_cache
 from typing import Any
 
@@ -20,41 +36,64 @@ from .config import config
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore
+    """Model mapping to the protein_connect table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein_connect"
-    protein_connect_id: int = Field(primary_key=True)
-    organism_id: int = Field(nullable=False)
-    ec_class_id: int = Field(nullable=False)
-    protein_organism_strain_id: int | None = Field()
-    reference_id: int = Field(nullable=False)
-    protein_id: int = Field(nullable=False)
+    protein_connect_id: int = Field(
+        primary_key=True, description="ID of the protein-organism connection in BRENDA."
+    )
+    organism_id: int = Field(
+        nullable=False,
+        description="Reference to the organism taking part in the relation.",
+    )
+    ec_class_id: int = Field(
+        nullable=False, description="Reference to the EC Class of the protein."
+    )
+    protein_organism_strain_id: int | None = Field(
+        description="Reference to a specific strain related to the protein, if available."
+    )
+    reference_id: int = Field(
+        nullable=False,
+        description="Reference to an article in which the connection is attested.",
+    )
 
 
 class _Reference(SQLModel, BaseReference, table=True):  # type: ignore
+    """Model mapping to the `reference` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "reference"
     reference_id: int = Field(primary_key=True)
 
 
 class _Organism(SQLModel, BaseOrganism, table=True):  # type: ignore
+    """Model mapping to the `organism` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "organism"
     organism_id: int = Field(primary_key=True)
 
 
 class _EC(SQLModel, BaseEC, table=True):  # type: ignore
+    """Model mapping to the `ec_class` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "ec_class"
     ec_class_id: int = Field(primary_key=True)
 
 
 class _Protein(SQLModel, table=True):  # type: ignore
+    """Model mapping to the `protein` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein"
     protein_id: int = Field(primary_key=True)
 
 
 class _Strain(SQLModel, table=True, frozen=True):  # type: ignore
+    """Model mapping to the `strain` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein_organism_strain"
     model_config = {"frozen": True}
@@ -68,6 +107,8 @@ class _Strain(SQLModel, table=True, frozen=True):  # type: ignore
 
 
 class EC_Synonyms_Connect(SQLModel, table=True):  # type: ignore
+    """Model mapping to the `synonyms_connect` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "synonyms_connect"
     synonyms_connect_id: int = Field(primary_key=True)
@@ -77,6 +118,8 @@ class EC_Synonyms_Connect(SQLModel, table=True):  # type: ignore
 
 
 class EC_Synonyms(SQLModel, table=True):  # type: ignore
+    """Model mapping to the `ec_synonyms` table of brenda_conn"""
+
     __table_args__ = {"keep_existing": True}
     __tablename__ = "synonyms"
     synonyms_id: int = Field(primary_key=True)
@@ -87,7 +130,12 @@ with open(config["sources"]["bacteria"], "r", encoding="utf-8") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 
-def get_engine():
+def get_engine() -> Engine:
+    """
+    Establishes a connection to the BRENDA database, using the login
+    login information stored in the BRENDA_USER and BRENDA_PASSWORD environment
+    variables.
+    """
     try:
         user, password = os.environ["BRENDA_USER"], os.environ["BRENDA_PASSWORD"]
     except KeyError as err:
@@ -109,24 +157,51 @@ def get_engine():
 
 
 def is_bacteria(organism: str) -> bool:
+    """Check whether `organism` is the name of a bacteria."""
     _, ratio, _ = process.extract(organism, bacteria, scorer=fuzz.QRatio, limit=1)[0]
 
     return ratio > 90
 
 
 def brenda_references(engine: Engine) -> list[_Reference]:
+    """Retrieve list of literature references in BRENDA."""
     with Session(engine) as session:
         query = select(_Reference)
         return session.exec(query).fetchall()
 
 
-def clean_name(model: SQLModel, name_field: str) -> tuple[SQLModel, bool]:
-    _, cleaned, name = getattr(model, name_field).rpartition("no activity in ")
-    return model.copy(update={name_field: name}), bool(cleaned)
+def clean_name(
+    model: SQLModel, fieldname: str, pattern: str = "no activity (in|by) "
+) -> tuple[SQLModel, bool]:
+    """Utility function to remove a string from `fieldname` in an SQLModel.
+
+    :param model: The SQLModel to be updated.
+    :param fieldname: The field of `model` where the offending string is to
+        found and cleaned up.
+    :param pattern: Regular expression characterizing the set of offending
+        strings.
+
+    :return: Tuple containing the updated model and a boolean value indicating
+        whether the pattern was found in the models `fieldname`.
+
+    Example:
+    --------
+    There are 1161 rows in the `organism` table of brenda_conn where the
+    `organism` field contains a string of the form "no activity in Eptesicus
+    fuscus" or "no activity by Mycobacterium smegmatis MSMEI_6484".::
+
+        clean_name(Organism, "organism", "no activity (in|by) ")
+
+    would lead to those fields being stripped of the extraneous string and to
+    a return value of `True`, to be handled by the caller.
+    """
+    name, count = re.subn(rf"{pattern}", "", getattr(model, name_field))
+    return model.copy(update={name_field: name}), bool(count)
 
 
 def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, set[Any]]:
-    """Return relation triples and their participating entities for `reference_id`."""
+    """Return the relation triples attested in `reference_id`, as well as their
+    participating entities."""
     with Session(engine) as session:
         query = (
             select(Protein_Connect, _Organism, _EC, _Strain)

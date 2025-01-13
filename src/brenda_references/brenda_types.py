@@ -52,7 +52,10 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
-    enzymes: dict[int, set[str]] = {}
+    enzymes: dict[int, set[str]] = Field(
+        description="Dictionary indexed by EC numbers, each of which corresponds to an EC class linked to the document in the BRENDA database. The values of the dictionary are the synonyms of the corresponding EC class registered in BRENDA.",
+        default={},
+    )
     bacteria: dict[int, set[str]] = {}
     strains: set[str | int] = set()
     other_organisms: dict[int, str] = {}
@@ -120,10 +123,14 @@ class Strain(BaseModel):
     )
     doi: str | None = None
     merged: list[int] | None = None
-    bacdive: int | None = None
-    taxon: Taxon | None
-    cultures: frozenset[Culture]
-    designations: frozenset[str]
+    bacdive: int | None = Field(description="ID of the strain on BacDive")
+    taxon: Taxon | None = Field(
+        description="Species to which the strain corresponds, if available"
+    )
+    cultures: frozenset[Culture] = Field(description="Cultures related to the strain")
+    designations: frozenset[str] = Field(
+        description="Designations for the strain other than the culture identifiers"
+    )
 
     @model_validator(mode="before")
     @classmethod
