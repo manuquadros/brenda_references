@@ -154,15 +154,6 @@ def bacteria_synonyms(
     return syn_in_doc
 
 
-@lru_cache(maxsize=1024)
-def known_designation(docdb: TinyDB, designation: str) -> bool:
-    """Check whether `designation` has been attested in any of the documents
-    in `docdb`."""
-    return docdb.table("documents").contains(
-        Query().strains.test(lambda attested: designation in attested)
-    )
-
-
 def sync_doc_db() -> None:
     """Make sure that the references present in BRENDA are processed and
     reflected in the JSON database.
@@ -211,10 +202,11 @@ def sync_doc_db() -> None:
                     enzyme.id: db.ec_synonyms(db_engine, enzyme.id)
                     for enzyme in relations["enzymes"]
                 }
-                strain_names = {strain.name for strain in relations["strains"]}
 
                 straininfo.store_strains(
-                    name for name in strain_names if not known_designation(docdb, name)
+                    strain
+                    for strain in relations["strains"]
+                    if not docdb.table("strains").contains(doc_id=strain.id)
                 )
 
                 doc = doc.model_copy(
