@@ -180,17 +180,6 @@ def sync_doc_db() -> None:
             try:
                 doc = get_document(docdb, reference)
 
-                if not doc.relations:
-                    relations = db.brenda_enzyme_relations(
-                        db_engine, reference.reference_id
-                    )
-                    doc = doc.model_copy(update={"relations": relations["triples"]})
-                    docdb.table("documents").upsert(
-                        tinydb.table.Document(
-                            doc.model_dump(mode="json"), doc_id=reference.reference_id
-                        )
-                    )
-
             except KeyError:
                 doc = add_document(docdb, ncbi, reference)
 
