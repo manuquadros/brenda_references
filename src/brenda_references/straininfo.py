@@ -119,6 +119,8 @@ class StrainInfoAdapter(APIAdapter):
         """
         try:
             data = self.request(self.strain_info_api_url(query))
+            for item in data:
+                item["siid"] = item.pop("id")
         except ValueError:
             return ()
 
