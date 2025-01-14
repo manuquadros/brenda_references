@@ -32,6 +32,7 @@ from .brenda_types import (
     HasSpecies,
     Triple,
     Organism,
+    Strain,
 )
 from .config import config
 
@@ -234,7 +235,7 @@ def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, Any]
             output["triples"].setdefault("HasSpecies", set()).add(
                 HasSpecies(subject=strain.id, object=organism.organism_id)
             )
-            output["strains"].add(strain)
+            output["strains"].add(Strain(id=strain.id, designations={strain.name}))
         else:
             if not no_activity_organism:
                 output["triples"].setdefault("HasEnzyme", set()).add(
