@@ -213,13 +213,6 @@ def sync_doc_db() -> None:
                 }
                 strain_names = {strain.name for strain in relations["strains"]}
 
-                # Check if any of the bacteria identified by the entry contains
-                # a strain designation that isn't already in strain_names
-                for bacteria in relations["bacteria"]:
-                    str_des = name_parts(bacteria.organism)["strain"]
-                    if str_des:
-                        strain_names.add(str_des)
-
                 straininfo.store_strains(
                     name for name in strain_names if not known_designation(docdb, name)
                 )
