@@ -57,7 +57,7 @@ class Document(BaseReference):
         default={},
     )
     bacteria: dict[int, set[str]] = {}
-    strains: set[str | int] = set()
+    strains: set[int] = set()
     other_organisms: dict[int, str] = {}
     relations: dict[str, set[Triple]] = {}
 

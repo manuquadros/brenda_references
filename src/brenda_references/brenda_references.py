@@ -208,7 +208,7 @@ def sync_doc_db() -> None:
                             reference.reference_id,
                         ),
                         "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
-                        "strains": strain_names,
+                        "strains": {strain.id for strain in relations["strains"]},
                         "other_organisms": {
                             org.id: org.organism for org in relations["other_organisms"]
                         },
