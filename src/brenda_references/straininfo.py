@@ -34,23 +34,25 @@ class StrainInfoAdapter(APIAdapter):
     def __flush_buffer(self) -> None:
         print("Flushing strain buffer")
         indexed_buffer = {model.id: model for model in self.buffer}
+        names_in_brenda = {model.name: model.id for model in self.buffer}
 
-        ids = self.get_strain_ids([model.name for model in self.buffer])
-        straininfo_data = {model.id: model for model in self.get_strain_data(ids)}
+        ids = self.get_strain_ids(list(names_in_brenda.keys()))
+        straininfo_data = (model for model in self.get_strain_data(ids))
 
         # Update the _Strain models with Straininfo information if available
-        for key, model in indexed_buffer.items():
-            try:
-                indexed_buffer[key] = straininfo_data[key].model_copy(
-                    update={"id": model.id, "siid": straininfo_data[key].id}
-                )
-            except KeyError:
-                curr = indexed_buffer[key]
-                indexed_buffer[key] = Strain(id=curr.id, designations={curr.name})
+        for entry in straininfo_data:
+            names = entry.designations | frozenset(
+                cult.strain_number for cult in entry.cultures
+            )
+            for name in filter(lambda w: w in names_in_brenda, names):
+                indexed_buffer[names_in_brenda[name]] = entry.model_copy()
 
-        for strain in indexed_buffer.values():
+        for key, strain in indexed_buffer.items():
+            if isinstance(strain, _Strain):
+                strain = Strain(designations={strain.name})
+
             self.storage.table("strains").upsert(
-                tinydb.table.Document(strain.model_dump(mode="json"), doc_id=strain.id)
+                tinydb.table.Document(strain.model_dump(), doc_id=key)
             )
 
         self.buffer = set()

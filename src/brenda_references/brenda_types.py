@@ -178,8 +178,7 @@ class Relation(BaseModel):
 
 
 class Strain(BaseModel):
-    id: int = Field(description="The id of the strain in BRENDA")
-    siid: int | None = Field(
+    id: int | None = Field(
         description="The id of the strain on StrainInfo, if found.", default=None
     )
     doi: str | None = None
@@ -205,7 +204,7 @@ class Strain(BaseModel):
     @classmethod
     def validate_taxon(cls, data: Any) -> Any:
         if isinstance(data, dict) and "taxon" not in data:
-            logger().warning("StrainInfo has no taxon information for %d" % data["id"])
+            logger().warning(f"StrainInfo has no taxon information for {data}")
             data["taxon"] = None
 
         return data
