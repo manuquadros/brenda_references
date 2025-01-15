@@ -19,6 +19,7 @@ from tinydb import Query, TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tqdm import tqdm
+from typing import Iterable
 
 from brenda_references import db
 
@@ -126,28 +127,19 @@ def enzyme_synonyms(
     return enzymes_in_doc
 
 
-def bacteria_synonyms(
-    docdb: tinydb.TinyDB, bacteria: set[Bacteria]
-) -> dict[int, set[str]]:
+def store_bacteria(docdb: tinydb.TinyDB, bacteria: Iterable[Bacteria]) -> None:
     """Retrieve bacterial synonyms from LPSN and store the resulting `Bacteria`
     models in the JSON database.
 
     :param docdb: The JSON database
     :param bacteria: Set of Bacteria models to be completed with synonyms
-
-    :return: dict keyed by bacteria ID, containing each of the organism's
-             synonyms that were attested in the document.
     """
-    syn_in_doc: dict[int, set[str]] = {}
 
     for bac in bacteria:
-        syn_in_doc.setdefault(bac.id, set()).add(bac.organism)
         bac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
         docdb.table("bacteria").upsert(
             tinydb.table.Document(bac.model_dump(exclude="id"), doc_id=bac.id)
         )
-
-    return syn_in_doc
 
 
 def sync_doc_db() -> None:
@@ -190,13 +182,17 @@ def sync_doc_db() -> None:
             }
 
             straininfo.store_strains(
-                strain
-                for strain in relations["strains"]
-                if not docdb.table("strains").contains(doc_id=strain.id)
+                [
+                    strain
+                    for strain in relations["strains"]
+                    if not docdb.table("strains").contains(doc_id=strain.id)
+                ]
             )
 
-            doc.update(
-                {
+            store_bacteria(docdb, relations["bacteria"])
+
+            document = Document.model_validate(doc).copy(
+                update={
                     "relations": relations["triples"],
                     "enzymes": enzyme_synonyms(
                         docdb,
@@ -204,7 +200,7 @@ def sync_doc_db() -> None:
                         relations["enzymes"],
                         reference.reference_id,
                     ),
-                    "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
+                    "bacteria": {bac.id: bac.organism for bac in relations["bacteria"]},
                     "strains": [strain.id for strain in relations["strains"]],
                     "other_organisms": {
                         org.id: org.organism for org in relations["other_organisms"]
