@@ -166,57 +166,56 @@ def sync_doc_db() -> None:
     on BRENDA has changed since the last time we visited it, except as to
     whether new references were added to it.
     """
-    db_engine = db.get_engine()
-
     with (
         tinydb.TinyDB(
             config["documents"], storage=CachingMiddleware(JSONStorage)
         ) as docdb,
         NCBIAdapter() as ncbi,
         StrainInfoAdapter() as straininfo,
+        db.BRENDA() as brenda,
     ):
         straininfo.storage = docdb
-        for reference in tqdm(db.brenda_references(db_engine)):
-            try:
-                doc = get_document(docdb, reference)
 
-            except KeyError:
-                doc = add_document(docdb, ncbi, reference)
+        print("Retrieving literature references.")
+        with tqdm(total=brenda.count_references()) as progress_bar:
+            for reference in brenda.references():
+                if not docdb.table("documents").contains(doc_id=reference.reference_id):
+                    doc = add_document(docdb, ncbi, reference)
+                progress_bar.update(1)
 
-                # Collect all organism/enzyme relations annotated for the document
-                relations = db.brenda_enzyme_relations(
-                    db_engine, reference.reference_id
-                )
-                ec_syn_refs = {
-                    enzyme.id: db.ec_synonyms(db_engine, enzyme.id)
-                    for enzyme in relations["enzymes"]
+        print("Retrieving enzyme-organism relations from BRENDA.")
+
+        # Collect all organism/enzyme relations annotated in BRENDA for each document
+        for doc in tqdm(docdb.table("documents")):
+            relations = brenda.enzyme_relations(doc.doc_id)
+            ec_syn_refs = {
+                enzyme.id: brenda.ec_synonyms(enzyme.id)
+                for enzyme in relations["enzymes"]
+            }
+
+            straininfo.store_strains(
+                strain
+                for strain in relations["strains"]
+                if not docdb.table("strains").contains(doc_id=strain.id)
+            )
+
+            doc.update(
+                {
+                    "relations": relations["triples"],
+                    "enzymes": enzyme_synonyms(
+                        docdb,
+                        ec_syn_refs,
+                        relations["enzymes"],
+                        reference.reference_id,
+                    ),
+                    "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
+                    "strains": {strain.id for strain in relations["strains"]},
+                    "other_organisms": {
+                        org.id: org.organism for org in relations["other_organisms"]
+                    },
                 }
+            )
 
-                straininfo.store_strains(
-                    strain
-                    for strain in relations["strains"]
-                    if not docdb.table("strains").contains(doc_id=strain.id)
-                )
-
-                doc = doc.model_copy(
-                    update={
-                        "relations": relations["triples"],
-                        "enzymes": enzyme_synonyms(
-                            docdb,
-                            ec_syn_refs,
-                            relations["enzymes"],
-                            reference.reference_id,
-                        ),
-                        "bacteria": bacteria_synonyms(docdb, relations["bacteria"]),
-                        "strains": {strain.id for strain in relations["strains"]},
-                        "other_organisms": {
-                            org.id: org.organism for org in relations["other_organisms"]
-                        },
-                    }
-                )
-
-                docdb.table("documents").upsert(
-                    tinydb.table.Document(
-                        doc.model_dump(mode="json"), doc_id=reference.reference_id
-                    )
-                )
+            docdb.table("documents").update(
+                tinydb.table.Document(doc, doc_id=doc.doc_id)
+            )

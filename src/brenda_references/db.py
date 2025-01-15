@@ -16,10 +16,10 @@ This module provides the interface to the BRENDA database.
 import os
 import re
 from functools import lru_cache
-from typing import Any
+from typing import Any, Iterable, Self
 
 from rapidfuzz import fuzz, process
-from sqlalchemy import URL, Engine
+from sqlalchemy import URL, Engine, func
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from .brenda_types import (
@@ -132,6 +132,102 @@ with open(config["sources"]["bacteria"], "r", encoding="utf-8") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 
+class BRENDA:
+    def __init__(self):
+        self.engine = get_engine()
+        self.session = Session(self.engine)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.session.close()
+
+    def references(self) -> Iterable[_Reference]:
+        """Retrieve list of literature references in BRENDA."""
+        query = select(_Reference).execution_options(yield_per=64)
+        return self.session.scalars(query)
+
+    def count_references(self) -> int:
+        query = select(_Reference)
+        return self.session.query(_Reference.reference_id).count()
+
+        return self.session.query(select(_Reference)).count()
+
+    def enzyme_relations(self, reference_id: int) -> dict[str, Any]:
+        """Return the relation triples attested in `reference_id`, as well as their
+        participating entities."""
+        query = (
+            select(Protein_Connect, _Organism, _EC, _Strain)
+            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
+            .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
+            .outerjoin(
+                _Strain, Protein_Connect.protein_organism_strain_id == _Strain.id
+            )
+            .where(Protein_Connect.reference_id == reference_id)
+        )
+        records = self.session.exec(query).fetchall()
+
+        output: dict[str, Any] = {
+            key: set() for key in ("enzymes", "bacteria", "strains", "other_organisms")
+        }
+        output["triples"] = {}
+
+        for record in records:
+            organism, no_activity_organism = clean_name(record._Organism, "organism")
+
+            if record._Strain:
+                strain, no_activity_strain = clean_name(record._Strain, "name")
+
+                if not no_activity_strain:
+                    output["triples"].setdefault("HasEnzyme", set()).add(
+                        HasEnzyme(subject=strain.id, object=record._EC.ec_class_id),
+                    )
+
+                output["triples"].setdefault("HasSpecies", set()).add(
+                    HasSpecies(subject=strain.id, object=organism.organism_id)
+                )
+                output["strains"].add(strain)
+            else:
+                if not no_activity_organism:
+                    output["triples"].setdefault("HasEnzyme", set()).add(
+                        HasEnzyme(
+                            subject=organism.organism_id,
+                            object=record._EC.ec_class_id,
+                        )
+                    )
+
+            if is_bacteria(organism.organism):
+                output["bacteria"].add(
+                    Bacteria.model_validate(organism, from_attributes=True)
+                )
+            else:
+                output["other_organisms"].add(
+                    Organism.model_validate(organism, from_attributes=True)
+                )
+
+            output["enzymes"].add(EC.model_validate(record._EC, from_attributes=True))
+
+        return output
+
+    @lru_cache(maxsize=512)
+    def ec_synonyms(self, ec_class_id: int) -> list[tuple[str, int]]:
+        """For a given EC class, fetch a list of synonym, reference_id pairs."""
+        query = (
+            select(EC_Synonyms.synonyms, EC_Synonyms_Connect.reference_id)
+            .join_from(
+                EC_Synonyms,
+                EC_Synonyms_Connect,
+                EC_Synonyms_Connect.synonyms_id == EC_Synonyms.synonyms_id,
+            )
+            .where(EC_Synonyms_Connect.ec_class_id == ec_class_id)
+        )
+
+        synonyms = self.session.exec(query).all()
+
+        return synonyms
+
+
 def get_engine() -> Engine:
     """
     Establishes a connection to the BRENDA database, using the login
@@ -165,13 +261,6 @@ def is_bacteria(organism: str) -> bool:
     return ratio > 90
 
 
-def brenda_references(engine: Engine) -> list[_Reference]:
-    """Retrieve list of literature references in BRENDA."""
-    with Session(engine) as session:
-        query = select(_Reference)
-        return session.exec(query).fetchall()
-
-
 def clean_name(
     model: SQLModel, fieldname: str, pattern: str = "no activity (in|by) "
 ) -> tuple[SQLModel, bool]:
@@ -199,80 +288,3 @@ def clean_name(
     """
     name, count = re.subn(rf"{pattern}", "", getattr(model, fieldname))
     return model.copy(update={fieldname: name}), bool(count)
-
-
-def brenda_enzyme_relations(engine: Engine, reference_id: int) -> dict[str, Any]:
-    """Return the relation triples attested in `reference_id`, as well as their
-    participating entities."""
-    with Session(engine) as session:
-        query = (
-            select(Protein_Connect, _Organism, _EC, _Strain)
-            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
-            .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
-            .outerjoin(
-                _Strain, Protein_Connect.protein_organism_strain_id == _Strain.id
-            )
-            .where(Protein_Connect.reference_id == reference_id)
-        )
-        records = session.exec(query).fetchall()
-
-    output: dict[str, Any] = {
-        key: set() for key in ("enzymes", "bacteria", "strains", "other_organisms")
-    }
-    output["triples"] = {}
-
-    for record in records:
-        organism, no_activity_organism = clean_name(record._Organism, "organism")
-
-        if record._Strain:
-            strain, no_activity_strain = clean_name(record._Strain, "name")
-
-            if not no_activity_strain:
-                output["triples"].setdefault("HasEnzyme", set()).add(
-                    HasEnzyme(subject=strain.id, object=record._EC.ec_class_id),
-                )
-
-            output["triples"].setdefault("HasSpecies", set()).add(
-                HasSpecies(subject=strain.id, object=organism.organism_id)
-            )
-            output["strains"].add(Strain(id=strain.id, designations={strain.name}))
-        else:
-            if not no_activity_organism:
-                output["triples"].setdefault("HasEnzyme", set()).add(
-                    HasEnzyme(
-                        subject=organism.organism_id,
-                        object=record._EC.ec_class_id,
-                    )
-                )
-
-        if is_bacteria(organism.organism):
-            output["bacteria"].add(
-                Bacteria.model_validate(organism, from_attributes=True)
-            )
-        else:
-            output["other_organisms"].add(
-                Organism.model_validate(organism, from_attributes=True)
-            )
-
-        output["enzymes"].add(EC.model_validate(record._EC, from_attributes=True))
-
-    return output
-
-
-@lru_cache(maxsize=512)
-def ec_synonyms(engine: Engine, ec_class_id: int) -> list[tuple[str, int]]:
-    """For a given EC class, fetch a list of synonym, reference_id pairs."""
-    with Session(engine) as session:
-        query = (
-            select(EC_Synonyms.synonyms, EC_Synonyms_Connect.reference_id)
-            .join_from(
-                EC_Synonyms,
-                EC_Synonyms_Connect,
-                EC_Synonyms_Connect.synonyms_id == EC_Synonyms.synonyms_id,
-            )
-            .where(EC_Synonyms_Connect.ec_class_id == ec_class_id)
-        )
-
-        synonyms = session.exec(query).all()
-
-    return synonyms
