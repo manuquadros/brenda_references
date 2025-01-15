@@ -3,10 +3,11 @@ from brenda_references.brenda_types import Bacteria, Organism, Strain, Document
 from brenda_references.lpsn_interface import (
     get_lpsn,
     lpsn_id,
-    lpsn_synonymsm,
+    lpsn_synonyms,
     name_parts,
 )
 from brenda_references.straininfo import StrainInfoAdapter
+from brenda_references import expand_doc
 from ncbi import NCBIAdapter
 
 get_lpsn()
