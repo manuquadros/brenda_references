@@ -152,8 +152,6 @@ class BRENDA:
         query = select(_Reference)
         return self.session.query(_Reference.reference_id).count()
 
-        return self.session.query(select(_Reference)).count()
-
     def enzyme_relations(self, reference_id: int) -> dict[str, Any]:
         """Return the relation triples attested in `reference_id`, as well as their
         participating entities."""
