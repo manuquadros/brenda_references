@@ -1,8 +1,7 @@
 import datetime
 from functools import cached_property
-from typing import Any
+from typing import Annotated, Any, Self, Set, TypeAlias, Mapping
 
-from log import logger
 from pydantic import (
     AliasChoices,
     AwareDatetime,
@@ -10,11 +9,77 @@ from pydantic import (
     Field,
     computed_field,
     field_serializer,
-    model_validator,
     field_validator,
+    model_validator,
 )
+from pydantic.functional_serializers import PlainSerializer
+
+from log import logger
 
 from .lpsn_interface import lpsn_id, name_parts
+
+
+def serialize_in_order(items: Set[str | int]) -> list[str | int]:
+    return sorted(items)
+
+
+def serialize_mapping_in_order(mapping: Mapping[Any, set[Any]]) -> dict[Any, list[Any]]:
+    return {key: serialize_in_order(items) for key, items in mapping.items()}
+
+
+StringSet: TypeAlias = Annotated[
+    frozenset[str],
+    Field(default=frozenset()),
+    PlainSerializer(serialize_in_order),
+]
+
+IntSet: TypeAlias = Annotated[
+    frozenset[int],
+    Field(default=frozenset()),
+    PlainSerializer(serialize_in_order),
+]
+
+IntToStringSetMapping: TypeAlias = Annotated[
+    dict[int, set[str]],
+    Field(default={}),
+    PlainSerializer(serialize_mapping_in_order),
+]
+
+
+class Triple(BaseModel, frozen=True):  # type: ignore
+    subject: int
+    object: int
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Triple):
+            return NotImplemented
+
+        return self.subject == other.subject and self.object == other.object
+
+    def __ne__(self, other) -> bool:
+        return not self == other
+
+    def __lt__(self, other) -> bool:
+        if self.subject == other.subject:
+            return self.object < other.object
+        else:
+            return self.subject < other.subject
+
+    def __le__(self, other) -> bool:
+        return self < other or self == other
+
+    def __gt__(self, other) -> bool:
+        return self != other and (not self < other)
+
+    def __ge__(self, other) -> bool:
+        return not self < other
+
+
+StringToTripleSetMapping: TypeAlias = Annotated[
+    dict[str, set[Triple]],
+    Field(default={}),
+    PlainSerializer(serialize_mapping_in_order),
+]
 
 
 class BaseReference(BaseModel):
@@ -26,11 +91,6 @@ class BaseReference(BaseModel):
     year: int
     pubmed_id: str
     path: str
-
-
-class Triple(BaseModel, frozen=True):
-    subject: int
-    object: int
 
 
 class HasEnzyme(Triple):
@@ -52,14 +112,14 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
-    enzymes: dict[int, set[str]] = Field(
+    enzymes: dict[int, StringSet] = Field(
         description="Dictionary indexed by EC numbers, each of which corresponds to an EC class linked to the document in the BRENDA database. The values of the dictionary are the synonyms of the corresponding EC class registered in BRENDA.",
         default={},
     )
-    bacteria: dict[int, set[str]] = {}
-    strains: set[int] = set()
-    other_organisms: dict[int, str] = {}
-    relations: dict[str, set[Triple]] = {}
+    bacteria: IntToStringSetMapping
+    strains: IntSet
+    other_organisms: IntToStringSetMapping
+    relations: StringToTripleSetMapping
 
     @field_serializer("created", "modified")
     def serialize_dt(self, dt: datetime.datetime, _info):
@@ -70,9 +130,9 @@ class BaseOrganism(BaseModel):
     organism: str
 
 
-class Organism(BaseOrganism, frozen=True):
+class Organism(BaseOrganism, frozen=True):  # type: ignore
     id: int = Field(validation_alias=AliasChoices("id", "organism_id"))
-    synonyms: frozenset[str] | None = None
+    synonyms: StringSet
 
 
 class Bacteria(Organism):
@@ -96,7 +156,7 @@ class BaseEC(BaseModel):
 
 class EC(BaseEC, frozen=True):
     id: int = Field(alias="ec_class_id")
-    synonyms: set[str] | None = None
+    synonyms: StringSet
 
 
 class Culture(BaseModel, frozen=True):
@@ -129,12 +189,17 @@ class Strain(BaseModel):
         description="Species to which the strain corresponds, if available",
         default=None,
     )
-    cultures: frozenset[Culture] = Field(
-        description="Cultures related to the strain", default=frozenset()
-    )
-    designations: frozenset[str] = Field(
-        description="Designations for the strain other than the culture identifiers"
-    )
+    cultures: Annotated[
+        frozenset[Culture],
+        Field(description="Cultures related to the strain", default=frozenset()),
+        PlainSerializer(lambda cultures: list(cultures)),
+    ]
+    designations: Annotated[
+        StringSet,
+        Field(
+            description="Designations for the strain other than the culture identifiers"
+        ),
+    ]
 
     @model_validator(mode="before")
     @classmethod

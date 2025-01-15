@@ -81,9 +81,7 @@ def add_document(
     """
     doc = expand_doc(ncbi, Document.model_validate(reference.model_dump()))
     docdb.table("documents").insert(
-        tinydb.table.Document(
-            doc.model_dump(mode="json"), doc_id=reference.reference_id
-        )
+        tinydb.table.Document(doc.model_dump(), doc_id=reference.reference_id)
     )
 
     return Document.model_validate(doc)
@@ -146,9 +144,7 @@ def bacteria_synonyms(
         syn_in_doc.setdefault(bac.id, set()).add(bac.organism)
         bac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
         docdb.table("bacteria").upsert(
-            tinydb.table.Document(
-                bac.model_dump(exclude="id", mode="json"), doc_id=bac.id
-            )
+            tinydb.table.Document(bac.model_dump(exclude="id"), doc_id=bac.id)
         )
 
     return syn_in_doc
@@ -217,5 +213,5 @@ def sync_doc_db() -> None:
             )
 
             docdb.table("documents").update(
-                tinydb.table.Document(doc, doc_id=doc.doc_id)
+                tinydb.table.Document(document.model_dump(), doc_id=doc.doc_id)
             )
