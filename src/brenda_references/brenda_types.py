@@ -62,7 +62,7 @@ class Document(BaseReference):
     relations: dict[str, set[Triple]] = {}
 
     @field_serializer("created", "modified")
-    def serialize_dt(self, dt: datetime, _info):
+    def serialize_dt(self, dt: datetime.datetime, _info):
         return dt.isoformat()
 
 
