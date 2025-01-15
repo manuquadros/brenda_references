@@ -8,6 +8,7 @@ from log import logger
 from pydantic import ValidationError
 from tinydb import TinyDB
 from utils import APIAdapter
+from .db import _Strain
 
 from .brenda_types import Strain
 
@@ -24,7 +25,7 @@ class StrainInfoAdapter(APIAdapter):
             }
         )
 
-        self.buffer: set[str] = set()
+        self.buffer: set[_Strain] = set()
         self.storage: TinyDB
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
@@ -32,14 +33,24 @@ class StrainInfoAdapter(APIAdapter):
 
     def __flush_buffer(self) -> None:
         print("Flushing strain buffer")
-        ids = self.get_strain_ids(tuple(self.buffer))
-        straininfo_data = self.get_strain_data(ids)
+        indexed_buffer = {model.id: model for model in self.buffer}
 
-        for si in straininfo_data:
-            self.storage.table("strains").upsert(
-                tinydb.table.Document(
-                    si.model_dump(exclude="siid", mode="json"), doc_id=si.siid
+        ids = self.get_strain_ids([model.name for model in self.buffer])
+        straininfo_data = {model.id: model for model in self.get_strain_data(ids)}
+
+        # Update the _Strain models with Straininfo information if available
+        for key, model in indexed_buffer.items():
+            try:
+                indexed_buffer[key] = straininfo_data[key].model_copy(
+                    update={"id": model.id, "siid": straininfo_data[key].id}
                 )
+            except KeyError:
+                curr = indexed_buffer[key]
+                indexed_buffer[key] = Strain(id=curr.id, designations={curr.name})
+
+        for strain in indexed_buffer.values():
+            self.storage.table("strains").upsert(
+                tinydb.table.Document(strain.model_dump(mode="json"), doc_id=strain.id)
             )
 
         self.buffer = set()
@@ -59,7 +70,7 @@ class StrainInfoAdapter(APIAdapter):
             case code:
                 raise requests.HTTPError(f"Failed with HTTP Status {code}")
 
-    def store_strains(self, names: Iterable[str]) -> None:
+    def store_strains(self, names: Iterable[Strain]) -> None:
         self.buffer.update(names)
 
         if len(self.buffer) > 100:
@@ -109,7 +120,7 @@ class StrainInfoAdapter(APIAdapter):
 
         return []
 
-    def get_strain_data(self, query: int | Sequence[int]) -> tuple[Strain, ...]:
+    def get_strain_data(self, query: int | Iterable[int]) -> tuple[Strain, ...]:
         """Retrieve StrainInfo data for the strain IDs given in the argument.
 
         :param query: IDs to be queried through the API.
@@ -119,8 +130,6 @@ class StrainInfoAdapter(APIAdapter):
         """
         try:
             data = self.request(self.strain_info_api_url(query))
-            for item in data:
-                item["siid"] = item.pop("id")
         except ValueError:
             return ()
 

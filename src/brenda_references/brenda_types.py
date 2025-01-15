@@ -118,16 +118,20 @@ class Relation(BaseModel):
 
 
 class Strain(BaseModel):
-    siid: int = Field(
-        description="The id of the strain on StrainInfo", validation_alias="id"
+    id: int = Field(description="The id of the strain in BRENDA")
+    siid: int | None = Field(
+        description="The id of the strain on StrainInfo, if found.", default=None
     )
     doi: str | None = None
     merged: list[int] | None = None
-    bacdive: int | None = Field(description="ID of the strain on BacDive")
+    bacdive: int | None = Field(description="ID of the strain on BacDive", default=None)
     taxon: Taxon | None = Field(
-        description="Species to which the strain corresponds, if available"
+        description="Species to which the strain corresponds, if available",
+        default=None,
     )
-    cultures: frozenset[Culture] = Field(description="Cultures related to the strain")
+    cultures: frozenset[Culture] = Field(
+        description="Cultures related to the strain", default=frozenset()
+    )
     designations: frozenset[str] = Field(
         description="Designations for the strain other than the culture identifiers"
     )
