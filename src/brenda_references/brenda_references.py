@@ -144,7 +144,7 @@ def sync_doc_db() -> None:
         with tqdm(total=brenda.count_references()) as progress_bar:
             for reference in brenda.references():
                 if not docdb.table("documents").contains(doc_id=reference.reference_id):
-                    doc = add_document(docdb, ncbi, reference)
+                    add_document(docdb, ncbi, reference)
                 progress_bar.update(1)
 
         print("Retrieving enzyme-organism relations from BRENDA.")
