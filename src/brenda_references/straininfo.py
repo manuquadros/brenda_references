@@ -1,7 +1,8 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Sequence, Collection
 from functools import singledispatchmethod
 from typing import Any, cast
 
+import re
 import requests
 import tinydb
 from log import logger
@@ -13,6 +14,31 @@ from .db import _Strain
 from .brenda_types import Strain
 
 api_root = "https://api.straininfo.dsmz.de/v1/"
+
+
+def normalize_strain_names(strain_names: Collection[str]) -> set[str]:
+    """Attempt to normalize a collection of strain designations.
+
+    This function is needed because some strains are identified in BRENDA
+
+    :param strain_names: iterable containing (possibly non-standard) strain
+        designations.
+    :return: set containing :py:data:`strain_names` plus standardized versions of the
+        designations included in :py:data:`strain_names`.
+    """
+    standardized: set[str] = set()
+
+    def fix_nrrl(w: str) -> tuple[str, int]:
+        return re.subn(r"(NRRL)(B | B)(\d+)", r"\1 B-\3", w)
+
+    for name in strain_names:
+        new_name, number_of_subs = fix_nrrl(name)
+        substrings = new_name.split("/")
+
+        if len(substrings) > 1 or number_of_subs > 0:
+            standardized.update(map(lambda w: w.strip(), substrings))
+
+    return set(strain_names) | standardized
 
 
 class StrainInfoAdapter(APIAdapter):
@@ -114,6 +140,9 @@ class StrainInfoAdapter(APIAdapter):
     def get_strain_ids(self, query: str | Sequence[str]) -> list[int]:
         if not query:
             return []
+
+        if not isinstance(query, str):
+            query = cast(Sequence[str], normalize_strain_names(query))
 
         response = self.request(self.strain_info_api_url(query))
 
