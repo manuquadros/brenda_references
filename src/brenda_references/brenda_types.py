@@ -112,8 +112,8 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
-    enzymes: dict[int, StringSet] = Field(
-        description="Dictionary indexed by EC numbers, each of which corresponds to an EC class linked to the document in the BRENDA database. The values of the dictionary are the synonyms of the corresponding EC class registered in BRENDA.",
+    enzymes: IntSet = Field(
+        description="Set of BRENDA IDs for each EC Class linked to this reference.",
         default={},
     )
     bacteria: IntToStringSetMapping

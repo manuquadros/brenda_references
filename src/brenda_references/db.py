@@ -209,10 +209,10 @@ class BRENDA:
         return output
 
     @lru_cache(maxsize=512)
-    def ec_synonyms(self, ec_class_id: int) -> list[tuple[str, int]]:
+    def ec_synonyms(self, ec_class_id: int) -> list[str]:
         """For a given EC class, fetch a list of synonym, reference_id pairs."""
         query = (
-            select(EC_Synonyms.synonyms, EC_Synonyms_Connect.reference_id)
+            select(EC_Synonyms.synonyms)
             .join_from(
                 EC_Synonyms,
                 EC_Synonyms_Connect,

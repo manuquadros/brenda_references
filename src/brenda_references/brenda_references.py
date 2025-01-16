@@ -154,10 +154,10 @@ def sync_doc_db() -> None:
         # Collect all organism/enzyme relations annotated in BRENDA for each document
         for doc in tqdm(docdb.table("documents")):
             relations = brenda.enzyme_relations(doc.doc_id)
-            ec_syn_refs = {
-                enzyme.id: brenda.ec_synonyms(enzyme.id)
-                for enzyme in relations["enzymes"]
-            }
+
+            for enzyme in relations["enzymes"]:
+                synonyms = brenda.ec_synonyms(enzyme.id)
+                store_enzyme_synonyms(docdb, enzyme, synonyms)
 
             straininfo.store_strains(
                 [
@@ -166,18 +166,11 @@ def sync_doc_db() -> None:
                     if not docdb.table("strains").contains(doc_id=strain.id)
                 ]
             )
-
             store_bacteria(docdb, relations["bacteria"])
-
             document = Document.model_validate(doc).copy(
                 update={
                     "relations": relations["triples"],
-                    "enzymes": enzyme_synonyms(
-                        docdb,
-                        ec_syn_refs,
-                        relations["enzymes"],
-                        reference.reference_id,
-                    ),
+                    "enzymes": frozenset(enzyme.id for enzyme in relations["enzymes"]),
                     "bacteria": {bac.id: bac.organism for bac in relations["bacteria"]},
                     "strains": [strain.id for strain in relations["strains"]],
                     "other_organisms": {
