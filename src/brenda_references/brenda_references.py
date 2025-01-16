@@ -177,6 +177,4 @@ def sync_doc_db() -> None:
                 }
             )
 
-            docdb.table("documents").update(
-                tinydb.table.Document(document.model_dump(), doc_id=doc.doc_id)
-            )
+            docdb.table("documents").update(document.model_dump(), doc_ids=[doc.doc_id])
