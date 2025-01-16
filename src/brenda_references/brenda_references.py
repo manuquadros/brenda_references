@@ -88,43 +88,21 @@ def add_document(
     return Document.model_validate(doc)
 
 
-def enzyme_synonyms(
+def store_enzyme_synonyms(
     docdb: tinydb.TinyDB,
-    synonym_refs_dict: dict[int, list[tuple[str, int]]],
-    enzymes: set[EC],
-    reference_id: int,
-) -> dict[int, set[str]]:
-    """Store enzyme data in the JSON database and return the subset of enzyme
-    synonyms that appear in the document referenced by `reference_id`.
+    enzyme: EC,
+    synonyms: Iterable[str],
+) -> None:
+    """Store enzyme data in the JSON database.
 
     :param docdb: The JSON database
-    :param synonym_refs_dict: dict relating BRENDA EC class ids to a list of
-                              (synonym, reference_id) pairs linking each synonym
-                              to the BRENDA reference in which it was attested
-    :param enzymes: EC classes linked to `reference_id`
-    :param reference_id: ID of the document in the BRENDA database
-
-    :return: dict keyed by EC Class ID, with values corresponding to their
-             respective synonyms attested in `reference_id`.
+    :param enzyme: EC model linked describing an enzyme
+    :param synonyms: set of synonyms for that EC Class retrieved from BRENDA
     """
-    enzymes_in_doc = {}
-
-    for enzyme in enzymes:
-        synonym_refs = synonym_refs_dict[enzyme.id]
-        enzymes_in_doc[enzyme.id] = {
-            syn[0] for syn in synonym_refs if syn[1] == reference_id
-        }
-
-        enzyme = enzyme.model_copy(
-            update={"synonyms": {syn[0] for syn in synonym_refs}}
-        )
-        docdb.table("enzymes").upsert(
-            tinydb.table.Document(
-                enzyme.model_dump(exclude="id", mode="json"), doc_id=enzyme.id
-            )
-        )
-
-    return enzymes_in_doc
+    enzyme = enzyme.model_copy(update={"synonyms": frozenset(synonyms)})
+    docdb.table("enzymes").upsert(
+        tinydb.table.Document(enzyme.model_dump(exclude="id"), doc_id=enzyme.id)
+    )
 
 
 def store_bacteria(docdb: tinydb.TinyDB, bacteria: Iterable[Bacteria]) -> None:
