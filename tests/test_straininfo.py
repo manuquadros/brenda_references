@@ -8,8 +8,23 @@ def test_parse_standard():
 
 
 def test_parse_non_standard():
-    names = ("544 / ATCC 23448", "MNYC/BZ/M379", "NRRL B771", "NRRLB 15444r")
+    names = (
+        "544 / ATCC 23448",
+        "MNYC/BZ/M379",
+        "NRRL B771",
+        "NRRLB 15444r",
+        "Gasser AM64T",
+    )
     assert normalize_strain_names(names) == (
         set(names)
-        | {"544", "ATCC 23448", "MNYC", "BZ", "M379", "NRRL B-771", "NRRL B-15444r"}
+        | {
+            "544",
+            "ATCC 23448",
+            "MNYC",
+            "BZ",
+            "M379",
+            "NRRL B-771",
+            "NRRL B-15444r",
+            "Gasser AM64",
+        }
     )

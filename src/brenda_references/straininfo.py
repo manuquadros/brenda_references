@@ -28,11 +28,21 @@ def normalize_strain_names(strain_names: Collection[str]) -> set[str]:
     """
     standardized: set[str] = set()
 
-    def fix_nrrl(w: str) -> tuple[str, int]:
-        return re.subn(r"(NRRL)(B | B)(\d+)", r"\1 B-\3", w)
+    def apply_substitutions(w: str) -> tuple[str, int]:
+        substitutions = (
+            (r"(NRRL)(B | B)(\d+)", r"\1 B-\3"),
+            (r"([a-zA-Z]+ \w*\d+)[Tt]", r"\1"),
+        )
+
+        number_of_subs = 0
+        for sub in substitutions:
+            w, n = re.subn(sub[0], sub[1], w)
+            number_of_subs += n
+
+        return w, number_of_subs
 
     for name in strain_names:
-        new_name, number_of_subs = fix_nrrl(name)
+        new_name, number_of_subs = apply_substitutions(name)
         substrings = new_name.split("/")
 
         if len(substrings) > 1 or number_of_subs > 0:
