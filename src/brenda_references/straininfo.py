@@ -72,8 +72,8 @@ class StrainInfoAdapter(APIAdapter):
             case code:
                 raise requests.HTTPError(f"Failed with HTTP Status {code}")
 
-    def store_strains(self, names: Iterable[Strain]) -> None:
-        self.buffer.update(names)
+    def store_strains(self, strains: Iterable[Strain]) -> None:
+        self.buffer.update(strains)
 
         if len(self.buffer) > 100:
             self.__flush_buffer()
