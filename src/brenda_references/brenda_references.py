@@ -70,7 +70,7 @@ def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
 
 def add_document(
     docdb: tinydb.TinyDB, ncbi: NCBIAdapter, reference: db._Reference
-) -> Document:
+) -> None:
     """Add document metadata to the JSON database after retrieving additional
     data from NCBI.
 
@@ -84,8 +84,6 @@ def add_document(
     docdb.table("documents").insert(
         tinydb.table.Document(doc.model_dump(), doc_id=reference.reference_id)
     )
-
-    return Document.model_validate(doc)
 
 
 def store_enzyme_synonyms(
