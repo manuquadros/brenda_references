@@ -39,12 +39,6 @@ IntSet: TypeAlias = Annotated[
     PlainSerializer(serialize_in_order),
 ]
 
-IntToStringSetMapping: TypeAlias = Annotated[
-    dict[int, set[str]],
-    Field(default={}),
-    PlainSerializer(serialize_mapping_in_order),
-]
-
 
 class Triple(BaseModel, frozen=True):  # type: ignore
     subject: int
@@ -116,9 +110,9 @@ class Document(BaseReference):
         description="Set of BRENDA IDs for each EC Class linked to this reference.",
         default={},
     )
-    bacteria: IntToStringSetMapping
+    bacteria: dict[int, str] = {}
     strains: IntSet
-    other_organisms: IntToStringSetMapping
+    other_organisms: dict[int, str] = {}
     relations: StringToTripleSetMapping
 
     @field_serializer("created", "modified")
