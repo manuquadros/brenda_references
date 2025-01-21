@@ -59,20 +59,3 @@ class APIAdapter:
     @retry_if_too_many_requests
     def request(self, url: str) -> Any:
         return self.session.get(url, timeout=1)
-
-
-last_call: dict[str, float] = {}
-
-
-def maybe_wait(func: Callable) -> Callable:
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        caller = func.__name__
-
-        while time.time() - last_call.setdefault(caller, 0) < 1:
-            time.sleep(0.001)
-
-        last_call[caller] = time.time()
-        return func(*args, **kwargs)
-
-    return wrapped
