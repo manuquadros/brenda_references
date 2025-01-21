@@ -12,6 +12,7 @@ include = ["config.toml", "data/bacteria.txt", "data/lpsn_gss_2024-11-19.csv"]
 [tool.poetry.scripts]
 update_pmc_open = "src.scripts.update_pmc_open:main"
 sync_doc_db = "src.brenda_references.brenda_references:sync_doc_db"
+retrieve_abstracts = "src.scripts.retrieve_abstracts:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -26,6 +27,7 @@ prospector = {version = "^1.13.3", extras = ["with_everything"]}
 tinydb = "^4.8.2"
 retrying = "^1.3.4"
 mysqlclient = "^2.2.7"
+pydantic = "^2.10.5"
 
 
 [tool.poetry.group.dev.dependencies]
