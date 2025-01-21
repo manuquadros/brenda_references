@@ -38,6 +38,11 @@ def retry_if_too_many_requests(func: Callable) -> Callable:
 
 
 class APIAdapter:
+    """General context manager for API connections
+
+    Subclasses can initialize the headers parameter of the parent.
+    """
+
     def __init__(self, headers: dict[str, str] = {}) -> None:
         session = requests.Session()
         adapter = requests.adapters.HTTPAdapter(
