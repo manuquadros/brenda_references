@@ -1,7 +1,8 @@
 import os
-import pprint
+from pprint import pp
 import re
-from typing import Any
+import itertools
+from typing import Any, Iterable
 
 import requests
 import xmltodict
@@ -43,6 +44,41 @@ class NCBIAdapter(APIAdapter):
             url += f"&api_key={self.api_key}"
 
         return url
+
+    def fetch_ncbi_abstracts(
+        self, pubmed_ids: str | Iterable[str], batch_size=10000
+    ) -> dict[str, dict[str, str | None]]:
+        """Fetch abstracts and copyright information for the given `pubmed_ids`.
+
+        For articles that do not have an abstract available, return None.
+        """
+        abstracts: dict[str, str | None] = {}
+
+        if isinstance(pubmed_ids, str):
+            pubmed_ids = (pubmed_ids,)
+
+        for batch in itertools.batched(pubmed_ids, batch_size):
+            url = (
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&"
+                "id={}&retmode=xml".format(",".join(batch))
+            )
+            records = self.request(url)["PubmedArticleSet"]["PubmedArticle"]
+            articles = (
+                (article["MedlineCitation"] for article in records)
+                if isinstance(records, list)
+                else [records["MedlineCitation"]]
+            )
+
+            abstracts.update(
+                {
+                    article["PMID"]["#text"]: article["Article"]
+                    .setdefault("Abstract", {})
+                    .get("AbstractText", None)
+                    for article in articles
+                }
+            )
+
+        return abstracts
 
     @staticmethod
     def record_url(pmcid: str) -> str:
