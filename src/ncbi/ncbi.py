@@ -71,14 +71,24 @@ class NCBIAdapter(APIAdapter):
 
             abstracts.update(
                 {
-                    article["PMID"]["#text"]: article["Article"]
-                    .setdefault("Abstract", {})
-                    .get("AbstractText", None)
+                    article["PMID"]["#text"]: self.preprocess_abstract_field(
+                        article["Article"]
+                        .setdefault("Abstract", {})
+                        .get("AbstractText", None)
+                    )
                     for article in articles
                 }
             )
 
         return abstracts
+
+    def preprocess_abstract_field(self, abstract: list[dict[str, str]] | str):
+        if isinstance(abstract, list):
+            return "\n".join(
+                section["@Label"] + "\n" + section["#text"] for section in abstract
+            )
+
+        return abstract
 
     @staticmethod
     def record_url(pmcid: str) -> str:

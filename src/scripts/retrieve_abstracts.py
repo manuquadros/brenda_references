@@ -6,29 +6,58 @@ with the  published version of the dataset. In that case, only metadata allowing
 retrieval of the abstract texts should be shared.
 """
 
-from brenda_references.brenda_types import Document
-from brenda_references.config import config
+import itertools
+import math
+from operator import attrgetter
+from pprint import pp
+from typing import Iterable
+
+from tinydb import Query, TinyDB, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
-from tinydb import TinyDB, where, Query
 from tqdm import tqdm
 
+from brenda_references.brenda_types import Document
+from brenda_references.config import config
+from ncbi import NCBIAdapter
+from utils import APIAdapter
 
-def get_fulltext(doc: Document) -> Document:
-    return doc
+
+def add_abstracts(
+    docs: dict[str, Document], adapter: APIAdapter
+) -> dict[str, Document]:
+    """Add abstracts to the documents in `docs` when they are available."""
+    docs = {
+        doc_id: doc
+        for doc_id, doc in docs.items()
+        if doc.abstract is None and doc.pubmed_id
+    }
+    abstracts = adapter.fetch_ncbi_abstracts((doc.pubmed_id for doc in docs.values()))
+
+    tqdm.write(f"Processing {len(docs)} documents in current batch...")
+    for doc in docs.values():
+        if doc.pubmed_id:
+            doc.abstract = abstracts.get(doc.pubmed_id)
+
+    return docs
 
 
 def main() -> None:
     with (
         TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+        NCBIAdapter() as ncbi,
     ):
-        for item in tqdm(
-            brendadb.table("documents").search(
-                (where("pmc_open") == True) & (where("bacteria") != {})
-            )
+        documents = docdb.table("documents")
+        batch_size = 250
+        total = math.ceil(documents.count(where("bacteria") != {}) / batch_size)
+        for batch in tqdm(
+            itertools.batched(documents.search(where("bacteria") != {}), batch_size),
+            total=total,
+            position=0,
+            desc="Batches",
         ):
-            if True or not open_subset.documents.contains(doc_id=item.doc_id):
-                doc = get_fulltext(Document.model_validate(item))
+            docs = {item.doc_id: Document.model_validate(item) for item in batch}
+            docs = add_abstracts(docs, ncbi)
 
-                print(doc)
-                break
+            for key, doc in docs.items():
+                documents.update(doc.model_dump(), doc_ids=[key])
