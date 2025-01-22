@@ -63,4 +63,4 @@ class APIAdapter:
 
     @retry_if_too_many_requests
     def request(self, url: str) -> Any:
-        return self.session.get(url, timeout=1)
+        return self.session.get(url, timeout=(3, 5))
