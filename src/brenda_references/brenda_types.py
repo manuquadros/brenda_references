@@ -106,6 +106,7 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
     )
     modified: AwareDatetime | None = None
+    abstract: str | None = None
     enzymes: IntSet = Field(
         description="Set of BRENDA IDs for each EC Class linked to this reference.",
         default={},
