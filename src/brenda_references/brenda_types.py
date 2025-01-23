@@ -1,6 +1,6 @@
 import datetime
 from functools import cached_property
-from typing import Annotated, Any, Self, Set, TypeAlias, Mapping
+from typing import Annotated, Any, Self, Set, TypeAlias, Mapping, NamedTuple
 
 from pydantic import (
     AliasChoices,
@@ -170,6 +170,11 @@ class Taxon(BaseModel):
 class Relation(BaseModel):
     culture: list[Culture] | None = None
     designation: list[str] | None = None
+
+
+class StrainRef(NamedTuple):
+    id: int
+    name: str
 
 
 class Strain(BaseModel):

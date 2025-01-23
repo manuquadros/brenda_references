@@ -154,8 +154,9 @@ def sync_doc_db() -> None:
             relations = brenda.enzyme_relations(doc.doc_id)
 
             for enzyme in relations["enzymes"]:
-                synonyms = brenda.ec_synonyms(enzyme.id)
-                store_enzyme_synonyms(docdb, enzyme, synonyms)
+                if not docdb.table("enzymes").contains(doc_id=enzyme.id):
+                    synonyms = brenda.ec_synonyms(enzyme.id)
+                    store_enzyme_synonyms(docdb, enzyme, synonyms)
 
             straininfo.store_strains(
                 [
@@ -165,6 +166,7 @@ def sync_doc_db() -> None:
                 ]
             )
             store_bacteria(docdb, relations["bacteria"])
+
             document = Document.model_validate(doc).copy(
                 update={
                     "relations": relations["triples"],

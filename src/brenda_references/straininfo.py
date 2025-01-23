@@ -11,7 +11,7 @@ from tinydb import TinyDB
 from log import logger
 from utils import APIAdapter
 
-from .brenda_types import Strain
+from .brenda_types import Strain, StrainRef
 from .db import _Strain
 
 api_root = "https://api.straininfo.dsmz.de/v1/"
@@ -65,7 +65,7 @@ class StrainInfoAdapter(APIAdapter):
             }
         )
 
-        self.buffer: set[_Strain] = set()
+        self.buffer: set[StrainRef] = set()
         self.storage: TinyDB
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
@@ -89,7 +89,9 @@ class StrainInfoAdapter(APIAdapter):
         # Map each possible strain designation from the normalized name of the model
         # to the id of the model.
         names_in_brenda = {
-            name: model.id for name in model.designations for model in self.buffer
+            name: ix
+            for ix, model in indexed_buffer.items()
+            for name in model.designations
         }
 
         ids = self.get_strain_ids(list(names_in_brenda.keys()))
@@ -113,7 +115,7 @@ class StrainInfoAdapter(APIAdapter):
 
         self.buffer = set()
 
-    def store_strains(self, strains: Iterable[Strain]) -> None:
+    def store_strains(self, strains: Iterable[StrainRef]) -> None:
         self.buffer.update(strains)
 
         if len(self.buffer) > 100:

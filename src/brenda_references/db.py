@@ -19,7 +19,8 @@ from functools import lru_cache
 from typing import Any, Iterable, Self
 
 from rapidfuzz import fuzz, process
-from sqlalchemy import URL, Engine, func
+from sqlalchemy import URL, Column, Engine, Integer, String, func
+from sqlalchemy.ext.declarative import declarative_base
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from .brenda_types import (
@@ -30,11 +31,14 @@ from .brenda_types import (
     BaseReference,
     HasEnzyme,
     HasSpecies,
-    Triple,
     Organism,
     Strain,
+    StrainRef,
+    Triple,
 )
 from .config import config
+
+Base = declarative_base()
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore
@@ -93,19 +97,14 @@ class _Protein(SQLModel, table=True):  # type: ignore
     protein_id: int = Field(primary_key=True)
 
 
-class _Strain(SQLModel, table=True, frozen=True):  # type: ignore
+class _Strain(Base):  # type: ignore
     """Model mapping to the `strain` table of brenda_conn"""
 
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein_organism_strain"
-    model_config = {"frozen": True}
 
-    id: int = Field(
-        default=None,
-        primary_key=True,
-        sa_column_kwargs={"name": "protein_organism_strain_id"},
-    )
-    name: str = Field(sa_column_kwargs={"name": "organism_strain"})
+    id: int = Column("protein_organism_strain_id", Integer, primary_key=True)
+    name: str = Column("organism_strain", String)
 
 
 class EC_Synonyms_Connect(SQLModel, table=True):  # type: ignore
@@ -135,6 +134,8 @@ with open(config["sources"]["bacteria"], "r", encoding="utf-8") as sl:
 class BRENDA:
     def __init__(self):
         self.engine = get_engine()
+        SQLModel.metadata = Base.metadata
+        SQLModel.metadata.create_all(self.engine)
         self.session = Session(self.engine)
 
     def __enter__(self) -> Self:
@@ -260,8 +261,8 @@ def is_bacteria(organism: str) -> bool:
 
 
 def clean_name(
-    model: SQLModel, fieldname: str, pattern: str = "no activity (in|by) "
-) -> tuple[SQLModel, bool]:
+    model: SQLModel | _Strain, fieldname: str, pattern: str = "no activity (in|by) "
+) -> tuple[SQLModel, bool] | StrainRef:
     """Utility function to remove a string from `fieldname` in an SQLModel.
 
     :param model: The SQLModel to be updated.
@@ -285,4 +286,10 @@ def clean_name(
     a return value of `True`, to be handled by the caller.
     """
     name, count = re.subn(rf"{pattern}", "", getattr(model, fieldname))
+
+    if isinstance(model, _Strain):
+        data = {k: v for k, v in model.__dict__.items() if k in ("id", "name")}
+        data[fieldname] = name
+        return StrainRef(**data), bool(count)
+
     return model.copy(update={fieldname: name}), bool(count)
