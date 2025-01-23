@@ -1,17 +1,18 @@
-from collections.abc import Iterable, Sequence, Collection
+import re
+from collections.abc import Collection, Iterable, Sequence
 from functools import singledispatchmethod
 from typing import Any, cast
 
-import re
 import requests
 import tinydb
-from log import logger
 from pydantic import ValidationError
 from tinydb import TinyDB
+
+from log import logger
 from utils import APIAdapter
-from .db import _Strain
 
 from .brenda_types import Strain
+from .db import _Strain
 
 api_root = "https://api.straininfo.dsmz.de/v1/"
 
