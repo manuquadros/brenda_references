@@ -1,5 +1,5 @@
 import re
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence, MutableMapping
 from functools import singledispatchmethod
 from typing import Any, cast
 
@@ -71,6 +71,33 @@ class StrainInfoAdapter(APIAdapter):
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.__flush_buffer()
 
+    def retrieve_strain_models(
+        self, strains: MutableMapping[int, Strain]
+    ) -> MutableMapping[int, Strain]:
+        # Map each possible strain designation from the normalized name of the model
+        # to the id of the model.
+        known_names = {
+            name: ix
+            for ix, model in strains.items()
+            for name in normalize_strain_names(model.designations)
+        }
+
+        ids = self.get_strain_ids(list(known_names.keys()))
+        straininfo_data = (model for model in self.get_strain_data(ids))
+
+        # Update the _Strain models with Straininfo information if available
+        for entry in straininfo_data:
+            names = entry.designations | frozenset(
+                cult.strain_number for cult in entry.cultures
+            )
+            try:
+                keyname = next(filter(lambda w: w in known_names, names))
+                strains[known_names[keyname]] = entry.model_copy()
+            except StopIteration:
+                pass
+
+        return strains
+
     def __flush_buffer(self) -> None:
         """Store _Strain models into self.storage
 
@@ -86,27 +113,7 @@ class StrainInfoAdapter(APIAdapter):
             for model in self.buffer
         }
 
-        # Map each possible strain designation from the normalized name of the model
-        # to the id of the model.
-        names_in_brenda = {
-            name: ix
-            for ix, model in indexed_buffer.items()
-            for name in model.designations
-        }
-
-        ids = self.get_strain_ids(list(names_in_brenda.keys()))
-        straininfo_data = (model for model in self.get_strain_data(ids))
-
-        # Update the _Strain models with Straininfo information if available
-        for entry in straininfo_data:
-            names = entry.designations | frozenset(
-                cult.strain_number for cult in entry.cultures
-            )
-            try:
-                keyname = next(filter(lambda w: w in names_in_brenda, names))
-                indexed_buffer[names_in_brenda[keyname]] = entry.model_copy()
-            except StopIteration:
-                pass
+        indexed_buffer = self.retrieve_strain_models(indexed_buffer)
 
         for key, strain in indexed_buffer.items():
             self.storage.table("strains").upsert(
