@@ -288,8 +288,8 @@ def clean_name(
     name, count = re.subn(rf"{pattern}", "", getattr(model, fieldname))
 
     if isinstance(model, _Strain):
-        data = {k: v for k, v in model.__dict__.items() if k in ("id", "name")}
+        data = model.__dict__
         data[fieldname] = name
-        return StrainRef(**data), bool(count)
+        return StrainRef(id=data["id"], name=data["name"]), bool(count)
 
     return model.copy(update={fieldname: name}), bool(count)
