@@ -104,7 +104,7 @@ class StrainInfoAdapter(APIAdapter):
             )
             try:
                 keyname = next(filter(lambda w: w in names_in_brenda, names))
-                indexed_buffer[keyname] = entry.model_copy()
+                indexed_buffer[names_in_brenda[keyname]] = entry.model_copy()
             except StopIteration:
                 pass
 
