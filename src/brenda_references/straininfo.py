@@ -71,9 +71,25 @@ class StrainInfoAdapter(APIAdapter):
         self.__flush_buffer()
 
     def __flush_buffer(self) -> None:
+        """Store _Strain models into self.storage
+
+        Strain models might have unnormalized strain designations, like
+        'HBB / ATCC 27634 / DSM 579'. The method will extract the normalized
+        designations from such a name and try to retrieve data about them from
+        StrainInfo.
+        """
         print("Flushing strain buffer")
-        indexed_buffer = {model.id: model for model in self.buffer}
-        names_in_brenda = {model.name: model.id for model in self.buffer}
+
+        indexed_buffer: dict[int, Strain] = {
+            model.id: Strain(designations=normalize_strain_names(model.name))
+            for model in self.buffer
+        }
+
+        # Map each possible strain designation from the normalized name of the model
+        # to the id of the model.
+        names_in_brenda = {
+            name: model.id for name in model.designations for model in self.buffer
+        }
 
         ids = self.get_strain_ids(list(names_in_brenda.keys()))
         straininfo_data = (model for model in self.get_strain_data(ids))
@@ -83,18 +99,24 @@ class StrainInfoAdapter(APIAdapter):
             names = entry.designations | frozenset(
                 cult.strain_number for cult in entry.cultures
             )
-            for name in filter(lambda w: w in names_in_brenda, names):
-                indexed_buffer[names_in_brenda[name]] = entry.model_copy()
+            try:
+                keyname = next(filter(lambda w: w in names_in_brenda, names))
+                indexed_buffer[keyname] = entry.model_copy()
+            except StopIteration:
+                pass
 
         for key, strain in indexed_buffer.items():
-            if isinstance(strain, _Strain):
-                strain = Strain(designations={strain.name})
-
             self.storage.table("strains").upsert(
                 tinydb.table.Document(strain.model_dump(), doc_id=key)
             )
 
         self.buffer = set()
+
+    def store_strains(self, strains: Iterable[Strain]) -> None:
+        self.buffer.update(strains)
+
+        if len(self.buffer) > 100:
+            self.__flush_buffer()
 
     @staticmethod
     def __response_handler(
@@ -110,12 +132,6 @@ class StrainInfoAdapter(APIAdapter):
                 raise requests.HTTPError("StrainInfo is unavailable.")
             case code:
                 raise requests.HTTPError(f"Failed with HTTP Status {code}")
-
-    def store_strains(self, strains: Iterable[Strain]) -> None:
-        self.buffer.update(strains)
-
-        if len(self.buffer) > 100:
-            self.__flush_buffer()
 
     def request(self, url: str) -> list[dict] | list[int]:
         return self.__response_handler(url, super().request(url))
