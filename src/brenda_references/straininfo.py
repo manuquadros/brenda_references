@@ -16,16 +16,19 @@ from .brenda_types import Strain
 api_root = "https://api.straininfo.dsmz.de/v1/"
 
 
-def normalize_strain_names(strain_names: Collection[str]) -> set[str]:
+def normalize_strain_names(strain_names: str | Collection[str]) -> set[str]:
     """Attempt to normalize a collection of strain designations.
 
     This function is needed because some strains are identified in BRENDA
 
-    :param strain_names: iterable containing (possibly non-standard) strain
+    :param strain_names: string or iterable containing (possibly non-standard) strain
         designations.
     :return: set containing :py:data:`strain_names` plus standardized versions of the
         designations included in :py:data:`strain_names`.
     """
+    if isinstance(strain_names, str):
+        strain_names = (strain_names,)
+
     standardized: set[str] = set()
 
     def apply_substitutions(w: str) -> tuple[str, int]:
