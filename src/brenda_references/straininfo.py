@@ -171,8 +171,8 @@ class StrainInfoAdapter(APIAdapter):
         if not query:
             return []
 
-        if not isinstance(query, str):
-            query = cast(Sequence[str], normalize_strain_names(query))
+        if isinstance(query, str):
+            query = (query,)
 
         response = self.request(self.strain_info_api_url(query))
 
