@@ -68,7 +68,17 @@ class NCBIAdapter(APIAdapter):
             for article in root.findall(".//MedlineCitation"):
                 pmid = article.find("PMID").text
                 abstract = article.find(".//AbstractText")
-                abstracts[pmid] = abstract.text if abstract is not None else None
+                abstracts[pmid] = (
+                    abstract.text
+                    + "".join(
+                        map(
+                            lambda node: etree.tostring(node, encoding="unicode"),
+                            list(abstract),
+                        )
+                    )
+                    if abstract is not None
+                    else None
+                )
 
         return abstracts
 
