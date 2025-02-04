@@ -95,6 +95,22 @@ class HasSpecies(Triple):
     pass
 
 
+class EntityMarkup(BaseModel):
+    model_config = {"frozen": True}
+
+    start: int
+    end: int
+    entity_id: int
+    label: str
+
+
+EntityMarkupSet: TypeAlias = Annotated[
+    frozenset[EntityMarkup],
+    Field(default=frozenset()),
+    PlainSerializer(serialize_in_order),
+]
+
+
 class Document(BaseReference):
     def model_post_init(self, __context: Any) -> None:
         self.modified = self.created
@@ -115,6 +131,7 @@ class Document(BaseReference):
     strains: IntSet
     other_organisms: dict[int, str] = {}
     relations: StringToTripleSetMapping
+    entity_spans: EntityMarkupSet
 
     @field_serializer("created", "modified")
     def serialize_dt(self, dt: datetime.datetime, _info):
