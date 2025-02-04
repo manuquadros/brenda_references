@@ -5,7 +5,7 @@ from pprint import pp
 from typing import Any, Iterable
 
 import requests
-import xmltodict
+from lxml import etree
 
 from log import logger
 from utils import APIAdapter
@@ -24,15 +24,15 @@ class NCBIAdapter(APIAdapter):
             )
 
     @staticmethod
-    def __response_handler(url: str, response: requests.Response) -> dict[str, Any]:
+    def __response_handler(url: str, response: requests.Response) -> etree._Element:
         if response.status_code != 200:
             err = f"Request for {url} failed with status {response.status_code}"
             logger().error(err)
             raise requests.HTTPError(err)
 
-        return xmltodict.parse(response.text)
+        return etree.fromstring(response.content)
 
-    def request(self, url: str) -> dict[str, Any]:
+    def request(self, url: str) -> etree._Element:
         return self.__response_handler(url, super().request(url))
 
     def summary_url(self, pubmed_id: str) -> str:
@@ -60,36 +60,17 @@ class NCBIAdapter(APIAdapter):
 
         for batch in itertools.batched(pubmed_ids, batch_size):
             url = (
-                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&"
-                "id={}&retmode=xml".format(",".join(batch))
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+                f"?db=pubmed&id={','.join(batch)}&retmode=xml"
             )
-            records = self.request(url)["PubmedArticleSet"]["PubmedArticle"]
-            articles = (
-                (article["MedlineCitation"] for article in records)
-                if isinstance(records, list)
-                else [records["MedlineCitation"]]
-            )
+            root = self.request(url)
 
-            abstracts.update(
-                {
-                    article["PMID"]["#text"]: self.preprocess_abstract_field(
-                        article["Article"]
-                        .setdefault("Abstract", {})
-                        .get("AbstractText", None)
-                    )
-                    for article in articles
-                }
-            )
+            for article in root.findall(".//MedlineCitation"):
+                pmid = article.find("PMID").text
+                abstract = article.find(".//AbstractText")
+                abstracts[pmid] = abstract.text if abstract is not None else None
 
         return abstracts
-
-    def preprocess_abstract_field(self, abstract: list[dict[str, str]] | str):
-        if isinstance(abstract, list):
-            return "\n".join(
-                section["@Label"] + "\n" + section["#text"] for section in abstract
-            )
-
-        return abstract
 
     @staticmethod
     def record_url(pmcid: str) -> str:
@@ -101,69 +82,16 @@ class NCBIAdapter(APIAdapter):
     def article_ids(self, pubmed_id: str) -> dict[str, str]:
         record = self.request(self.summary_url(pubmed_id))
 
-        try:
-            return format_esummary_fields(record)["ArticleIds"]
-        except KeyError as e:
-            logger().error(
-                "Failed on %s. Full record:\n %s", pubmed_id, pprint.pformat(record)
-            )
-            raise e
-        except TypeError as e:
-            e.add_note(f"PubMed ID: {pubmed_id}")
-            logger().error(e)
-            return self.article_ids(re.match(r"\d+", pubmed_id)[0])
+        return {
+            id.attrib["Name"]: id.text
+            for id in record.xpath("//Item[@Name='ArticleIds']//Item")
+        }
 
     def is_pmc_open(self, pmcid: str | None) -> bool:
         if not pmcid:
             return False
 
         record = self.request(self.record_url(pmcid))
+        namespaces = {"oai": "http://www.openarchives.org/OAI/2.0/"}
 
-        return "pmc-open" in (
-            record.get("OAI-PMH", {})
-            .get("GetRecord", {})
-            .get("record", {})
-            .get("header", {})
-            .get("setSpec", [])
-        )
-
-
-def format_esummary_fields(fields: list[dict] | dict) -> dict[str, Any]:
-    """
-    Recursively merge all fields into a single dictionary.
-
-    The function eliminates repeated '@Name' keys and '@Type' annotations.
-    """
-
-    def parse_field(field: dict) -> str | list[str] | dict:
-        if "Item" not in field:
-            return field.get("#text", "")
-
-        items = field["Item"]
-
-        if field["@Name"] in ("ArticleIds", "History"):
-            return format_esummary_fields(items)
-
-        if isinstance(items, dict):
-            items = [items]
-
-        return [item.get("#text", "") for item in items]
-
-    if isinstance(fields, dict):
-        if "@Name" in fields:
-            return {fields["@Name"]: fields.get("#text", "")}
-
-        try:
-            return format_esummary_fields(fields["eSummaryResult"]["DocSum"]["Item"])
-        except KeyError as e:
-            # This may happen when BRENDA has the wrong Pubmed ID for an item.
-            logger().error(
-                "Invalid ESummary structure: missing %s. Error:\n %s",
-                e,
-                fields["eSummaryResult"]["ERROR"],
-            )
-            return {}
-        except TypeError:
-            raise
-
-    return {field["@Name"]: parse_field(field) for field in fields}
+        return "pmc-open" in record.xpath("//oai:setSpec/text()", namespaces=namespaces)
