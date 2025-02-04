@@ -1,11 +1,12 @@
-import os
-from pprint import pp
-import re
 import itertools
+import os
+import re
+from pprint import pp
 from typing import Any, Iterable
 
 import requests
 import xmltodict
+
 from log import logger
 from utils import APIAdapter
 
