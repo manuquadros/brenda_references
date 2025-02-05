@@ -48,7 +48,7 @@ class NCBIAdapter(APIAdapter):
 
     def fetch_ncbi_abstracts(
         self, pubmed_ids: str | Iterable[str], batch_size=10000
-    ) -> dict[str, dict[str, str | None]]:
+    ) -> dict[str, str]:
         """Fetch abstracts and copyright information for the given `pubmed_ids`.
 
         For articles that do not have an abstract available, return None.
@@ -68,17 +68,14 @@ class NCBIAdapter(APIAdapter):
             for article in root.findall(".//MedlineCitation"):
                 pmid = article.find("PMID").text
                 abstract = article.find(".//AbstractText")
-                abstracts[pmid] = (
-                    abstract.text
-                    + "".join(
+                if abstract:
+                    text = abstract.text or ""
+                    abstracts[pmid] = text + "".join(
                         map(
                             lambda node: etree.tostring(node, encoding="unicode"),
                             list(abstract),
                         )
                     )
-                    if abstract is not None
-                    else None
-                )
 
         return abstracts
 
