@@ -38,8 +38,9 @@ def test_lpsn_id_works():
     assert lpsn_id("Agrobacterium") == 515059
 
 
-def test_strain_id_retrieval():
-    assert straininfo.get_strain_ids("K-12") == [
+@pytest.mark.asyncio
+async def test_strain_id_retrieval():
+    assert await straininfo.get_strain_ids("K-12") == [
         11469,
         35283,
         38539,
@@ -50,14 +51,17 @@ def test_strain_id_retrieval():
     ]
 
 
-def test_pmc_open():
-    with NCBIAdapter() as na:
-        assert na.is_pmc_open("365027") is True
+@pytest.mark.asyncio
+async def test_pmc_open():
+    async with NCBIAdapter() as na:
+        is_open = await na.is_pmc_open("365027")
+        assert is_open is True
 
 
 @pytest.mark.skip(reason="adjust the format of the test data before testing")
-def test_strain_data_retrieval():
-    resp = straininfo.get_strain_data(11469)
+@pytest.mark.asyncio
+async def test_strain_data_retrieval():
+    resp = await straininfo.get_strain_data(11469)
     assert resp is not None
 
     strain = next(iter(resp))
@@ -125,7 +129,8 @@ def test_strain_info_api_url():
     )
 
 
-def test_expand_doc_gets_pmc_open():
+@pytest.mark.asyncio
+async def test_expand_doc_gets_pmc_open():
     doc = Document(
         authors="",
         title="",
@@ -137,14 +142,17 @@ def test_expand_doc_gets_pmc_open():
         path="",
     )
 
-    with NCBIAdapter() as ncbi:
-        assert expand_doc(ncbi, doc).pmc_open is True
+    async with NCBIAdapter() as ncbi:
+        doc = await expand_doc(ncbi, doc)
+        assert doc.pmc_open is True
 
 
-def test_abstract_with_formatting():
-    with NCBIAdapter() as ncbi:
+@pytest.mark.asyncio
+async def test_abstract_with_formatting():
+    async with NCBIAdapter() as ncbi:
         pmid = "17323951"
-        assert ncbi.fetch_ncbi_abstracts(pmid)[pmid] == (
+        abstracts = await ncbi.fetch_ncbi_abstracts(pmid)
+        assert abstracts[pmid] == (
             "Bacteria are surrounded by a cell wall containing layers of peptidoglycan,"
             " the integrity of which is essential for bacterial survival. In the final"
             " stage of peptidoglycan biosynthesis, peptidoglycan glycosyltransferases (PGTs;"
