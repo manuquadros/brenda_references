@@ -1,8 +1,6 @@
 import itertools
 import os
-import re
-from pprint import pp
-from typing import Any, Iterable
+from typing import Iterable
 
 import httpx
 from lxml import etree
@@ -24,7 +22,7 @@ class NCBIAdapter(APIAdapter):
             )
 
     @staticmethod
-    def __response_handler(url: str, response: requests.Response) -> etree._Element:
+    def __response_handler(url: str, response: httpx.Response) -> etree._Element:
         if response.status_code != 200:
             err = f"Request for {url} failed with status {response.status_code}"
             logger().error(err)
@@ -33,7 +31,7 @@ class NCBIAdapter(APIAdapter):
         return etree.fromstring(response.content)
 
     async def request(self, url: str) -> etree._Element:
-        reponse = await super().request(url)
+        response = await super().request(url)
         return self.__response_handler(url, response)
 
     def summary_url(self, pubmed_id: str) -> str:
