@@ -12,16 +12,17 @@ the latter.
 """
 
 from functools import lru_cache
+from typing import Iterable
 
 from aiotinydb import AIOTinyDB
-from ncbi import NCBIAdapter
 from tinydb import Query, TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
+from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
-from typing import Iterable
 
 from brenda_references import db
+from ncbi import NCBIAdapter
 
 from .brenda_types import EC, Bacteria, Document
 from .config import config
