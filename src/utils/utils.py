@@ -4,6 +4,12 @@ from typing import Callable, Self, Any
 
 from retrying import retry
 import httpx
+from aiotinydb.middleware import AIOMiddlewareMixin
+from tinydb.middlewares import CachingMiddleware as SyncCachingMiddleware
+
+
+class CachingMiddleware(SyncCachingMiddleware, AIOMiddlewareMixin):
+    """Adding async powers to CachingMiddleware"""
 
 
 def retry_if_too_many_requests(func: Callable) -> Callable:

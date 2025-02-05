@@ -1,1 +1,1 @@
-from .utils import APIAdapter
+from .utils import APIAdapter, CachingMiddleware

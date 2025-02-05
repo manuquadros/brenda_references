@@ -1,20 +1,24 @@
 import asyncio
-from aiotinydb import AIOTinyDB
-from tinydb import Query, where
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
-from brenda_references.brenda_types import Strain
-from brenda_references.straininfo import StrainInfoAdapter
-from brenda_references.config import config
-from tqdm import tqdm
-from pprint import pp
 import itertools
 import math
+from pprint import pp
+
+from aiotinydb import AIOTinyDB
+from utils import CachingMiddleware
+from aiotinydb.storage import AIOJSONStorage
+from tinydb import Query, where
+from tqdm import tqdm
+
+from brenda_references.brenda_types import Strain
+from brenda_references.config import config
+from brenda_references.straininfo import StrainInfoAdapter
 
 
 async def run():
     async with (
-        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+        AIOTinyDB(
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+        ) as docdb,
         StrainInfoAdapter() as straininfo,
     ):
         straininfo.storage = docdb

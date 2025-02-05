@@ -15,8 +15,8 @@ from typing import Iterable
 
 from aiotinydb import AIOTinyDB
 from tinydb import Query, where
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
+from utils import CachingMiddleware
+from aiotinydb.storage import AIOJSONStorage
 from tqdm import tqdm
 
 from brenda_references.brenda_types import Document
@@ -47,8 +47,10 @@ async def add_abstracts(
 
 
 async def run() -> None:
-    with (
-        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+    async with (
+        AIOTinyDB(
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+        ) as docdb,
         NCBIAdapter() as ncbi,
     ):
         documents = docdb.table("documents")
