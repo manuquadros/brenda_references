@@ -76,6 +76,9 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
     """
     # Enzymes: Get full enzyme metadata including synonyms
 
+    if not doc.abstract:
+        return doc
+
     new_spans = frozenset()
 
     for ec_id in getattr(doc, "enzymes", []):
