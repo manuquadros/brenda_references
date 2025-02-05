@@ -138,10 +138,10 @@ class BRENDA:
         SQLModel.metadata.create_all(self.engine)
         self.session = Session(self.engine)
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
+    async def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
         self.session.close()
 
     def references(self) -> Iterable[_Reference]:

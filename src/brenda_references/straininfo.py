@@ -1,9 +1,9 @@
 import re
-from collections.abc import Collection, Iterable, Sequence, MutableMapping
+from collections.abc import Collection, Iterable, MutableMapping, Sequence
 from functools import singledispatchmethod
-from typing import Any, cast
+from typing import Any, Self, cast
 
-import requests
+import httpx
 import tinydb
 from pydantic import ValidationError
 from tinydb import TinyDB
@@ -68,10 +68,13 @@ class StrainInfoAdapter(APIAdapter):
         self.buffer: set[StrainRef] = set()
         self.storage: TinyDB
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.__flush_buffer()
+    def __aenter__(self) -> Self:
+        return self
 
-    def retrieve_strain_models(
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        await self.__flush_buffer()
+
+    async def retrieve_strain_models(
         self, strains: MutableMapping[int, Strain]
     ) -> MutableMapping[int, Strain]:
         # Map each possible strain designation from the normalized name of the model
@@ -82,8 +85,8 @@ class StrainInfoAdapter(APIAdapter):
             for name in normalize_strain_names(model.designations)
         }
 
-        ids = self.get_strain_ids(list(known_names.keys()))
-        straininfo_data = (model for model in self.get_strain_data(ids))
+        ids = await self.get_strain_ids(list(known_names.keys()))
+        straininfo_data = await self.get_strain_data(ids)
 
         # Update the _Strain models with Straininfo information if available
         for entry in straininfo_data:
@@ -98,7 +101,7 @@ class StrainInfoAdapter(APIAdapter):
 
         return strains
 
-    def __flush_buffer(self) -> None:
+    async def __flush_buffer(self) -> None:
         """Store _Strain models into self.storage
 
         Strain models might have unnormalized strain designations, like
@@ -113,7 +116,7 @@ class StrainInfoAdapter(APIAdapter):
             for model in self.buffer
         }
 
-        indexed_buffer = self.retrieve_strain_models(indexed_buffer)
+        indexed_buffer = await self.retrieve_strain_models(indexed_buffer)
 
         for key, strain in indexed_buffer.items():
             self.storage.table("strains").upsert(
@@ -122,15 +125,15 @@ class StrainInfoAdapter(APIAdapter):
 
         self.buffer = set()
 
-    def store_strains(self, strains: Iterable[StrainRef]) -> None:
+    async def store_strains(self, strains: Iterable[StrainRef]) -> None:
         self.buffer.update(strains)
 
         if len(self.buffer) > 100:
-            self.__flush_buffer()
+            await self.__flush_buffer()
 
     @staticmethod
     def __response_handler(
-        url: str, response: requests.Response
+        url: str, response: httpx.Response
     ) -> list[dict] | list[int]:
         match response.status_code:
             case 200:
@@ -139,12 +142,13 @@ class StrainInfoAdapter(APIAdapter):
                 logger().error("%s not found on StrainInfo.", url.split("/")[-1])
                 return []
             case 503:
-                raise requests.HTTPError("StrainInfo is unavailable.")
+                raise httpx.HTTPError("StrainInfo is unavailable.")
             case code:
-                raise requests.HTTPError(f"Failed with HTTP Status {code}")
+                raise httpx.HTTPError(f"Failed with HTTP Status {code}")
 
-    def request(self, url: str) -> list[dict] | list[int]:
-        return self.__response_handler(url, super().request(url))
+    async def request(self, url: str) -> list[dict] | list[int]:
+        response = await super().request(url)
+        return self.__response_handler(url, response)
 
     @singledispatchmethod
     @staticmethod
@@ -164,7 +168,7 @@ class StrainInfoAdapter(APIAdapter):
                 case "int":
                     root = api_root + "data/strain/max/"
                 case _:
-                    raise requests.exceptions.InvalidURL(
+                    raise httpx.exceptions.InvalidURL(
                         "Unknown API function (StrainInfo v1)"
                     )
             break
@@ -176,21 +180,21 @@ class StrainInfoAdapter(APIAdapter):
     def _(query: str | int) -> str:
         return StrainInfoAdapter.strain_info_api_url([query])
 
-    def get_strain_ids(self, query: str | Sequence[str]) -> list[int]:
+    async def get_strain_ids(self, query: str | Sequence[str]) -> list[int]:
         if not query:
             return []
 
         if isinstance(query, str):
             query = (query,)
 
-        response = self.request(self.strain_info_api_url(query))
+        response = await self.request(self.strain_info_api_url(query))
 
         if response and isinstance(response[0], int):
             return cast(list[int], response)
 
         return []
 
-    def get_strain_data(self, query: int | Iterable[int]) -> tuple[Strain, ...]:
+    async def get_strain_data(self, query: int | Iterable[int]) -> tuple[Strain, ...]:
         """Retrieve StrainInfo data for the strain IDs given in the argument.
 
         :param query: IDs to be queried through the API.
@@ -199,7 +203,7 @@ class StrainInfoAdapter(APIAdapter):
             retrieved from StrainInfo.
         """
         try:
-            data = self.request(self.strain_info_api_url(query))
+            data = await self.request(self.strain_info_api_url(query))
         except ValueError:
             return ()
 

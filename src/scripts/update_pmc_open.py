@@ -7,26 +7,27 @@ not available through PubMed Central.
 
 from brenda_references.config import config
 from ncbi import NCBIAdapter
-from tinydb import TinyDB
+from aiotinydb import AIOTinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tqdm import tqdm
+import asyncio
+
+
+async def run():
+    """Update document records in the JSON database in case they are actually
+    available through PubMed Central."""
+    async with (
+        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+        NCBIAdapter() as ncbi,
+    ):
+        for doc in tqdm(docdb.table("documents")):
+            if doc["pmc_id"] and not doc["pmc_open"]:
+                is_open = await ncbi.is_pmc_open(doc["pmc_id"])
+                docdb.table("documents").update(
+                    {"pmc_open": is_open}, doc_ids=[doc.doc_id]
+                )
 
 
 def main():
-    """Update document records in the JSON database in case they are actually
-    available through PubMed Central."""
-    with (
-        TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
-        NCBIAdapter() as ncbi,
-    ):
-
-        def update_pmc_open():
-            def transform(doc):
-                doc["pmc_open"] = ncbi.is_pmc_open(doc["pmc_id"])
-
-            return transform
-
-        for doc in tqdm(docdb.table("documents")):
-            if doc["pmc_id"] and not doc["pmc_open"]:
-                docdb.table("documents").update(update_pmc_open(), doc_ids=[doc.doc_id])
+    asyncio.run(run())

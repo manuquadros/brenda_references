@@ -1,4 +1,6 @@
-from tinydb import Query, TinyDB, where
+import asyncio
+from aiotinydb import AIOTinyDB
+from tinydb import Query, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from brenda_references.brenda_types import Strain
@@ -10,9 +12,9 @@ import itertools
 import math
 
 
-def main():
-    with (
-        TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+async def run():
+    async with (
+        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
         StrainInfoAdapter() as straininfo,
     ):
         straininfo.storage = docdb
@@ -27,9 +29,17 @@ def main():
             ),
             total=total,
         ):
-            strains = straininfo.retrieve_strain_models(
+            strains = await straininfo.retrieve_strain_models(
                 {doc.doc_id: Strain.model_validate(doc) for doc in batch}
             )
 
-            for key, strain in strains.items():
-                docdb.table("strains").update(strain.model_dump(), doc_ids=[key])
+            await asyncio.gather(
+                *(
+                    docdb.table("strains").update(strain.model_dump(), doc_ids=[key])
+                    for key, strain in strains.items()
+                )
+            )
+
+
+def main():
+    asyncio.run(run())

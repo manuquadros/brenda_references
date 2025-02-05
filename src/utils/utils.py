@@ -1,28 +1,18 @@
 import time
 from functools import wraps
 from typing import Callable, Self, Any
-from urllib.error import HTTPError
 
-import requests
-from requests.exceptions import Timeout
 from retrying import retry
-from urllib3 import Retry
+import httpx
 
 
 def retry_if_too_many_requests(func: Callable) -> Callable:
     def handler(exception: Exception):
-        if isinstance(exception, HTTPError):
-            if exception.code == 429:
-                print(
-                    "HTTP Error 429: Too Many Requests... We are retrying in a few seconds."
-                )
+        if isinstance(exception, httpx.HTTPError):
+            if exception.response.status_code == 429:
+                print("HTTP Error 429: Too Many Requests. Retrying...")
             else:
-                print(exception, "retrying")
-
-            return True
-
-        if isinstance(exception, Timeout):
-            print(f"{func.__name__} timed out.")
+                print(f"HTTP error {exception.response.status_code}, retrying...")
 
             return True
 
@@ -44,23 +34,16 @@ class APIAdapter:
     """
 
     def __init__(self, headers: dict[str, str] = {}) -> None:
-        session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(
-            max_retries=Retry(connect=4, backoff_factor=0.5)
+        self.client = httpx.AsyncClient(
+            headers=headers, timeout=30.0, follow_redirects=True
         )
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
 
-        session.headers.update(headers)
-
-        self.session = session
-
-    def __enter__(self) -> Self:
+    def __aenter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_tb) -> None:
-        self.session.close()
+    def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
+        self.client.aclose()
 
     @retry_if_too_many_requests
-    def request(self, url: str) -> Any:
-        return self.session.get(url, timeout=(3, 5))
+    async def request(self, url: str) -> Any:
+        return await self.client.get(url)

@@ -4,7 +4,7 @@ import re
 from pprint import pp
 from typing import Any, Iterable
 
-import requests
+import httpx
 from lxml import etree
 
 from log import logger
@@ -28,12 +28,13 @@ class NCBIAdapter(APIAdapter):
         if response.status_code != 200:
             err = f"Request for {url} failed with status {response.status_code}"
             logger().error(err)
-            raise requests.HTTPError(err)
+            raise httpx.HTTPError(err)
 
         return etree.fromstring(response.content)
 
-    def request(self, url: str) -> etree._Element:
-        return self.__response_handler(url, super().request(url))
+    async def request(self, url: str) -> etree._Element:
+        reponse = await super().request(url)
+        return self.__response_handler(url, response)
 
     def summary_url(self, pubmed_id: str) -> str:
         url = (
@@ -46,7 +47,7 @@ class NCBIAdapter(APIAdapter):
 
         return url
 
-    def fetch_ncbi_abstracts(
+    async def fetch_ncbi_abstracts(
         self, pubmed_ids: str | Iterable[str], batch_size=10000
     ) -> dict[str, str]:
         """Fetch abstracts and copyright information for the given `pubmed_ids`.
@@ -63,7 +64,7 @@ class NCBIAdapter(APIAdapter):
                 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                 f"?db=pubmed&id={','.join(batch)}&retmode=xml"
             )
-            root = self.request(url)
+            root = await self.request(url)
 
             for article in root.findall(".//MedlineCitation"):
                 pmid = article.find("PMID").text
@@ -86,19 +87,19 @@ class NCBIAdapter(APIAdapter):
             f"oai:pubmedcentral.nih.gov:{pmcid}&metadataPrefix=pmc_fm"
         )
 
-    def article_ids(self, pubmed_id: str) -> dict[str, str]:
-        record = self.request(self.summary_url(pubmed_id))
+    async def article_ids(self, pubmed_id: str) -> dict[str, str]:
+        record = await self.request(self.summary_url(pubmed_id))
 
         return {
             id.attrib["Name"]: id.text
             for id in record.xpath("//Item[@Name='ArticleIds']//Item")
         }
 
-    def is_pmc_open(self, pmcid: str | None) -> bool:
+    async def is_pmc_open(self, pmcid: str | None) -> bool:
         if not pmcid:
             return False
 
-        record = self.request(self.record_url(pmcid))
+        record = await self.request(self.record_url(pmcid))
         namespaces = {"oai": "http://www.openarchives.org/OAI/2.0/"}
 
         return "pmc-open" in record.xpath("//oai:setSpec/text()", namespaces=namespaces)

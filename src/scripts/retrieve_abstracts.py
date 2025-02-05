@@ -6,13 +6,15 @@ with the  published version of the dataset. In that case, only metadata allowing
 retrieval of the abstract texts should be shared.
 """
 
+import asyncio
 import itertools
 import math
 from operator import attrgetter
 from pprint import pp
 from typing import Iterable
 
-from tinydb import Query, TinyDB, where
+from aiotinydb import AIOTinyDB
+from tinydb import Query, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tqdm import tqdm
@@ -23,7 +25,7 @@ from ncbi import NCBIAdapter
 from utils import APIAdapter
 
 
-def add_abstracts(
+async def add_abstracts(
     docs: dict[str, Document], adapter: APIAdapter
 ) -> dict[str, Document]:
     """Add abstracts to the documents in `docs` when they are available."""
@@ -32,7 +34,9 @@ def add_abstracts(
         for doc_id, doc in docs.items()
         if doc.abstract is None and doc.pubmed_id
     }
-    abstracts = adapter.fetch_ncbi_abstracts((doc.pubmed_id for doc in docs.values()))
+    abstracts = await adapter.fetch_ncbi_abstracts(
+        (doc.pubmed_id for doc in docs.values())
+    )
 
     tqdm.write(f"Processing {len(docs)} documents in current batch...")
     for doc in docs.values():
@@ -42,9 +46,9 @@ def add_abstracts(
     return docs
 
 
-def main() -> None:
+async def run() -> None:
     with (
-        TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
         NCBIAdapter() as ncbi,
     ):
         documents = docdb.table("documents")
@@ -57,7 +61,11 @@ def main() -> None:
             desc="Batches",
         ):
             docs = {item.doc_id: Document.model_validate(item) for item in batch}
-            docs = add_abstracts(docs, ncbi)
+            docs = await add_abstracts(docs, ncbi)
 
             for key, doc in docs.items():
-                documents.update(doc.model_dump(), doc_ids=[key])
+                await documents.update(doc.model_dump(), doc_ids=[key])
+
+
+def main():
+    asyncio.run(run())

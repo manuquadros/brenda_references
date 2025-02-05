@@ -13,7 +13,7 @@ the latter.
 
 from functools import lru_cache
 
-import tinydb
+from aiotinydb import AIOTinyDB
 from ncbi import NCBIAdapter
 from tinydb import Query, TinyDB
 from tinydb.middlewares import CachingMiddleware
@@ -29,13 +29,13 @@ from .lpsn_interface import lpsn_synonyms, name_parts
 from .straininfo import StrainInfoAdapter
 
 
-def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
+async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     """Check if we can find a PMCID and a DOI for the article."""
     if not doc.pubmed_id:
         return doc
 
     try:
-        article_ids = ncbi.article_ids(doc.pubmed_id)
+        article_ids = await ncbi.article_ids(doc.pubmed_id)
     except KeyError:
         print(doc)
         pmc_id = doi = None
@@ -47,7 +47,7 @@ def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
         if isinstance(pmc_id, str):
             pmc_id = pmc_id.replace("PMC", "")
 
-        pmc_open = ncbi.is_pmc_open(pmc_id)
+        pmc_open = await ncbi.is_pmc_open(pmc_id)
 
     return doc.model_copy(
         update={
@@ -58,7 +58,7 @@ def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     )
 
 
-def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
+def get_document(docdb: AIOTinyDB, reference: db._Reference) -> Document:
     """Retrieve document from the JSON database by reference_id."""
     doc = docdb.table("documents").get(doc_id=reference.reference_id)
 
@@ -68,8 +68,8 @@ def get_document(docdb: tinydb.TinyDB, reference: db._Reference) -> Document:
     return Document.model_validate(doc)
 
 
-def add_document(
-    docdb: tinydb.TinyDB, ncbi: NCBIAdapter, reference: db._Reference
+async def add_document(
+    docdb: AIOTinyDB, ncbi: NCBIAdapter, reference: db._Reference
 ) -> None:
     """Add document metadata to the JSON database after retrieving additional
     data from NCBI.
@@ -80,14 +80,14 @@ def add_document(
 
     :return: Document model containing all the metadata retrieved.
     """
-    doc = expand_doc(ncbi, Document.model_validate(reference.model_dump()))
+    doc = await expand_doc(ncbi, Document.model_validate(reference.model_dump()))
     docdb.table("documents").insert(
         tinydb.table.Document(doc.model_dump(), doc_id=reference.reference_id)
     )
 
 
 def store_enzyme_synonyms(
-    docdb: tinydb.TinyDB,
+    docdb: AIOTinyDB,
     enzyme: EC,
     synonyms: Iterable[str],
 ) -> None:
@@ -103,7 +103,7 @@ def store_enzyme_synonyms(
     )
 
 
-def store_bacteria(docdb: tinydb.TinyDB, bacteria: Iterable[Bacteria]) -> None:
+def store_bacteria(docdb: AIOTinyDB, bacteria: Iterable[Bacteria]) -> None:
     """Retrieve bacterial synonyms from LPSN and store the resulting `Bacteria`
     models in the JSON database.
 
@@ -118,7 +118,7 @@ def store_bacteria(docdb: tinydb.TinyDB, bacteria: Iterable[Bacteria]) -> None:
         )
 
 
-def sync_doc_db() -> None:
+async def sync_doc_db() -> None:
     """Make sure that the references present in BRENDA are processed and
     reflected in the JSON database.
 
@@ -131,9 +131,7 @@ def sync_doc_db() -> None:
     whether new references were added to it.
     """
     with (
-        tinydb.TinyDB(
-            config["documents"], storage=CachingMiddleware(JSONStorage)
-        ) as docdb,
+        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
         NCBIAdapter() as ncbi,
         StrainInfoAdapter() as straininfo,
         db.BRENDA() as brenda,
