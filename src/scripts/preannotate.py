@@ -9,23 +9,25 @@ an enzyme in the D3O ontology.
 
 import asyncio
 import itertools
+import math
 import string
 from pprint import pp
 from typing import NamedTuple
 
 import nltk
 from aiotinydb import AIOTinyDB
+from aiotinydb.storage import AIOJSONStorage
 from rapidfuzz import fuzz
 from tinydb import where
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
 from tinydb.table import Document as TDBDocument
+from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
 from brenda_references.brenda_types import Document, EntityMarkup, Strain
 from brenda_references.config import config
 from brenda_references.straininfo import StrainInfoAdapter
 from ncbi import NCBIAdapter
+from utils import CachingMiddleware
 
 
 def ratio(a: str, b: str) -> float:
