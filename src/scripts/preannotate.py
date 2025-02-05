@@ -20,11 +20,12 @@ from tinydb import where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tinydb.table import Document as TDBDocument
-from tqdm.asyncio import gather
+from tqdm.asyncio import tqdm_asyncio
 
 from brenda_references.brenda_types import Document, EntityMarkup, Strain
 from brenda_references.config import config
 from brenda_references.straininfo import StrainInfoAdapter
+from ncbi import NCBIAdapter
 
 
 def ratio(a: str, b: str) -> float:
@@ -114,7 +115,7 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
 
 
 async def add_abstracts(
-    docs: dict[str, Document], adapter: APIAdapter
+    docs: dict[str, Document], adapter: NCBIAdapter
 ) -> dict[str, Document]:
     """Add abstracts to the documents in `docs` when they are available."""
     ids = tuple(
@@ -155,7 +156,7 @@ async def run():
 
         batches = itertools.batched(documents, batch_size)
 
-        await gather(
+        await tqdm_asyncio.gather(
             *(fetch_and_annotate(list(batch)) for batch in batches), total=total
         )
 
