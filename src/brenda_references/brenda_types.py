@@ -103,6 +103,38 @@ class EntityMarkup(BaseModel):
     entity_id: int
     label: str
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, EntityMarkup):
+            return NotImplemented
+
+        return all(
+            getattr(self, field) == getattr(other, field)
+            for field in self.model_fields_set
+        )
+
+    def __ne__(self, other) -> bool:
+        return not self == other
+
+    def __lt__(self, other) -> bool:
+        for field in ("start", "end", "label", "entity_id"):
+            attr1, attr2 = getattr(self, field), getattr(other, field)
+
+            if attr1 < attr2:
+                return True
+            if attr1 > attr2:
+                return False
+
+        return False
+
+    def __le__(self, other) -> bool:
+        return self < other or self == other
+
+    def __gt__(self, other) -> bool:
+        return self != other and (not self < other)
+
+    def __ge__(self, other) -> bool:
+        return not self < other
+
 
 EntityMarkupSet: TypeAlias = Annotated[
     frozenset[EntityMarkup],
