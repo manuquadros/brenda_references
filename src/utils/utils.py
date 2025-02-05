@@ -38,10 +38,10 @@ class APIAdapter:
             headers=headers, timeout=30.0, follow_redirects=True
         )
 
-    def __aenter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
+    async def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
         self.client.aclose()
 
     @retry_if_too_many_requests
