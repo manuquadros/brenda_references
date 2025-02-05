@@ -49,9 +49,9 @@ def main() -> None:
     ):
         documents = docdb.table("documents")
         batch_size = 250
-        total = math.ceil(documents.count(where("bacteria") != {}) / batch_size)
+        total = math.ceil(len(documents) / batch_size)
         for batch in tqdm(
-            itertools.batched(documents.search(where("bacteria") != {}), batch_size),
+            itertools.batched(documents, batch_size),
             total=total,
             position=0,
             desc="Batches",
