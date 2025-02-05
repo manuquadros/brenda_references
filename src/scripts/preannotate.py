@@ -147,7 +147,7 @@ async def fetch_and_annotate(docs: list[TDBDocument], db: AIOTinyDB) -> None:
 
     for doc_id, doc in docs.items():
         doc = await mark_entities(doc, docdb)
-        await db.table("documents").update(doc, doc_ids=[doc.doc_id])
+        await docdb.table("documents").update(doc, doc_ids=[doc_id])
 
 
 async def run():
