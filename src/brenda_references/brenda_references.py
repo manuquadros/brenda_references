@@ -83,7 +83,7 @@ async def add_document(
     """
     doc = await expand_doc(ncbi, Document.model_validate(reference.model_dump()))
     docdb.table("documents").insert(
-        tinydb.table.Document(doc.model_dump(), doc_id=reference.reference_id)
+        TDBDocument(doc.model_dump(), doc_id=reference.reference_id)
     )
 
 
@@ -100,7 +100,7 @@ def store_enzyme_synonyms(
     """
     enzyme = enzyme.model_copy(update={"synonyms": frozenset(synonyms)})
     docdb.table("enzymes").upsert(
-        tinydb.table.Document(enzyme.model_dump(exclude="id"), doc_id=enzyme.id)
+        TDBDocument(enzyme.model_dump(exclude="id"), doc_id=enzyme.id)
     )
 
 
@@ -115,7 +115,7 @@ def store_bacteria(docdb: AIOTinyDB, bacteria: Iterable[Bacteria]) -> None:
     for bac in bacteria:
         bac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
         docdb.table("bacteria").upsert(
-            tinydb.table.Document(bac.model_dump(exclude="id"), doc_id=bac.id)
+            TDBDocument(bac.model_dump(exclude="id"), doc_id=bac.id)
         )
 
 
@@ -131,7 +131,7 @@ async def sync_doc_db() -> None:
     on BRENDA has changed since the last time we visited it, except as to
     whether new references were added to it.
     """
-    with (
+    async with (
         AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
         NCBIAdapter() as ncbi,
         StrainInfoAdapter() as straininfo,
