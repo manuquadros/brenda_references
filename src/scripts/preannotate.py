@@ -172,7 +172,8 @@ async def run():
         batches = itertools.batched(documents, batch_size)
 
         await tqdm_asyncio.gather(
-            *(fetch_and_annotate(list(batch)) for batch in batches), total=total
+            *(fetch_and_annotate(list(batch), docdb, ncbi) for batch in batches),
+            total=total,
         )
 
 
