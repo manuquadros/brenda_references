@@ -82,39 +82,49 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
     new_spans = frozenset()
 
     for ec_id in getattr(doc, "enzymes", []):
-        enzyme = db.table("enzymes").get(doc_id=ec_id)
-        names = {enzyme["recommended_name"]} | set(enzyme["synonyms"])
-        for name in names:
-            new_spans = new_spans | frozenset(
-                EntityMarkup(start=start, end=end, entity_id=ec_id, label="d3o:Enzyme")
-                for start, end in fuzzy_find_all(doc.abstract, name)
-            )
+        enzyme = await db.table("enzymes").get(doc_id=ec_id)
+        if enzyme:
+            names = {enzyme["recommended_name"]} | set(enzyme["synonyms"])
+            for name in names:
+                new_spans = new_spans | frozenset(
+                    EntityMarkup(
+                        start=start, end=end, entity_id=ec_id, label="d3o:Enzyme"
+                    )
+                    for start, end in fuzzy_find_all(doc.abstract, name)
+                )
 
     # Bacteria: Check organism name and synonyms
     for bacteria_id, name in getattr(doc, "bacteria", {}).items():
-        bacteria = db.table("bacteria").get(doc_id=int(bacteria_id))
-        names = {bacteria["organism"]} | set(bacteria["synonyms"])
-        for name in names:
-            new_spans = new_spans | frozenset(
-                EntityMarkup(
-                    start=start, end=end, entity_id=bacteria_id, label="d3o:Bacteria"
+        bacteria = await db.table("bacteria").get(doc_id=int(bacteria_id))
+        if bacteria:
+            names = {bacteria["organism"]} | set(bacteria["synonyms"])
+            for name in names:
+                new_spans = new_spans | frozenset(
+                    EntityMarkup(
+                        start=start,
+                        end=end,
+                        entity_id=bacteria_id,
+                        label="d3o:Bacteria",
+                    )
+                    for start, end in fuzzy_find_all(
+                        doc.abstract, name, try_abbrev=True
+                    )
                 )
-                for start, end in fuzzy_find_all(doc.abstract, name, try_abbrev=True)
-            )
 
     # Strains: Check designations and culture numbers
     for strain_id in getattr(doc, "strains", []):
-        strain = db.table("strains").get(doc_id=strain_id)
-        names = set(strain["designations"]) | {
-            c["strain_number"] for c in strain["cultures"]
-        }
-        for name in names:
-            new_spans = new_spans | frozenset(
-                EntityMarkup(
-                    start=start, end=end, entity_id=strain_id, label="d3o:Strain"
+        strain = await db.table("strains").get(doc_id=strain_id)
+        if strain:
+            names = set(strain["designations"]) | {
+                c["strain_number"] for c in strain["cultures"]
+            }
+            for name in names:
+                new_spans = new_spans | frozenset(
+                    EntityMarkup(
+                        start=start, end=end, entity_id=strain_id, label="d3o:Strain"
+                    )
+                    for start, end in fuzzy_find_all(doc.abstract, name)
                 )
-                for start, end in fuzzy_find_all(doc.abstract, name)
-            )
 
     return doc.model_copy(update={"entity_spans": doc.entity_spans | new_spans})
 
