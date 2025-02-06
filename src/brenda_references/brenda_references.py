@@ -12,22 +12,54 @@ the latter.
 """
 
 from functools import lru_cache
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from aiotinydb import AIOTinyDB
+from aiotinydb.storage import AIOJSONStorage
 from tinydb import Query, TinyDB
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
 from brenda_references import db
+from log import logger
 from ncbi import NCBIAdapter
+from utils import CachingMiddleware
 
 from .brenda_types import EC, Bacteria, Document
 from .config import config
 from .lpsn_interface import lpsn_synonyms, name_parts
 from .straininfo import StrainInfoAdapter
+
+
+async def add_abstracts(
+    docs: Iterable[Document], adapter: NCBIAdapter
+) -> tuple[Document, ...]:
+    """Add abstracts to the documents in `docs` when they are available."""
+    # Create a copy to avoid modifying the input
+    docs = list(docs)
+
+    targets = {
+        doc.pubmed_id: ix
+        for ix, doc in enumerate(docs)
+        if doc.pubmed_id and not getattr(doc, "abstract", None)
+    }
+
+    if not targets:
+        return tuple(docs)
+
+    abstracts = await adapter.fetch_ncbi_abstracts(targets.keys())
+
+    tqdm.write(f"Processing {len(targets)} documents in current batch...")
+
+    for pubmed_id, abstract in abstracts.items():
+        try:
+            index = targets.get(pubmed_id)
+            docs[index] = docs[index].model_copy(update={"abstract": abstract})
+        except Exception as e:
+            logger().error(f"Error processing abstract for {pubmed_id}: {e}")
+            continue
+
+    return tuple(docs)
 
 
 async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
@@ -38,7 +70,6 @@ async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     try:
         article_ids = await ncbi.article_ids(doc.pubmed_id)
     except KeyError:
-        print(doc)
         pmc_id = doi = None
         pmc_open = False
     else:
@@ -132,7 +163,9 @@ async def sync_doc_db() -> None:
     whether new references were added to it.
     """
     async with (
-        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+        AIOTinyDB(
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+        ) as docdb,
         NCBIAdapter() as ncbi,
         StrainInfoAdapter() as straininfo,
         db.BRENDA() as brenda,
