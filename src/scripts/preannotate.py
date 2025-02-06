@@ -11,8 +11,7 @@ import asyncio
 import itertools
 import math
 import string
-from pprint import pp
-from typing import NamedTuple
+from typing import NamedTuple, Sequence
 
 import nltk
 from aiotinydb import AIOTinyDB
