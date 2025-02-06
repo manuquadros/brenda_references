@@ -131,40 +131,52 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
     return doc.model_copy(update={"entity_spans": doc.entity_spans | new_spans})
 
 
-async def add_abstracts(
-    docs: dict[str, Document], adapter: NCBIAdapter
-) -> dict[str, Document]:
-    """Add abstracts to the documents in `docs` when they are available."""
-    ids = tuple(
-        doc.pubmed_id for doc in docs.values() if doc.abstract is None and doc.pubmed_id
-    )
-    abstracts = await adapter.fetch_ncbi_abstracts(ids)
+async def fetch_and_annotate(
+    docs: list[TDBDocument], docdb: AIOTinyDB, ncbi: NCBIAdapter
+) -> None:
+    try:
+        target_docs = [
+            doc for doc in docs if "entity_spans" not in doc or not doc["entity_spans"]
+        ]
+        doc_ids = [doc.doc_id for doc in target_docs]
+        processed_docs = await add_abstracts(
+            tuple(map(Document.model_validate, target_docs)), ncbi
+        )
 
-    tqdm.write(f"Processing {len(ids)} documents in current batch...")
+        for doc_id, doc in zip(doc_ids, processed_docs):
+            if not doc.abstract:
+                await docdb.table("documents").update(
+                    {"abstract": None, "entity_spans": []},
+                    doc_ids=[doc_id],
+                )
+                continue
 
-    for doc in docs.values():
-        if doc.pubmed_id and not doc.abstract:
-            doc.abstract = abstracts.get(doc.pubmed_id)
+            try:
+                doc = await mark_entities(doc, docdb)
 
-    return docs
+                if hasattr(doc, "entity_spans") and doc.entity_spans:
+                    entity_spans = [span.model_dump() for span in doc.entity_spans]
+                else:
+                    entity_spans = []
 
+                update_data = {"abstract": doc.abstract, "entity_spans": entity_spans}
 
-async def fetch_and_annotate(docs: list[TDBDocument], db: AIOTinyDB) -> None:
-    docs = {
-        item.doc_id: Document.model_validate(item)
-        for item in docs
-        if "entity_spans" not in item or item["entity_spans"] == []
-    }
-    docs = await add_abstracts(docs, ncbi)
-
-    for doc_id, doc in docs.items():
-        doc = await mark_entities(doc, docdb)
-        await docdb.table("documents").update(doc, doc_ids=[doc_id])
+                await docdb.table("documents").update(
+                    update_data,
+                    doc_ids=[doc_id],
+                )
+            except Exception as e:
+                logger().error(f"Failed to process document {doc_id}: {e}")
+                logger().debug(f"Update data: {update_data}")
+    except Exception as e:
+        logger().error(f"Batch processing failed: {e}")
 
 
 async def run():
     async with (
-        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
+        AIOTinyDB(
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+        ) as docdb,
         NCBIAdapter() as ncbi,
     ):
         documents = docdb.table("documents")
