@@ -40,20 +40,22 @@ def fuzzy_find_all(
 ) -> list[tuple[int, int]]:
     """Find all fuzzy matches of pattern in text with given threshold."""
     matches = []
-    words = text.split()
 
-    for i, group in enumerate(nltk.ngrams(words, len(pattern.split()))):
-        test_str = " ".join(group).strip(string.punctuation)
-        ratio_pass = ratio(test_str, pattern) >= threshold
-        abbrev_ratio_pass = (
-            ratio(test_str, abbreviate_bacteria(pattern)) >= threshold
-            if try_abbrev
-            else False
-        )
-        if ratio_pass or abbrev_ratio_pass:
-            start = sum(len(w) + 1 for w in words[:i])
-            end = start + len(test_str)
-            matches.append((start, end))
+    if text:
+        words = text.split()
+
+        for i, group in enumerate(nltk.ngrams(words, len(pattern.split()))):
+            test_str = " ".join(group).strip(string.punctuation)
+            ratio_pass = ratio(test_str, pattern) >= threshold
+            abbrev_ratio_pass = (
+                ratio(test_str, abbreviate_bacteria(pattern)) >= threshold
+                if try_abbrev
+                else False
+            )
+            if ratio_pass or abbrev_ratio_pass:
+                start = sum(len(w) + 1 for w in words[:i])
+                end = start + len(test_str)
+                matches.append((start, end))
 
     return matches
 
