@@ -132,37 +132,26 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
 
 
 async def fetch_and_annotate(
-    docs: list[TDBDocument], docdb: AIOTinyDB, ncbi: NCBIAdapter
+    docs: Sequence[TDBDocument], docdb: AIOTinyDB, ncbi: NCBIAdapter
 ) -> None:
-    target_docs = [
-        doc for doc in docs if "entity_spans" not in doc or not doc["entity_spans"]
-    ]
-    doc_ids = [doc.doc_id for doc in target_docs]
+    """Given a sequence of TinyDB Documents, add abstract and/or entity spans to those
+    that don't have them. Then return a tuple with the updated documents.
+    """
+    target_docs = tuple(filter(lambda d: not d.get("entity_spans"), docs))
     processed_docs = await add_abstracts(
         tuple(map(Document.model_validate, target_docs)), ncbi
     )
+    marked_docs = await asyncio.gather(
+        *[mark_entities(doc, docdb) for doc in processed_docs]
+    )
 
-    for doc_id, doc in zip(doc_ids, processed_docs):
-        if not isinstance(doc, Document) or not getattr(doc, "abstract", None):
-            docdb.table("documents").update(
-                {"abstract": None, "entity_spans": []},
-                doc_ids=[doc_id],
-            )
-        continue
-
-        doc = await mark_entities(doc, docdb)
-
-        if hasattr(doc, "entity_spans") and doc.entity_spans:
-            entity_spans = [span.model_dump() for span in doc.entity_spans]
-        else:
-            entity_spans = []
-
-        update_data = {"abstract": doc.abstract, "entity_spans": entity_spans}
-
-        docdb.table("documents").update(
-            update_data,
-            doc_ids=[doc_id],
+    for doc, marked in zip(target_docs, marked_docs):
+        doc.update(
+            abstract=marked.abstract,
+            entity_spans=[span.model_dump() for span in marked.entity_spans],
         )
+
+    return target_docs
 
 
 async def run():
