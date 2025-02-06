@@ -134,42 +134,35 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
 async def fetch_and_annotate(
     docs: list[TDBDocument], docdb: AIOTinyDB, ncbi: NCBIAdapter
 ) -> None:
-    try:
-        target_docs = [
-            doc for doc in docs if "entity_spans" not in doc or not doc["entity_spans"]
-        ]
-        doc_ids = [doc.doc_id for doc in target_docs]
-        processed_docs = await add_abstracts(
-            tuple(map(Document.model_validate, target_docs)), ncbi
+    target_docs = [
+        doc for doc in docs if "entity_spans" not in doc or not doc["entity_spans"]
+    ]
+    doc_ids = [doc.doc_id for doc in target_docs]
+    processed_docs = await add_abstracts(
+        tuple(map(Document.model_validate, target_docs)), ncbi
+    )
+
+    for doc_id, doc in zip(doc_ids, processed_docs):
+        if not isinstance(doc, Document) or not getattr(doc, "abstract", None):
+            docdb.table("documents").update(
+                {"abstract": None, "entity_spans": []},
+                doc_ids=[doc_id],
+            )
+        continue
+
+        doc = await mark_entities(doc, docdb)
+
+        if hasattr(doc, "entity_spans") and doc.entity_spans:
+            entity_spans = [span.model_dump() for span in doc.entity_spans]
+        else:
+            entity_spans = []
+
+        update_data = {"abstract": doc.abstract, "entity_spans": entity_spans}
+
+        docdb.table("documents").update(
+            update_data,
+            doc_ids=[doc_id],
         )
-
-        for doc_id, doc in zip(doc_ids, processed_docs):
-            if not isinstance(doc, Document) or not getattr(doc, "abstract", None):
-                docdb.table("documents").update(
-                    {"abstract": None, "entity_spans": []},
-                    doc_ids=[doc_id],
-                )
-                continue
-
-            try:
-                doc = await mark_entities(doc, docdb)
-
-                if hasattr(doc, "entity_spans") and doc.entity_spans:
-                    entity_spans = [span.model_dump() for span in doc.entity_spans]
-                else:
-                    entity_spans = []
-
-                update_data = {"abstract": doc.abstract, "entity_spans": entity_spans}
-
-                docdb.table("documents").update(
-                    update_data,
-                    doc_ids=[doc_id],
-                )
-            except Exception as e:
-                logger().error(f"Failed to process document {doc_id}: {e}")
-                logger().debug(f"Update data: {update_data}")
-    except Exception as e:
-        logger().error(f"Batch processing failed: {e}")
 
 
 async def run():
@@ -184,9 +177,10 @@ async def run():
         total = math.ceil(len(documents) / batch_size)
 
         batches = itertools.batched(documents, batch_size)
+        tasks = [fetch_and_annotate(list(batch), docdb, ncbi) for batch in batches]
 
         await tqdm_asyncio.gather(
-            *(fetch_and_annotate(list(batch), docdb, ncbi) for batch in batches),
+            *tasks,
             total=total,
         )
 
