@@ -11,7 +11,7 @@ logfile = (
 
 
 @cache.memoize()
-def logger(level=logging.DEBUG, filename=logfile):
+def logger(level=logging.DEBUG, filename=logfile) -> logging.Logger:
     logging.basicConfig(
         encoding="utf-8",
     )
