@@ -13,9 +13,7 @@ from utils import CachingMiddleware
 
 
 def tup_to_markup(*args) -> EntityMarkup:
-    return EntityMarkup(
-        **{k: v for k, v in zip(EntityMarkup.model_fields.keys(), args)}
-    )
+    return EntityMarkup(dict(zip(EntityMarkup.model_fields.keys(), args)))
 
 
 @pytest.mark.asyncio
