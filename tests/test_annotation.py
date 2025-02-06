@@ -1,14 +1,15 @@
-import pytest
-from tinydb import TinyDB
-from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage
 from pprint import pp
 
+import pytest
+from aiotinydb import AIOTinyDB
+from aiotinydb.storage import AIOJSONStorage
+
 from brenda_references import add_abstracts
+from brenda_references.brenda_types import Document, EntityMarkup
 from brenda_references.config import config
-from brenda_references.brenda_types import EntityMarkup, Document
-from scripts.preannotate import mark_entities
 from ncbi import NCBIAdapter
+from scripts.preannotate import fetch_and_annotate
+from utils import CachingMiddleware
 
 
 def tup_to_markup(*args) -> EntityMarkup:
@@ -19,13 +20,16 @@ def tup_to_markup(*args) -> EntityMarkup:
 
 @pytest.mark.asyncio
 async def test_annotate_nureki():
-    with TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb:
+    async with (
+        AIOTinyDB(
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+        ) as docdb,
+        NCBIAdapter() as ncbi,
+    ):
         doc = docdb.table("documents").get(doc_id=204)
+        doc = await fetch_and_annotate([doc], docdb, ncbi)
+        doc = Document.validate(doc[0])
 
-    async with NCBIAdapter() as ncbi:
-        doc = await add_abstracts(Document.model_validate(doc), ncbi)
-
-    doc = await mark_entities(doc, docdb)
     markup = doc.entity_spans
 
     pp(markup)
