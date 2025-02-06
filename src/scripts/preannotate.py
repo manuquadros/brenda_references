@@ -23,9 +23,11 @@ from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
+from brenda_references import add_abstracts
 from brenda_references.brenda_types import Document, EntityMarkup, Strain
 from brenda_references.config import config
 from brenda_references.straininfo import StrainInfoAdapter
+from log import logger
 from ncbi import NCBIAdapter
 from utils import CachingMiddleware
 
