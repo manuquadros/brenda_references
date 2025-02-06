@@ -67,7 +67,7 @@ class NCBIAdapter(APIAdapter):
             for article in root.findall(".//MedlineCitation"):
                 pmid = article.find("PMID").text
                 abstract = article.find(".//AbstractText")
-                if abstract:
+                if abstract is not None and len(abstract):
                     text = abstract.text or ""
                     abstracts[pmid] = text + "".join(
                         map(
