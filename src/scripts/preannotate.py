@@ -144,8 +144,8 @@ async def fetch_and_annotate(
         )
 
         for doc_id, doc in zip(doc_ids, processed_docs):
-            if not doc.abstract:
-                await docdb.table("documents").update(
+            if not isinstance(doc, Document) or not getattr(doc, "abstract", None):
+                docdb.table("documents").update(
                     {"abstract": None, "entity_spans": []},
                     doc_ids=[doc_id],
                 )
@@ -161,7 +161,7 @@ async def fetch_and_annotate(
 
                 update_data = {"abstract": doc.abstract, "entity_spans": entity_spans}
 
-                await docdb.table("documents").update(
+                docdb.table("documents").update(
                     update_data,
                     doc_ids=[doc_id],
                 )
