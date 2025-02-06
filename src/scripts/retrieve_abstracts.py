@@ -9,12 +9,8 @@ retrieval of the abstract texts should be shared.
 import asyncio
 import itertools
 import math
-from operator import attrgetter
-from pprint import pp
-from typing import Iterable
 
 from aiotinydb import AIOTinyDB
-from tinydb import Query, where
 from utils import CachingMiddleware
 from aiotinydb.storage import AIOJSONStorage
 from tqdm import tqdm

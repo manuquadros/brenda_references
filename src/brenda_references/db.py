@@ -19,7 +19,7 @@ from functools import lru_cache
 from typing import Any, Iterable, Self
 
 from rapidfuzz import fuzz, process
-from sqlalchemy import URL, Column, Engine, Integer, String, func
+from sqlalchemy import URL, Column, Engine, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
@@ -32,9 +32,7 @@ from .brenda_types import (
     HasEnzyme,
     HasSpecies,
     Organism,
-    Strain,
     StrainRef,
-    Triple,
 )
 from .config import config
 

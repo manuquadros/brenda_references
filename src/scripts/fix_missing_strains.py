@@ -1,12 +1,11 @@
 import asyncio
 import itertools
 import math
-from pprint import pp
 
 from aiotinydb import AIOTinyDB
 from utils import CachingMiddleware
 from aiotinydb.storage import AIOJSONStorage
-from tinydb import Query, where
+from tinydb import where
 from tqdm import tqdm
 
 from brenda_references.brenda_types import Strain

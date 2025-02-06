@@ -1,4 +1,3 @@
-import pytest
 from brenda_references.brenda_types import Triple, EntityMarkup
 
 

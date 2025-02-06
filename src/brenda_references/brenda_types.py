@@ -1,6 +1,6 @@
 import datetime
 from functools import cached_property
-from typing import Annotated, Any, Self, Set, TypeAlias, Mapping, NamedTuple
+from typing import Annotated, Any, Set, TypeAlias, Mapping, NamedTuple
 
 from pydantic import (
     AliasChoices,

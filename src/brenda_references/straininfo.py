@@ -12,7 +12,6 @@ from log import logger
 from utils import APIAdapter
 
 from .brenda_types import Strain, StrainRef
-from .db import _Strain
 
 api_root = "https://api.straininfo.dsmz.de/v1/"
 

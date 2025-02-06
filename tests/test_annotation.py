@@ -4,7 +4,6 @@ import pytest
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
 
-from brenda_references import add_abstracts
 from brenda_references.brenda_types import Document, EntityMarkup
 from brenda_references.config import config
 from ncbi import NCBIAdapter

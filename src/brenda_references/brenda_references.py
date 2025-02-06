@@ -11,12 +11,10 @@ update the JSON database it founds references that are not already stored in
 the latter.
 """
 
-from functools import lru_cache
-from typing import Iterable, Sequence
+from typing import Iterable
 
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
-from tinydb import Query, TinyDB
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
@@ -27,7 +25,7 @@ from utils import CachingMiddleware
 
 from .brenda_types import EC, Bacteria, Document
 from .config import config
-from .lpsn_interface import lpsn_synonyms, name_parts
+from .lpsn_interface import lpsn_synonyms
 from .straininfo import StrainInfoAdapter
 
 

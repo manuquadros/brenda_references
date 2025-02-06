@@ -5,7 +5,6 @@ from asyncio import Semaphore, sleep
 
 import httpx
 from aiotinydb.middleware import AIOMiddlewareMixin
-from retrying import retry
 from tinydb.middlewares import CachingMiddleware as SyncCachingMiddleware
 
 

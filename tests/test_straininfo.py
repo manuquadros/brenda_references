@@ -1,4 +1,3 @@
-import pytest
 from brenda_references.straininfo import normalize_strain_names
 
 
