@@ -164,15 +164,13 @@ async def run():
     ):
         documents = docdb.table("documents")
         batch_size = 250
-        total = math.ceil(len(documents) / batch_size)
 
         batches = itertools.batched(documents, batch_size)
-        tasks = [fetch_and_annotate(list(batch), docdb, ncbi) for batch in batches]
 
-        await tqdm_asyncio.gather(
-            *tasks,
-            total=total,
-        )
+        for batch in tqdm(batches, total=math.ceil(len(documents) / batch_size)):
+            docs = await fetch_and_annotate(list(batch), docdb, ncbi)
+            for doc in docs:
+                docdb.table("documents").update(doc, doc_ids=[doc.doc_id])
 
 
 def main():
