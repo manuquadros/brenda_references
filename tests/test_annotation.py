@@ -4,9 +4,11 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from pprint import pp
 
+from brenda_references import add_abstracts
 from brenda_references.config import config
 from brenda_references.brenda_types import EntityMarkup, Document
 from scripts.preannotate import mark_entities
+from ncbi import NCBIAdapter
 
 
 def tup_to_markup(*args) -> EntityMarkup:
@@ -20,7 +22,10 @@ async def test_annotate_nureki():
     with TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb:
         doc = docdb.table("documents").get(doc_id=204)
 
-    doc = await mark_entities(Document.model_validate(doc), docdb)
+    async with NCBIAdapter() as ncbi:
+        doc = await add_abstracts(Document.model_validate(doc), ncbi)
+
+    doc = await mark_entities(doc, docdb)
     markup = doc.entity_spans
 
     pp(markup)

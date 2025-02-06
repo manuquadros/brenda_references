@@ -14,22 +14,30 @@ class CachingMiddleware(SyncCachingMiddleware, AIOMiddlewareMixin):
 
 
 def retry_if_too_many_requests(func: Callable) -> Callable:
-    def handler(exception: Exception):
+    async def handler(exception: Exception):
         if isinstance(exception, httpx.HTTPError):
-            if exception.response.status_code == 429:
+            if hasattr(exception, "response") and exception.response.status_code == 429:
                 print("HTTP Error 429: Too Many Requests. Retrying...")
             else:
-                print(f"HTTP error {exception.response.status_code}, retrying...")
+                print(f"HTTP error {exception}, retrying...")
+
+            await sleep(300)
 
             return True
 
         return False
 
     @wraps(func)
-    def wrapped(*args, **kwargs):
-        return retry(
-            retry_on_exception=handler, wait_random_min=30000, wait_random_max=300000
-        )(func)(*args, **kwargs)
+    async def wrapped(*args, **kwargs):
+        retry_count = 0
+        while True:
+            try:
+                return await func(*args, **kwargs)
+            except Exception as e:
+                if not await handler(e) or retry_count > 5:
+                    raise
+
+                retry_count += 1
 
     return wrapped
 
