@@ -168,9 +168,7 @@ class StrainInfoAdapter(APIAdapter):
                 case "int":
                     root = api_root + "data/strain/max/"
                 case _:
-                    raise httpx.exceptions.InvalidURL(
-                        "Unknown API function (StrainInfo v1)"
-                    )
+                    raise httpx.InvalidURL("Unknown API function (StrainInfo v1)")
             break
 
         return root + ",".join(map(str, query))
