@@ -101,7 +101,7 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
                 )
 
     # Bacteria: Check organism name and synonyms
-    for bacteria_id, name in getattr(doc, "bacteria", {}).items():
+    for bacteria_id in getattr(doc, "bacteria", {}):
         bacteria = db.table("bacteria").get(doc_id=int(bacteria_id))
         if bacteria:
             names = {bacteria["organism"]} | set(bacteria["synonyms"])

@@ -140,9 +140,9 @@ def store_bacteria(docdb: AIOTinyDB, bacteria: Iterable[Bacteria]) -> None:
     :param bacteria: Set of Bacteria models to be completed with synonyms
     """
     for bac in bacteria:
-        bac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
+        newbac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
         docdb.table("bacteria").upsert(
-            TDBDocument(bac.model_dump(exclude="id"), doc_id=bac.id),
+            TDBDocument(newbac.model_dump(exclude="id"), doc_id=newbac.id),
         )
 
 
