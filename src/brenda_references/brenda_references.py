@@ -82,12 +82,17 @@ async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
     )
 
 
+class UnknownDocumentError(Exception):
+    def __init__(self, reference_id: str) -> None:
+        super().__init__(f"{reference_id} was not found in the document database")
+
+
 def get_document(docdb: AIOTinyDB, reference: db._Reference) -> Document:
     """Retrieve document from the JSON database by reference_id."""
     doc = docdb.table("documents").get(doc_id=reference.reference_id)
 
     if doc is None:
-        raise KeyError("{reference.reference_id} does not exist in the documents table")
+        raise UnknownDocumentError(reference.reference_id)
 
     return Document.model_validate(doc)
 

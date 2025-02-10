@@ -74,7 +74,8 @@ class StrainInfoAdapter(APIAdapter):
         await self.__flush_buffer()
 
     async def retrieve_strain_models(
-        self, strains: MutableMapping[int, Strain],
+        self,
+        strains: MutableMapping[int, Strain],
     ) -> MutableMapping[int, Strain]:
         # Map each possible strain designation from the normalized name of the model
         # to the id of the model.
@@ -132,7 +133,8 @@ class StrainInfoAdapter(APIAdapter):
 
     @staticmethod
     def __response_handler(
-        url: str, response: httpx.Response,
+        url: str,
+        response: httpx.Response,
     ) -> list[dict] | list[int]:
         match response.status_code:
             case 200:
@@ -140,10 +142,8 @@ class StrainInfoAdapter(APIAdapter):
             case 404:
                 logger().error("%s not found on StrainInfo.", url.split("/")[-1])
                 return []
-            case 503:
-                raise httpx.HTTPError("StrainInfo is unavailable.")
-            case code:
-                raise httpx.HTTPError(f"Failed with HTTP Status {code}")
+            case _:
+                raise response.raise_for_status()
 
     async def request(self, url: str) -> list[dict] | list[int]:
         response = await super().request(url)
@@ -152,13 +152,13 @@ class StrainInfoAdapter(APIAdapter):
     @singledispatchmethod
     @staticmethod
     def strain_info_api_url(query: Any):
-        raise TypeError("<query> must be a str | int | Iterable[str] | Iterable[int]")
+        raise TypeError
 
     @strain_info_api_url.register(Iterable)
     @staticmethod
     def _(query: Iterable[str] | Iterable[int]) -> str:
         if not query:
-            raise ValueError("No query specified")
+            raise ValueError
 
         for item in query:
             match type(item).__name__:
@@ -167,7 +167,7 @@ class StrainInfoAdapter(APIAdapter):
                 case "int":
                     root = api_root + "data/strain/max/"
                 case _:
-                    raise httpx.InvalidURL("Unknown API function (StrainInfo v1)")
+                    raise httpx.InvalidURL
             break
 
         return root + ",".join(map(str, query))
@@ -210,7 +210,8 @@ class StrainInfoAdapter(APIAdapter):
                     **item["strain"],
                     cultures=item["strain"]["relation"].get("culture", frozenset()),
                     designations=item["strain"]["relation"].get(
-                        "designation", frozenset(),
+                        "designation",
+                        frozenset(),
                     ),
                 )
                 for item in data
