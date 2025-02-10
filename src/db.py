@@ -1,7 +1,6 @@
 from sqlalchemy import URL
 from sqlalchemy.engine import TupleResult
-from sqlalchemy.sql.functions import random
-from sqlmodel import Session, create_engine, SQLModel, Field, select, join
+from sqlmodel import Session, create_engine, SQLModel, Field, select
 import tomllib
 
 
