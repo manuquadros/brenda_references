@@ -173,6 +173,11 @@ async def run():
         documents = docdb.table("documents").search(
             ~Query().entity_spans.exists() | (Query().entity_spans == [])
         )
+
+        if not documents or not len(documents):
+            print("No documents to annotate")
+            return
+
         batch_size = 250
         n_tasks = math.ceil(len(documents) / batch_size / 3)
 
@@ -193,6 +198,8 @@ async def run():
             async with asyncio.TaskGroup() as tg:
                 for batch in batch_group:
                     tg.create_task(process(tuple(batch)))
+
+        iterator.close()
 
 
 def main():
