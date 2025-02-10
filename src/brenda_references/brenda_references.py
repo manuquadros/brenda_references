@@ -47,8 +47,6 @@ async def add_abstracts(
 
     abstracts = await adapter.fetch_ncbi_abstracts(targets.keys())
 
-    tqdm.write(f"Processing {len(targets)} documents in current batch...")
-
     for pubmed_id, abstract in abstracts.items():
         try:
             index = targets.get(pubmed_id)

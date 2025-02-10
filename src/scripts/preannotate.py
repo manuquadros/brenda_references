@@ -28,7 +28,9 @@ from utils import CachingMiddleware
 
 
 def ratio(a: str, b: str) -> float:
-    return (fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)) / 2
+    return (
+        fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)
+    ) / 2
 
 
 def fuzzy_find_all(
@@ -87,7 +89,10 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
             for name in names:
                 new_spans = new_spans | frozenset(
                     EntityMarkup(
-                        start=start, end=end, entity_id=ec_id, label="d3o:Enzyme"
+                        start=start,
+                        end=end,
+                        entity_id=ec_id,
+                        label="d3o:Enzyme",
                     )
                     for start, end in fuzzy_find_all(doc.abstract, name)
                 )
@@ -120,7 +125,10 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
             for name in names:
                 new_spans = new_spans | frozenset(
                     EntityMarkup(
-                        start=start, end=end, entity_id=strain_id, label="d3o:Strain"
+                        start=start,
+                        end=end,
+                        entity_id=strain_id,
+                        label="d3o:Strain",
                     )
                     for start, end in fuzzy_find_all(doc.abstract, name)
                 )
@@ -135,9 +143,11 @@ async def fetch_and_annotate(
     that don't have them. Then return a tuple with the updated documents.
     """
     target_docs = tuple(filter(lambda d: not d.get("entity_spans"), docs))
+
     processed_docs = await add_abstracts(
         tuple(map(Document.model_validate, target_docs)), ncbi
     )
+
     marked_docs = await asyncio.gather(
         *[mark_entities(doc, docdb) for doc in processed_docs]
     )
