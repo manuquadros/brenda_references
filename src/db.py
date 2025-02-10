@@ -64,7 +64,7 @@ def protein_connect_records(user: str, password: str) -> TupleResult:
                 Reference,
                 Protein_Connect.reference_id == Reference.reference_id,
             )
-            .where(Protein_Connect.protein_organism_strain_id == None)
+            .where(Protein_Connect.protein_organism_strain_id is None)
         )
 
         return session.exec(query)
