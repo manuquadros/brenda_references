@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "brenda-references"
+version = "0.1.0"
+description = ""
+authors = ["Emanuel Quadros <emanuel.souza.de.quadros@dsmz.de>"]
+readme = "README.md"
+packages = [
+  { include = "brenda_references", from = "src" }
+]
+include = ["config.toml", "data/bacteria.txt"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+rapidfuzz = "^3.10.1"
+sqlmodel = "0.*"
+mysqlclient = "^2.2.5"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.29.0"
+python-lsp-ruff = "^2.2.2"
+pylsp-mypy = "^0.6.9"
+python-lsp-isort = "^0.2.0"
+pylsp-rope = "^0.1.16"
+pytest = "^8.3.3"
+types-sqlalchemy = "^1.4.53.38"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
