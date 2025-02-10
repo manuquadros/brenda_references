@@ -108,7 +108,7 @@ async def test_strain_data_retrieval():
                 "VTT E-032275",
                 "CNCTC 7388",
             },
-        }
+        },
     )
 
 
@@ -153,22 +153,29 @@ async def test_abstract_with_formatting():
         pmid = "17323951"
         abstracts = await ncbi.fetch_ncbi_abstracts(pmid)
         assert abstracts[pmid] == (
-            "Bacteria are surrounded by a cell wall containing layers of peptidoglycan,"
-            " the integrity of which is essential for bacterial survival. In the final"
-            " stage of peptidoglycan biosynthesis, peptidoglycan glycosyltransferases (PGTs;"
+            "Bacteria are surrounded by a cell wall containing layers of"
+            " peptidoglycan, the integrity of which is essential for bacterial"
+            " survival. In the final"
+            " stage of peptidoglycan biosynthesis, peptidoglycan glycosyltransferases"
+            " (PGTs;"
             " also known as transglycosylases) catalyze the polymerization of Lipid II"
             " to form linear glycan chains. PGTs"
-            " have tremendous potential as antibiotic targets, but the potential has not"
+            " have tremendous potential as antibiotic targets, but the potential has"
+            " not"
             " yet been"
-            " realized. Mechanistic studies have been hampered by a lack of substrates to"
+            " realized. Mechanistic studies have been hampered by a lack of substrates"
+            " to"
             " monitor enzymatic"
-            " activity. We report here the total synthesis of heptaprenyl-Lipid IV and its"
+            " activity. We report here the total synthesis of heptaprenyl-Lipid IV and"
+            " its"
             " use to study two different PGTs from <i>E. coli</i>."
             " We show that one PGT can couple"
             " Lipid IV to"
-            " itself whereas the other can only couple Lipid IV to Lipid II. These <i>in"
+            " itself whereas the other can only couple Lipid IV to Lipid II. These "
+            "<i>in"
             " vitro</i>"
-            " differences in enzymatic activity may reflect differences in the biological"
+            " differences in enzymatic activity may reflect differences in the"
+            " biological"
             " functions of the"
             " two major glycosyltransferases in <i>E coli</i>."
         )

@@ -9,7 +9,7 @@ from tinydb.middlewares import CachingMiddleware as SyncCachingMiddleware
 
 
 class CachingMiddleware(SyncCachingMiddleware, AIOMiddlewareMixin):
-    """Adding async powers to CachingMiddleware"""
+    """Adding async powers to CachingMiddleware."""
 
 
 def retry_if_too_many_requests(func: Callable) -> Callable:
@@ -42,14 +42,14 @@ def retry_if_too_many_requests(func: Callable) -> Callable:
 
 
 class APIAdapter:
-    """General context manager for API connections
+    """General context manager for API connections.
 
     Subclasses can initialize the headers parameter of the parent.
     """
 
     def __init__(self, headers: dict[str, str] = {}, rate_limit: int = 3) -> None:
         self.client = httpx.AsyncClient(
-            headers=headers, timeout=30.0, follow_redirects=True
+            headers=headers, timeout=30.0, follow_redirects=True,
         )
         self.semaphore = Semaphore(rate_limit)
         self.last_request_time = {}

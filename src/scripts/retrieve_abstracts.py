@@ -21,7 +21,7 @@ from utils import APIAdapter, CachingMiddleware
 
 
 async def add_abstracts(
-    docs: dict[str, Document], adapter: APIAdapter
+    docs: dict[str, Document], adapter: APIAdapter,
 ) -> dict[str, Document]:
     """Add abstracts to the documents in `docs` when they are available."""
     docs = {
@@ -30,7 +30,7 @@ async def add_abstracts(
         if doc.abstract is None and doc.pubmed_id
     }
     abstracts = await adapter.fetch_ncbi_abstracts(
-        (doc.pubmed_id for doc in docs.values())
+        (doc.pubmed_id for doc in docs.values()),
     )
 
     tqdm.write(f"Processing {len(docs)} documents in current batch...")
@@ -44,7 +44,7 @@ async def add_abstracts(
 async def run() -> None:
     async with (
         AIOTinyDB(
-            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
         NCBIAdapter() as ncbi,
     ):

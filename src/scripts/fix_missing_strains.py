@@ -16,7 +16,7 @@ from utils import CachingMiddleware
 async def run():
     async with (
         AIOTinyDB(
-            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
         StrainInfoAdapter() as straininfo,
     ):
@@ -24,23 +24,23 @@ async def run():
 
         batch_size = 100
         total = math.ceil(
-            docdb.table("strains").count(where("id") == None) / batch_size
+            docdb.table("strains").count(where("id") == None) / batch_size,
         )
         for batch in tqdm(
             itertools.batched(
-                docdb.table("strains").search(where("id") == None), batch_size
+                docdb.table("strains").search(where("id") == None), batch_size,
             ),
             total=total,
         ):
             strains = await straininfo.retrieve_strain_models(
-                {doc.doc_id: Strain.model_validate(doc) for doc in batch}
+                {doc.doc_id: Strain.model_validate(doc) for doc in batch},
             )
 
             await asyncio.gather(
                 *(
                     docdb.table("strains").update(strain.model_dump(), doc_ids=[key])
                     for key, strain in strains.items()
-                )
+                ),
             )
 
 

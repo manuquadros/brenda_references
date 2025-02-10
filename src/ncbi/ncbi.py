@@ -46,7 +46,7 @@ class NCBIAdapter(APIAdapter):
         return url
 
     async def fetch_ncbi_abstracts(
-        self, pubmed_ids: str | Iterable[str], batch_size=10000
+        self, pubmed_ids: str | Iterable[str], batch_size=10000,
     ) -> dict[str, str]:
         """Fetch abstracts and copyright information for the given `pubmed_ids`.
 
@@ -73,7 +73,7 @@ class NCBIAdapter(APIAdapter):
                         map(
                             lambda node: etree.tostring(node, encoding="unicode"),
                             list(abstract),
-                        )
+                        ),
                     )
 
         return abstracts

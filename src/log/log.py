@@ -17,13 +17,13 @@ def logger(level=logging.DEBUG, filename=logfile) -> logging.Logger:
         encoding="utf-8",
     )
     handler = handlers.RotatingFileHandler(
-        filename=filename, maxBytes=512000, backupCount=5
+        filename=filename, maxBytes=512000, backupCount=5,
     )
     handler.setFormatter(
         logging.Formatter(
             fmt="%(asctime)s, %(module)s.%(funcName)s, %(levelname)s, %(message)s",
             datefmt="%d %b %Y %H:%M:%S",
-        )
+        ),
     )
     _logger = logging.getLogger(__name__)
     _logger.setLevel(level)

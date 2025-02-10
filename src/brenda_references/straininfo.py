@@ -61,7 +61,7 @@ class StrainInfoAdapter(APIAdapter):
                 "Accept": "application/json",
                 "Cache-Control": "no-store",
                 "Accept-Encoding": "gzip, deflate",
-            }
+            },
         )
 
         self.buffer: set[StrainRef] = set()
@@ -74,7 +74,7 @@ class StrainInfoAdapter(APIAdapter):
         await self.__flush_buffer()
 
     async def retrieve_strain_models(
-        self, strains: MutableMapping[int, Strain]
+        self, strains: MutableMapping[int, Strain],
     ) -> MutableMapping[int, Strain]:
         # Map each possible strain designation from the normalized name of the model
         # to the id of the model.
@@ -101,7 +101,7 @@ class StrainInfoAdapter(APIAdapter):
         return strains
 
     async def __flush_buffer(self) -> None:
-        """Store _Strain models into self.storage
+        """Store _Strain models into self.storage.
 
         Strain models might have unnormalized strain designations, like
         'HBB / ATCC 27634 / DSM 579'. The method will extract the normalized
@@ -119,7 +119,7 @@ class StrainInfoAdapter(APIAdapter):
 
         for key, strain in indexed_buffer.items():
             self.storage.table("strains").upsert(
-                tinydb.table.Document(strain.model_dump(), doc_id=key)
+                tinydb.table.Document(strain.model_dump(), doc_id=key),
             )
 
         self.buffer = set()
@@ -132,7 +132,7 @@ class StrainInfoAdapter(APIAdapter):
 
     @staticmethod
     def __response_handler(
-        url: str, response: httpx.Response
+        url: str, response: httpx.Response,
     ) -> list[dict] | list[int]:
         match response.status_code:
             case 200:
@@ -210,7 +210,7 @@ class StrainInfoAdapter(APIAdapter):
                     **item["strain"],
                     cultures=item["strain"]["relation"].get("culture", frozenset()),
                     designations=item["strain"]["relation"].get(
-                        "designation", frozenset()
+                        "designation", frozenset(),
                     ),
                 )
                 for item in data

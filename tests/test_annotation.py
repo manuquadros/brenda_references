@@ -19,7 +19,7 @@ def tup_to_markup(*args) -> EntityMarkup:
 async def test_annotate_nureki():
     async with (
         AIOTinyDB(
-            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+            config["documents"], storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
         NCBIAdapter() as ncbi,
     ):

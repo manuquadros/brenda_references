@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
-"""
-Script for making sure that articles marked as not being pmc_open actually are
-not available through PubMed Central.
-"""
+"""Script for verifying the status of documents marked as not pmc_open."""
 
 import asyncio
 
@@ -17,8 +14,6 @@ from ncbi import NCBIAdapter
 
 
 async def run():
-    """Update document records in the JSON database in case they are actually
-    available through PubMed Central."""
     async with (
         AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
         NCBIAdapter() as ncbi,
@@ -27,7 +22,8 @@ async def run():
             if doc["pmc_id"] and not doc["pmc_open"]:
                 is_open = await ncbi.is_pmc_open(doc["pmc_id"])
                 docdb.table("documents").update(
-                    {"pmc_open": is_open}, doc_ids=[doc.doc_id]
+                    {"pmc_open": is_open},
+                    doc_ids=[doc.doc_id],
                 )
 
 

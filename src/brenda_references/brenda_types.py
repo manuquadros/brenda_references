@@ -151,7 +151,7 @@ class Document(BaseReference):
     pmc_open: bool | None = None
     doi: str | None = None
     created: AwareDatetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True
+        default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True,
     )
     modified: AwareDatetime | None = None
     abstract: str | None = None
@@ -205,7 +205,7 @@ class EC(BaseEC, frozen=True):
 
 class Culture(BaseModel, frozen=True):
     siid: int = Field(
-        description="The id of the culture on StrainInfo", validation_alias="id"
+        description="The id of the culture on StrainInfo", validation_alias="id",
     )
     strain_number: str
 
@@ -228,7 +228,7 @@ class StrainRef(NamedTuple):
 
 class Strain(BaseModel):
     id: int | None = Field(
-        description="The id of the strain on StrainInfo, if found.", default=None
+        description="The id of the strain on StrainInfo, if found.", default=None,
     )
     doi: str | None = None
     merged: list[int] | None = None
@@ -245,7 +245,7 @@ class Strain(BaseModel):
     designations: Annotated[
         StringSet,
         Field(
-            description="Designations for the strain other than the culture identifiers"
+            description="Designations for the strain other than the culture identifiers",
         ),
     ]
 

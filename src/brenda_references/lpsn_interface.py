@@ -16,7 +16,7 @@ cache = Cache()
 def get_lpsn() -> pd.DataFrame:
     df = pd.read_csv(config["sources"]["lpsn"])
     df = df.drop(
-        ["reference", "authors", "risk_grp", "nomenclatural_type"], axis="columns"
+        ["reference", "authors", "risk_grp", "nomenclatural_type"], axis="columns",
     )
     df = df.fillna("")
 
@@ -53,7 +53,7 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
 
         case _:
             logger().error(
-                "Invalid LPSN synonym query: %s is not int or string.", qtype
+                "Invalid LPSN synonym query: %s is not int or string.", qtype,
             )
             return frozenset()
 

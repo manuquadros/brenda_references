@@ -3,7 +3,7 @@ This module provides the interface to the BRENDA database.
 
 `brenda_references`
     Provides a list of article references from BRENDA.
-  
+
 `brenda_enzyme_relations`
     Retrieves all relation triples and their participating entities for a given
     reference.
@@ -45,17 +45,19 @@ class Protein_Connect(SQLModel, table=True):  # type: ignore
     __table_args__ = {"keep_existing": True}
     __tablename__ = "protein_connect"
     protein_connect_id: int = Field(
-        primary_key=True, description="ID of the protein-organism connection in BRENDA."
+        primary_key=True,
+        description="ID of the protein-organism connection in BRENDA.",
     )
     organism_id: int = Field(
         nullable=False,
         description="Reference to the organism taking part in the relation.",
     )
     ec_class_id: int = Field(
-        nullable=False, description="Reference to the EC Class of the protein."
+        nullable=False,
+        description="Reference to the EC Class of the protein.",
     )
     protein_organism_strain_id: int | None = Field(
-        description="Reference to a specific strain related to the protein, if available."
+        description="Reference to a specific strain related to the protein, if available.",
     )
     reference_id: int = Field(
         nullable=False,
@@ -152,14 +154,14 @@ class BRENDA:
         return self.session.query(_Reference.reference_id).count()
 
     def enzyme_relations(self, reference_id: int) -> dict[str, Any]:
-        """Return the relation triples attested in `reference_id`, as well as their
-        participating entities."""
+        """Return entities and relations attested in `reference_id`."""
         query = (
             select(Protein_Connect, _Organism, _EC, _Strain)
             .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
             .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
             .outerjoin(
-                _Strain, Protein_Connect.protein_organism_strain_id == _Strain.id
+                _Strain,
+                Protein_Connect.protein_organism_strain_id == _Strain.id,
             )
             .where(Protein_Connect.reference_id == reference_id)
         )
@@ -182,7 +184,7 @@ class BRENDA:
                     )
 
                 output["triples"].setdefault("HasSpecies", set()).add(
-                    HasSpecies(subject=strain.id, object=organism.organism_id)
+                    HasSpecies(subject=strain.id, object=organism.organism_id),
                 )
                 output["strains"].add(strain)
             else:
@@ -191,16 +193,16 @@ class BRENDA:
                         HasEnzyme(
                             subject=organism.organism_id,
                             object=record._EC.ec_class_id,
-                        )
+                        ),
                     )
 
             if is_bacteria(organism.organism):
                 output["bacteria"].add(
-                    Bacteria.model_validate(organism, from_attributes=True)
+                    Bacteria.model_validate(organism, from_attributes=True),
                 )
             else:
                 output["other_organisms"].add(
-                    Organism.model_validate(organism, from_attributes=True)
+                    Organism.model_validate(organism, from_attributes=True),
                 )
 
             output["enzymes"].add(EC.model_validate(record._EC, from_attributes=True))
@@ -226,16 +228,16 @@ class BRENDA:
 
 
 def get_engine() -> Engine:
-    """
-    Establishes a connection to the BRENDA database, using the login
-    login information stored in the BRENDA_USER and BRENDA_PASSWORD environment
+    """Establish a connection to the BRENDA database.
+
+    Login information stored in the BRENDA_USER and BRENDA_PASSWORD environment
     variables.
     """
     try:
         user, password = os.environ["BRENDA_USER"], os.environ["BRENDA_PASSWORD"]
     except KeyError as err:
         err.add_note(
-            "Please set the BRENDA_USER and BRENDA_PASSWORD environment variables"
+            "Please set the BRENDA_USER and BRENDA_PASSWORD environment variables",
         )
         raise
 
@@ -259,7 +261,9 @@ def is_bacteria(organism: str) -> bool:
 
 
 def clean_name(
-    model: SQLModel | _Strain, fieldname: str, pattern: str = "no activity (in|by) "
+    model: SQLModel | _Strain,
+    fieldname: str,
+    pattern: str = "no activity (in|by) ",
 ) -> tuple[SQLModel, bool] | StrainRef:
     """Utility function to remove a string from `fieldname` in an SQLModel.
 

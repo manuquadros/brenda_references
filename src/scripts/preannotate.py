@@ -34,7 +34,10 @@ def ratio(a: str, b: str) -> float:
 
 
 def fuzzy_find_all(
-    text: str, pattern: str, threshold: int = 83, try_abbrev: bool = False
+    text: str,
+    pattern: str,
+    threshold: int = 83,
+    try_abbrev: bool = False,
 ) -> list[tuple[int, int]]:
     """Find all fuzzy matches of pattern in text with given threshold."""
     matches = []
@@ -111,7 +114,9 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
                         label="d3o:Bacteria",
                     )
                     for start, end in fuzzy_find_all(
-                        doc.abstract, name, try_abbrev=True
+                        doc.abstract,
+                        name,
+                        try_abbrev=True,
                     )
                 )
 
@@ -137,24 +142,28 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
         update={
             "entity_spans": doc.entity_spans | new_spans,
             "modified": datetime.datetime.now(datetime.UTC),
-        }
+        },
     )
 
 
 async def fetch_and_annotate(
-    docs: Sequence[TDBDocument], docdb: AIOTinyDB, ncbi: NCBIAdapter
+    docs: Sequence[TDBDocument],
+    docdb: AIOTinyDB,
+    ncbi: NCBIAdapter,
 ) -> None:
-    """Given a sequence of TinyDB Documents, add abstract and/or entity spans to those
-    that don't have them. Then return a tuple with the updated documents.
+    """Add abstract and/or entity spans to the elements of `docs`.
+
+    Return a tuple with the updated documents.
     """
     target_docs = tuple(filter(lambda d: not d.get("entity_spans"), docs))
 
     processed_docs = await add_abstracts(
-        tuple(map(Document.model_validate, target_docs)), ncbi
+        tuple(map(Document.model_validate, target_docs)),
+        ncbi,
     )
 
     marked_docs = await asyncio.gather(
-        *[mark_entities(doc, docdb) for doc in processed_docs]
+        *[mark_entities(doc, docdb) for doc in processed_docs],
     )
 
     for doc, marked in zip(target_docs, marked_docs):
@@ -168,10 +177,11 @@ async def fetch_and_annotate(
 
 async def run():
     async with AIOTinyDB(
-        config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+        config["documents"],
+        storage=CachingMiddleware(AIOJSONStorage),
     ) as docdb:
         documents = docdb.table("documents").search(
-            ~Query().entity_spans.exists() | (Query().entity_spans == [])
+            ~Query().entity_spans.exists() | (Query().entity_spans == []),
         )
 
         if not documents or not len(documents):
@@ -179,27 +189,27 @@ async def run():
             return
 
         batch_size = 250
-        n_tasks = math.ceil(len(documents) / batch_size / 3)
+        n_tasks = math.ceil((len(documents) / batch_size) / 3)
 
         batches = itertools.batched(documents, batch_size)
 
-        iterator = tqdm(itertools.batched(batches, 3), total=n_tasks)
+        progress_bar = tqdm(total=n_tasks)
 
         async def process(docs: Sequence[TDBDocument]) -> None:
             async with NCBIAdapter() as ncbi:
                 annotated_docs = await fetch_and_annotate(docs, docdb, ncbi)
 
-            for doc in annotated_docs:
-                docdb.table("documents").update(doc, doc_ids=[doc.doc_id])
+                for doc in annotated_docs:
+                    docdb.table("documents").update(doc, doc_ids=[doc.doc_id])
 
-            iterator.update(1)
+                progress_bar.update(1)
 
-        for batch_group in iterator:
+        for batch_group in itertools.batched(batches, 3):
             async with asyncio.TaskGroup() as tg:
                 for batch in batch_group:
                     tg.create_task(process(tuple(batch)))
 
-        iterator.close()
+        progress_bar.close()
 
 
 def main():

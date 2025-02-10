@@ -1,5 +1,4 @@
-"""
-Brenda References
+"""Brenda References
 
 This module provides functions to build a database of article references from
 the BRENDA database. Each article reference is linked to the enzymes it is
@@ -30,7 +29,8 @@ from .straininfo import StrainInfoAdapter
 
 
 async def add_abstracts(
-    docs: Iterable[Document], adapter: NCBIAdapter
+    docs: Iterable[Document],
+    adapter: NCBIAdapter,
 ) -> tuple[Document, ...]:
     """Add abstracts to the documents in `docs` when they are available."""
     # Create a copy to avoid modifying the input
@@ -82,7 +82,7 @@ async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
             "doi": doi,
             "pmc_id": pmc_id,
             "pmc_open": pmc_open,
-        }
+        },
     )
 
 
@@ -97,10 +97,11 @@ def get_document(docdb: AIOTinyDB, reference: db._Reference) -> Document:
 
 
 async def add_document(
-    docdb: AIOTinyDB, ncbi: NCBIAdapter, reference: db._Reference
+    docdb: AIOTinyDB,
+    ncbi: NCBIAdapter,
+    reference: db._Reference,
 ) -> None:
-    """Add document metadata to the JSON database after retrieving additional
-    data from NCBI.
+    """Add document metadata to the JSON database, retrieving from NCBI.
 
     :param docdb: The JSON database
     :param ncbi: The API adapter connecting to NCBI
@@ -110,7 +111,7 @@ async def add_document(
     """
     doc = await expand_doc(ncbi, Document.model_validate(reference.model_dump()))
     docdb.table("documents").insert(
-        TDBDocument(doc.model_dump(), doc_id=reference.reference_id)
+        TDBDocument(doc.model_dump(), doc_id=reference.reference_id),
     )
 
 
@@ -127,28 +128,25 @@ def store_enzyme_synonyms(
     """
     enzyme = enzyme.model_copy(update={"synonyms": frozenset(synonyms)})
     docdb.table("enzymes").upsert(
-        TDBDocument(enzyme.model_dump(exclude="id"), doc_id=enzyme.id)
+        TDBDocument(enzyme.model_dump(exclude="id"), doc_id=enzyme.id),
     )
 
 
 def store_bacteria(docdb: AIOTinyDB, bacteria: Iterable[Bacteria]) -> None:
-    """Retrieve bacterial synonyms from LPSN and store the resulting `Bacteria`
-    models in the JSON database.
+    """Retrieve bacterial synonyms from LPSN and add them to the doc db.
 
     :param docdb: The JSON database
     :param bacteria: Set of Bacteria models to be completed with synonyms
     """
-
     for bac in bacteria:
         bac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
         docdb.table("bacteria").upsert(
-            TDBDocument(bac.model_dump(exclude="id"), doc_id=bac.id)
+            TDBDocument(bac.model_dump(exclude="id"), doc_id=bac.id),
         )
 
 
 async def sync_doc_db() -> None:
-    """Make sure that the references present in BRENDA are processed and
-    reflected in the JSON database.
+    """Ensure that references in BRENDA are processed into the Doc database.
 
     For each reference, store into the JSON database the entities that are
     linked to it in BRENDA, as well as the relations between these entities
@@ -160,7 +158,8 @@ async def sync_doc_db() -> None:
     """
     async with (
         AIOTinyDB(
-            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+            config["documents"],
+            storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
         NCBIAdapter() as ncbi,
         StrainInfoAdapter() as straininfo,
@@ -191,7 +190,7 @@ async def sync_doc_db() -> None:
                     strain
                     for strain in relations["strains"]
                     if not docdb.table("strains").contains(doc_id=strain.id)
-                ]
+                ],
             )
             store_bacteria(docdb, relations["bacteria"])
 
@@ -204,7 +203,7 @@ async def sync_doc_db() -> None:
                     "other_organisms": {
                         org.id: org.organism for org in relations["other_organisms"]
                     },
-                }
+                },
             )
 
             docdb.table("documents").update(document.model_dump(), doc_ids=[doc.doc_id])
