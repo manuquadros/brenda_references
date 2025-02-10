@@ -189,7 +189,7 @@ async def run():
             return
 
         batch_size = 250
-        n_tasks = math.ceil((len(documents) / batch_size) / 3)
+        n_tasks = math.ceil(len(documents) / batch_size)
 
         batches = itertools.batched(documents, batch_size)
 
