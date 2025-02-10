@@ -152,21 +152,29 @@ async def fetch_and_annotate(
 
 
 async def run():
-    async with (
-        AIOTinyDB(
-            config["documents"], storage=CachingMiddleware(AIOJSONStorage)
-        ) as docdb,
-        NCBIAdapter() as ncbi,
-    ):
+    async with AIOTinyDB(
+        config["documents"], storage=CachingMiddleware(AIOJSONStorage)
+    ) as docdb:
         documents = docdb.table("documents")
         batch_size = 250
 
         batches = itertools.batched(documents, batch_size)
 
-        for batch in tqdm(batches, total=math.ceil(len(documents) / batch_size)):
-            docs = await fetch_and_annotate(list(batch), docdb, ncbi)
+        async def process(docs: Sequence[TDBDocument]) -> None:
+            async with NCBIAdapter() as ncbi:
+                annotated_docs = await fetch_and_annotate(docs, docdb, ncbi)
+
+                tqdm.write(
+                    f"{len(annotated_docs)} abstracts processed in current batch..."
+                )
+
             for doc in docs:
                 docdb.table("documents").update(doc, doc_ids=[doc.doc_id])
+
+        for batch_group in itertools.batched(batches, 3):
+            async with asyncio.TaskGroup() as tg:
+                for batch in batch_group:
+                    tg.create_task(process(tuple(batch)))
 
 
 def main():
