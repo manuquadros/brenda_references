@@ -10,7 +10,7 @@ update the JSON database it founds references that are not already stored in
 the latter.
 """
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage

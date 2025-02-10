@@ -12,7 +12,7 @@ import datetime
 import itertools
 import math
 import string
-from typing import Sequence
+from collections.abc import Sequence
 
 import nltk
 from aiotinydb import AIOTinyDB

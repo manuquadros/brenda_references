@@ -15,8 +15,9 @@ This module provides the interface to the BRENDA database.
 
 import os
 import re
+from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Iterable, Self
+from typing import Any, Self
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import URL, Column, Engine, Integer, String
@@ -127,7 +128,7 @@ class EC_Synonyms(SQLModel, table=True):  # type: ignore
     synonyms: str
 
 
-with open(config["sources"]["bacteria"], "r", encoding="utf-8") as sl:
+with open(config["sources"]["bacteria"], encoding="utf-8") as sl:
     bacteria = set(s.strip() for s in sl.readlines())
 
 

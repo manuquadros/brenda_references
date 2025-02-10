@@ -1,7 +1,8 @@
 import time
 from asyncio import Semaphore, sleep
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Self
+from typing import Any, Self
 
 import httpx
 from aiotinydb.middleware import AIOMiddlewareMixin
@@ -49,7 +50,9 @@ class APIAdapter:
 
     def __init__(self, headers: dict[str, str] = {}, rate_limit: int = 3) -> None:
         self.client = httpx.AsyncClient(
-            headers=headers, timeout=30.0, follow_redirects=True,
+            headers=headers,
+            timeout=30.0,
+            follow_redirects=True,
         )
         self.semaphore = Semaphore(rate_limit)
         self.last_request_time = {}

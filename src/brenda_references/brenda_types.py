@@ -1,6 +1,7 @@
 import datetime
+from collections.abc import Mapping
 from functools import cached_property
-from typing import Annotated, Any, Mapping, NamedTuple, Set, TypeAlias
+from typing import Annotated, Any, NamedTuple, TypeAlias
 
 from pydantic import (
     AliasChoices,
@@ -19,7 +20,7 @@ from log import logger
 from .lpsn_interface import lpsn_id, name_parts
 
 
-def serialize_in_order(items: Set[str | int]) -> list[str | int]:
+def serialize_in_order(items: set[str | int]) -> list[str | int]:
     return sorted(items)
 
 
@@ -151,7 +152,8 @@ class Document(BaseReference):
     pmc_open: bool | None = None
     doi: str | None = None
     created: AwareDatetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.UTC), frozen=True,
+        default_factory=lambda: datetime.datetime.now(datetime.UTC),
+        frozen=True,
     )
     modified: AwareDatetime | None = None
     abstract: str | None = None
@@ -205,7 +207,8 @@ class EC(BaseEC, frozen=True):
 
 class Culture(BaseModel, frozen=True):
     siid: int = Field(
-        description="The id of the culture on StrainInfo", validation_alias="id",
+        description="The id of the culture on StrainInfo",
+        validation_alias="id",
     )
     strain_number: str
 
@@ -228,7 +231,8 @@ class StrainRef(NamedTuple):
 
 class Strain(BaseModel):
     id: int | None = Field(
-        description="The id of the strain on StrainInfo, if found.", default=None,
+        description="The id of the strain on StrainInfo, if found.",
+        default=None,
     )
     doi: str | None = None
     merged: list[int] | None = None

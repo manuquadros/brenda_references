@@ -1,6 +1,6 @@
 import itertools
 import os
-from typing import Iterable
+from collections.abc import Iterable
 
 import httpx
 from lxml import etree
@@ -46,7 +46,9 @@ class NCBIAdapter(APIAdapter):
         return url
 
     async def fetch_ncbi_abstracts(
-        self, pubmed_ids: str | Iterable[str], batch_size=10000,
+        self,
+        pubmed_ids: str | Iterable[str],
+        batch_size=10000,
     ) -> dict[str, str]:
         """Fetch abstracts and copyright information for the given `pubmed_ids`.
 
