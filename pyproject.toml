@@ -1,15 +1,33 @@
-[tool.poetry]
+[project]
 name = "brenda-references"
 version = "0.1.0"
 description = ""
-authors = ["Emanuel Quadros <emanuel.souza.de.quadros@dsmz.de>"]
+authors = [{ name = "Emanuel Quadros", email = "emanuel.souza.de.quadros@dsmz.de" }]
+requires-python = "~=3.11"
 readme = "README.md"
-packages = [
-  { include = "brenda_references", from = "src" }
+dependencies = [
+    "rapidfuzz>=3.10.1,<4",
+    "sqlmodel==0.*",
+    "tqdm>=4.67.0,<5",
+    "requests>=2.32.3,<3",
+    "xmltodict>=0.14.2,<0.15",
+    "pandas>=2.2.3,<3",
+    "cacheout>=0.16.0,<0.17",
+    "prospector[with_everything]>=1.13.3,<2",
+    "tinydb>=4.8.2,<5",
+    "retrying>=1.3.4,<2",
+    "pydantic>=2.10.5,<3",
+    "nltk>=3.9.1,<4",
+    "lxml>=5.3.0,<6",
+    "aiotinydb>=2.0.0,<3",
+    "httpx>=0.28.1,<0.29",
+    "pytest-asyncio>=0.25.3,<0.26",
 ]
-include = ["config.toml", "data/bacteria.txt", "data/lpsn_gss_2024-11-19.csv"]
 
-[tool.poetry.scripts]
+[project.optional-dependencies]
+docs = []
+
+[project.scripts]
 update_pmc_open = "src.scripts.update_pmc_open:main"
 sync_doc_db = "src.brenda_references.brenda_references:sync_doc_db"
 retrieve_abstracts = "src.scripts.retrieve_abstracts:main"
@@ -17,54 +35,52 @@ fix_missing_strains = "src.scripts.fix_missing_strains:main"
 preannotate = "src.scripts.preannotate:main"
 generate_json_schemas = "src.scripts.generate_json_schemas:main"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-rapidfuzz = "^3.10.1"
-sqlmodel = "0.*"
-tqdm = "^4.67.0"
-requests = "^2.32.3"
-xmltodict = "^0.14.2"
-pandas = "^2.2.3"
-cacheout = "^0.16.0"
-prospector = {version = "^1.13.3", extras = ["with_everything"]}
-tinydb = "^4.8.2"
-retrying = "^1.3.4"
-pydantic = "^2.10.5"
-nltk = "^3.9.1"
-lxml = "^5.3.0"
-aiotinydb = "^2.0.0"
-httpx = "^0.28.1"
-pytest-asyncio = "^0.25.3"
+[dependency-groups]
+dev = [
+    "ipython>=8.29.0,<9",
+    "pylsp-rope>=0.1.16,<0.2",
+    "pytest>=8.3.3,<9",
+    "types-sqlalchemy>=1.4.53.38,<2",
+    "memray>=1.14.0,<2",
+    "pytest-memray>=1.7.0,<2",
+    "rich>=13.9.4,<14",
+    "stackprinter>=0.2.12,<0.3",
+    "flake8-pyproject>=1.2.3,<2",
+    "sphinx>=8.1.3,<9",
+    "pydata-sphinx-theme>=0.16.0,<0.17",
+    "autodoc-pydantic>=2.2.0,<3",
+    "mccabe>=0.7.0,<0.8",
+    "devtools>=0.12.2,<0.13",
+    "pytest-sugar>=1.0.0,<2",
+    "sphinx-pydantic>=0.1.1,<0.2",
+    "sphinx-book-theme>=1.1.3,<2",
+    "icecream>=2.1.4,<3",
+    "pytest-asyncio>=0.25.3,<0.26",
+    "ruff>=0.9.5,<0.10",
+]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/brenda_references",
+    "config.toml",
+    "data/bacteria.txt",
+    "data/lpsn_gss_2024-11-19.csv",
+]
 
-[tool.poetry.group.dev.dependencies]
-ipython = "^8.29.0"
-pylsp-rope = "^0.1.16"
-pytest = "^8.3.3"
-types-sqlalchemy = "^1.4.53.38"
-memray = "^1.14.0"
-pytest-memray = "^1.7.0"
-rich = "^13.9.4"
-stackprinter = "^0.2.12"
-flake8-pyproject = "^1.2.3"
-sphinx = "^8.1.3"
-pydata-sphinx-theme = "^0.16.0"
-autodoc-pydantic = "^2.2.0"
-mccabe = "^0.7.0"
-devtools = "^0.12.2"
-pytest-sugar = "^1.0.0"
-sphinx-pydantic = "^0.1.1"
-sphinx-book-theme = "^1.1.3"
-icecream = "^2.1.4"
-pytest-asyncio = "^0.25.3"
-ruff = "^0.9.5"
+[tool.hatch.build.targets.wheel]
+include = [
+    "src/brenda_references",
+    "config.toml",
+    "data/bacteria.txt",
+    "data/lpsn_gss_2024-11-19.csv",
+]
+
+[tool.hatch.build.targets.wheel.sources]
+"src/brenda_references" = "brenda_references"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.flake8]
 max_line_length = 88
-
-[tool.poetry.extras]
-docs = ["sphinx"]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
