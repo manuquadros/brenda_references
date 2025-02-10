@@ -68,7 +68,7 @@ class NCBIAdapter(APIAdapter):
                 pmid = article.find("PMID").text
                 abstract = article.find(".//AbstractText")
 
-                if abstract is not None and len(getattr(abstract, "text", "")):
+                if abstract is not None and getattr(abstract, "text", None):
                     abstracts[pmid] = abstract.text + "".join(
                         map(
                             lambda node: etree.tostring(node, encoding="unicode"),
