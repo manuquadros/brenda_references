@@ -48,12 +48,8 @@ async def add_abstracts(
     abstracts = await adapter.fetch_ncbi_abstracts(targets.keys())
 
     for pubmed_id, abstract in abstracts.items():
-        try:
-            index = targets.get(pubmed_id)
-            docs[index] = docs[index].model_copy(update={"abstract": abstract})
-        except Exception as e:
-            logger().error(f"Error processing abstract for {pubmed_id}: {e}")
-            continue
+        index = targets.get(pubmed_id)
+        docs[index] = docs[index].model_copy(update={"abstract": abstract})
 
     return tuple(docs)
 
