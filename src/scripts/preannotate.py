@@ -8,8 +8,9 @@ an enzyme in the D3O ontology.
 """
 
 import asyncio
-import itertools
+import datetime
 import math
+import itertools
 import string
 from typing import Sequence
 
@@ -17,6 +18,7 @@ import nltk
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
 from rapidfuzz import fuzz
+from tinydb import Query
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
@@ -28,9 +30,7 @@ from utils import CachingMiddleware
 
 
 def ratio(a: str, b: str) -> float:
-    return (
-        fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)
-    ) / 2
+    return (fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)) / 2
 
 
 def fuzzy_find_all(
@@ -133,7 +133,12 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
                     for start, end in fuzzy_find_all(doc.abstract, name)
                 )
 
-    return doc.model_copy(update={"entity_spans": doc.entity_spans | new_spans})
+    return doc.model_copy(
+        update={
+            "entity_spans": doc.entity_spans | new_spans,
+            "modified": datetime.datetime.now(datetime.UTC),
+        }
+    )
 
 
 async def fetch_and_annotate(
@@ -165,23 +170,26 @@ async def run():
     async with AIOTinyDB(
         config["documents"], storage=CachingMiddleware(AIOJSONStorage)
     ) as docdb:
-        documents = docdb.table("documents")
+        documents = docdb.table("documents").search(
+            ~Query().entity_spans.exists() | (Query().entity_spans == [])
+        )
         batch_size = 250
+        n_tasks = math.ceil(len(documents) / batch_size / 3)
 
         batches = itertools.batched(documents, batch_size)
+
+        iterator = tqdm(itertools.batched(batches, 3), total=n_tasks)
 
         async def process(docs: Sequence[TDBDocument]) -> None:
             async with NCBIAdapter() as ncbi:
                 annotated_docs = await fetch_and_annotate(docs, docdb, ncbi)
 
-                tqdm.write(
-                    f"{len(annotated_docs)} abstracts processed in current batch..."
-                )
-
-            for doc in docs:
+            for doc in annotated_docs:
                 docdb.table("documents").update(doc, doc_ids=[doc.doc_id])
 
-        for batch_group in itertools.batched(batches, 3):
+            iterator.update(1)
+
+        for batch_group in iterator:
             async with asyncio.TaskGroup() as tg:
                 for batch in batch_group:
                     tg.create_task(process(tuple(batch)))
