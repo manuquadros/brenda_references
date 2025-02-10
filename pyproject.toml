@@ -61,18 +61,20 @@ dev = [
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "src/brenda_references",
-    "config.toml",
-    "data/bacteria.txt",
-    "data/lpsn_gss_2024-11-19.csv",
+  "src/brenda_references",
+  "src/scripts",
+  "config.toml",
+  "data/bacteria.txt",
+  "data/lpsn_gss_2024-11-19.csv",
 ]
 
 [tool.hatch.build.targets.wheel]
 include = [
-    "src/brenda_references",
-    "config.toml",
-    "data/bacteria.txt",
-    "data/lpsn_gss_2024-11-19.csv",
+  "src/brenda_references",
+  "src/scripts",
+  "config.toml",
+  "data/bacteria.txt",
+  "data/lpsn_gss_2024-11-19.csv",
 ]
 
 [tool.hatch.build.targets.wheel.sources]
