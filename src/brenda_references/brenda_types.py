@@ -14,7 +14,7 @@ from pydantic import (
     field_validator,
 )
 
-from .lpsn_interface import lpsn_id
+from .lpsn_interface import lpsn_id, name_parts
 
 
 class BaseReference(BaseModel):
