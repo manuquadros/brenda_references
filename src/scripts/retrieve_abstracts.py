@@ -11,14 +11,13 @@ import itertools
 import math
 
 from aiotinydb import AIOTinyDB
-from utils import CachingMiddleware
 from aiotinydb.storage import AIOJSONStorage
 from tqdm import tqdm
 
 from brenda_references.brenda_types import Document
 from brenda_references.config import config
 from ncbi import NCBIAdapter
-from utils import APIAdapter
+from utils import APIAdapter, CachingMiddleware
 
 
 async def add_abstracts(

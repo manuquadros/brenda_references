@@ -4,6 +4,7 @@ from typing import cast
 
 import pandas as pd
 from cacheout import Cache
+
 from log import logger
 
 from .config import config

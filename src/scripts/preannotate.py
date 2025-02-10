@@ -9,8 +9,8 @@ an enzyme in the D3O ontology.
 
 import asyncio
 import datetime
-import math
 import itertools
+import math
 import string
 from typing import Sequence
 

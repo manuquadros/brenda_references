@@ -5,13 +5,15 @@ Script for making sure that articles marked as not being pmc_open actually are
 not available through PubMed Central.
 """
 
-from brenda_references.config import config
-from ncbi import NCBIAdapter
+import asyncio
+
 from aiotinydb import AIOTinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tqdm import tqdm
-import asyncio
+
+from brenda_references.config import config
+from ncbi import NCBIAdapter
 
 
 async def run():

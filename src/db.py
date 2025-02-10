@@ -1,7 +1,8 @@
+import tomllib
+
 from sqlalchemy import URL
 from sqlalchemy.engine import TupleResult
-from sqlmodel import Session, create_engine, SQLModel, Field, select
-import tomllib
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
 class Protein_Connect(SQLModel, table=True):  # type: ignore

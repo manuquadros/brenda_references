@@ -1,7 +1,7 @@
 import time
+from asyncio import Semaphore, sleep
 from functools import wraps
 from typing import Any, Callable, Self
-from asyncio import Semaphore, sleep
 
 import httpx
 from aiotinydb.middleware import AIOMiddlewareMixin

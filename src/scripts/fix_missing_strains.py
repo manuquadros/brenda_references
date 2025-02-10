@@ -3,7 +3,6 @@ import itertools
 import math
 
 from aiotinydb import AIOTinyDB
-from utils import CachingMiddleware
 from aiotinydb.storage import AIOJSONStorage
 from tinydb import where
 from tqdm import tqdm
@@ -11,6 +10,7 @@ from tqdm import tqdm
 from brenda_references.brenda_types import Strain
 from brenda_references.config import config
 from brenda_references.straininfo import StrainInfoAdapter
+from utils import CachingMiddleware
 
 
 async def run():

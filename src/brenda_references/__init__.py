@@ -1,9 +1,9 @@
 import stackprinter
+from icecream import ic, install
 
-from icecream import install, ic
-from .brenda_references import sync_doc_db, expand_doc, add_abstracts
+from .brenda_references import add_abstracts, expand_doc, sync_doc_db
 
-__all__ = ["sync_doc_db", "expand_doc", "add_abstracts"]
+__all__ = ["add_abstracts", "expand_doc", "sync_doc_db"]
 
 ic.configureOutput(includeContext=True)
 install()
