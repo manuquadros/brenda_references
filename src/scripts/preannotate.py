@@ -171,10 +171,20 @@ async def fetch_and_annotate(
         *[mark_entities(doc, docdb) for doc in processed_docs],
     )
 
-    for doc, marked in zip(target_docs, marked_docs):
+    for doc, marked in zip(target_docs, marked_docs, strict=True):
+        spans = [span.model_dump() for span in marked.entity_spans]
+
+        counter = 0
+        if doc["abstract"] != marked.abstract and doc["entity_spans"] != spans:
+            doc.update(reviewed=datetime.datetime.now(datetime.UTC))
+            counter += 1
+
+        if counter:
+            tqdm.write(f"{counter} documents updated in this batch")
+
         doc.update(
             abstract=marked.abstract,
-            entity_spans=[span.model_dump() for span in marked.entity_spans],
+            entity_spans=spans,
         )
 
     return target_docs
