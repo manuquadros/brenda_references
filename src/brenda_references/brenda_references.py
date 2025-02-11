@@ -146,6 +146,7 @@ def store_bacteria(docdb: AIOTinyDB, bacteria: Iterable[Bacteria]) -> None:
     :param docdb: The JSON database
     :param bacteria: Set of Bacteria models to be completed with synonyms
     """
+    # TODO: batch the items instead of updating one by one
     for bac in bacteria:
         newbac = bac.model_copy(update={"synonyms": lpsn_synonyms(bac.lpsn_id)})
         docdb.table("bacteria").upsert(

@@ -1,5 +1,3 @@
-from pprint import pp
-
 import pytest
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
