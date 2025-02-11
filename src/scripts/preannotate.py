@@ -12,7 +12,7 @@ import datetime
 import itertools
 import math
 import string
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 import nltk
 from aiotinydb import AIOTinyDB
@@ -22,8 +22,9 @@ from tinydb import Query
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
+import log
 from brenda_references import add_abstracts
-from brenda_references.brenda_types import Document, EntityMarkup
+from brenda_references.brenda_types import Document, EntityMarkup, RDFClass
 from brenda_references.config import config
 from ncbi import NCBIAdapter
 from utils import CachingMiddleware
@@ -89,58 +90,67 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
     if not getattr(doc, "abstract", None):
         return doc
 
-    for ec_id in getattr(doc, "enzymes", []):
-        enzyme = db.table("enzymes").get(doc_id=ec_id)
-        if enzyme:
-            names = {enzyme["recommended_name"]} | set(enzyme["synonyms"])
-            for name in names:
-                new_spans = new_spans | frozenset(
-                    EntityMarkup(
-                        start=start,
-                        end=end,
-                        entity_id=ec_id,
-                        label="d3o:Enzyme",
-                    )
-                    for start, end in fuzzy_find_all(doc.abstract, name)
+    def get_names(
+        ent_dict: dict[str, str | Collection[str]],
+        ent_type: RDFClass,
+    ) -> frozenset[str]:
+        match ent_type:
+            case RDFClass.D3OEnzyme:
+                return {ent_dict["recommended_name"]} | frozenset(ent_dict["synonyms"])
+            case RDFClass.D3OBacteria:
+                return {ent_dict["organism"]} | frozenset(ent_dict["synonyms"])
+            case RDFClass.D3OStrain:
+                return frozenset(ent_dict["designations"]) | frozenset(
+                    culture["strain_number"] for culture in ent_dict["cultures"]
+                )
+            case _:
+                logger().error(f"Unknown entity type: {ent_type}")
+                return frozenset()
+
+    async def process_entity_type(  # noqa: RUF029
+        doc: Document,
+        db: AIOTinyDB,
+        ent_type: RDFClass,
+    ) -> frozenset[str]:
+        markups = frozenset()
+
+        keys = {
+            "d3o:Enzyme": "enzymes",
+            "d3o:Bacteria": "bacteria",
+            "d3o:Strain": "strains",
+        }
+
+        for entity_id in getattr(doc, keys[ent_type], []):
+            entity = db.table(keys[ent_type]).get(doc_id=entity_id)
+            if entity:
+                markups = markups.union(
+                    *(
+                        frozenset(
+                            EntityMarkup(
+                                start=start,
+                                end=end,
+                                entity_id=entity_id,
+                                label=ent_type,
+                            )
+                            for start, end in fuzzy_find_all(
+                                doc.abstract,
+                                name,
+                                try_abbrev=ent_type is RDFClass.D3OBacteria,
+                            )
+                        )
+                        for name in get_names(entity, ent_type)
+                    ),
                 )
 
-    # Bacteria: Check organism name and synonyms
-    for bacteria_id in getattr(doc, "bacteria", {}):
-        bacteria = db.table("bacteria").get(doc_id=int(bacteria_id))
-        if bacteria:
-            names = {bacteria["organism"]} | set(bacteria["synonyms"])
-            for name in names:
-                new_spans = new_spans | frozenset(
-                    EntityMarkup(
-                        start=start,
-                        end=end,
-                        entity_id=bacteria_id,
-                        label="d3o:Bacteria",
-                    )
-                    for start, end in fuzzy_find_all(
-                        doc.abstract,
-                        name,
-                        try_abbrev=True,
-                    )
-                )
+        return markups
 
-    # Strains: Check designations and culture numbers
-    for strain_id in getattr(doc, "strains", []):
-        strain = db.table("strains").get(doc_id=strain_id)
-        if strain:
-            names = set(strain["designations"]) | {
-                c["strain_number"] for c in strain["cultures"]
-            }
-            for name in names:
-                new_spans = new_spans | frozenset(
-                    EntityMarkup(
-                        start=start,
-                        end=end,
-                        entity_id=strain_id,
-                        label="d3o:Strain",
-                    )
-                    for start, end in fuzzy_find_all(doc.abstract, name)
-                )
+    async with asyncio.TaskGroup() as tg:
+        tasks = [
+            tg.create_task(process_entity_type(doc, db, ent_type))
+            for ent_type in RDFClass
+        ]
+
+    new_spans = frozenset.union(*(task.result() for task in tasks))
 
     return doc.model_copy(
         update={
@@ -159,12 +169,12 @@ async def fetch_and_annotate(
 
     Return a tuple with the updated documents.
     """
-    target_docs: tuple[TDBDocument] = tuple(
+    target_docs: list[TDBDocument] = list(
         filter(lambda d: not d.get("entity_spans"), docs),
     )
 
-    processed_docs: tuple[Document] = await add_abstracts(
-        tuple(map(Document.model_validate, target_docs)),
+    processed_docs: list[Document] = await add_abstracts(
+        list(map(Document.model_validate, target_docs)),
         ncbi,
     )
 
@@ -176,7 +186,7 @@ async def fetch_and_annotate(
         spans = [span.model_dump() for span in marked.entity_spans]
 
         counter = 0
-        if doc["abstract"] != marked.abstract and doc["entity_spans"] != spans:
+        if doc.get("abstract") != marked.abstract and doc.get("entity_spans") != spans:
             doc.update(reviewed=datetime.datetime.now(datetime.UTC))
             counter += 1
 

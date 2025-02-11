@@ -1,5 +1,6 @@
 import datetime
 from collections.abc import Mapping
+from enum import StrEnum
 from functools import cached_property
 from typing import Annotated, Any, NamedTuple, Self, TypeAlias
 
@@ -39,6 +40,12 @@ IntSet: TypeAlias = Annotated[
     Field(default=frozenset()),
     PlainSerializer(serialize_in_order),
 ]
+
+
+class RDFClass(StrEnum):
+    D3OBacteria = "d3o:Bacteria"
+    D3OEnzyme = "d3o:Enzyme"
+    D3OStrain = "d3o:Strain"
 
 
 class Triple(BaseModel, frozen=True):  # type: ignore
