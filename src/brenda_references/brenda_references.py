@@ -31,7 +31,7 @@ from .straininfo import StrainInfoAdapter
 async def add_abstracts(
     docs: Iterable[Document],
     adapter: NCBIAdapter,
-) -> tuple[Document, ...]:
+) -> list[Document, ...]:
     """Add abstracts to the documents in `docs` when they are available.
 
     :param docs: Document models to be augmented with a retrieved abstract
@@ -41,7 +41,7 @@ async def add_abstracts(
              abstracts added to then, when are available
     """
     # Ensure that we have an indexable sequence
-    docs = tuple(docs)
+    docs = list(docs)
 
     targets = {
         doc.pubmed_id: ix
@@ -50,7 +50,7 @@ async def add_abstracts(
     }
 
     if not targets:
-        return tuple(docs)
+        return docs
 
     abstracts = await adapter.fetch_ncbi_abstracts(targets.keys())
 
