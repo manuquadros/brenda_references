@@ -157,7 +157,7 @@ EntityMarkupSet: TypeAlias = Annotated[
 
 
 class Document(BaseReference):
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, __context: Any) -> None:  # noqa: PYI063
         self.reviewed = self.created
 
     pmc_id: str | None = None
@@ -187,7 +187,7 @@ class Document(BaseReference):
     entity_spans: EntityMarkupSet
 
     @field_serializer("created", "reviewed")
-    def serialize_dt(self, dt: datetime.datetime, _info):
+    def serialize_dt(self, dt: datetime.datetime, _info) -> str:
         return dt.isoformat()
 
 

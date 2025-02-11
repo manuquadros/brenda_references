@@ -91,6 +91,7 @@ build-backend = "hatchling.build"
 preview = true
 select = ["F", "E", "W", "C90", "I", "N", "D", "UP", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "FA", "ISC", "ICN", "LOG", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TC", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", "PLC", "PLE", "PLR", "PLW", "TRY", "FLY", "PERF", "FURB", "DOC", "RUF"]
 ignore = ["D213", "D212", "D400", "D415", "D211", "DOC201", "T201"]
+fixable = ["ANN201"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/*" = ["S101"]

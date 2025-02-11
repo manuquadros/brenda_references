@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from brenda_references import brenda_types
 
 
-def main():
+def main() -> None:
     for name in dir(brenda_types):
         attr = getattr(brenda_types, name)
 
