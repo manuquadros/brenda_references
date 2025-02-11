@@ -183,13 +183,12 @@ async def fetch_and_annotate(
     )
 
     for doc, marked in zip(target_docs, marked_docs, strict=True):
-        doc.update(reviewed=datetime.datetime.now(datetime.UTC).isoformat())
-
         spans = [span.model_dump() for span in marked.entity_spans]
 
         doc.update(
             abstract=marked.abstract,
             entity_spans=spans,
+            reviewed=datetime.datetime.now(datetime.UTC).isoformat(),
         )
 
     return target_docs
