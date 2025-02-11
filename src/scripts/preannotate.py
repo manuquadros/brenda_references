@@ -187,13 +187,6 @@ async def fetch_and_annotate(
 
         spans = [span.model_dump() for span in marked.entity_spans]
 
-        counter = 0
-        if doc.get("abstract") != marked.abstract and doc.get("entity_spans") != spans:
-            counter += 1
-
-        if counter:
-            tqdm.write(f"{counter} documents updated in this batch")
-
         doc.update(
             abstract=marked.abstract,
             entity_spans=spans,
