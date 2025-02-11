@@ -16,7 +16,7 @@ def tup_to_markup(*args) -> EntityMarkup:
 
 
 @pytest.mark.asyncio
-async def test_annotate_nureki():
+async def test_annotate_nureki() -> None:
     doc = {
         "authors": "Nureki, O.; Suzuki, K.; Hara-Yokoyama, M.; Kohno, T.; Matsuzawa, H.; Ohta, T.; Shimizu, T.; Morikawa, K.; Miyazawa, T.; Yokoyama, S.",
         "title": "Glutamyl-tRNA synthetase from Thermus thermophilus HB8. Molecular cloning of the gltX gene and crystallization of the overproducing protein",

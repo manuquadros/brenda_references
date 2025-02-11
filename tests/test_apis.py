@@ -17,29 +17,29 @@ caldanaerobacter = Organism(organism_id=1, organism="Caldanaerobacter subterrane
 thermoanaerobacter = Organism(organism_id=2, organism="Thermoanaerobacter subterraneus")
 
 
-def test_bacteria_post_init_lpsn_id():
+def test_bacteria_post_init_lpsn_id() -> None:
     bac = Bacteria.model_validate(caldanaerobacter, from_attributes=True)
     assert bac.lpsn_id == 774333
 
 
-def test_strain_in_bacteria_name_is_detected():
+def test_strain_in_bacteria_name_is_detected() -> None:
     bac = Bacteria(id=234, organism="Pyrococcus horikoshii OT3")
     assert name_parts("Pyrococcus horikoshii OT3")["strain"] == "OT3"
     assert bac.organism == "Pyrococcus horikoshii"
 
 
-def test_subterraneus_synonyms():
+def test_subterraneus_synonyms() -> None:
     assert thermoanaerobacter.organism in lpsn_synonyms(caldanaerobacter.organism)
     assert caldanaerobacter.organism in lpsn_synonyms(thermoanaerobacter.organism)
 
 
-def test_lpsn_id_works():
+def test_lpsn_id_works() -> None:
     assert lpsn_id("Clostridium difficile") == 774867
     assert lpsn_id("Agrobacterium") == 515059
 
 
 @pytest.mark.asyncio
-async def test_strain_id_retrieval():
+async def test_strain_id_retrieval() -> None:
     assert await straininfo.get_strain_ids("K-12") == [
         11469,
         35283,
@@ -52,7 +52,7 @@ async def test_strain_id_retrieval():
 
 
 @pytest.mark.asyncio
-async def test_pmc_open():
+async def test_pmc_open() -> None:
     async with NCBIAdapter() as na:
         is_open = await na.is_pmc_open("365027")
         assert is_open is True
@@ -60,7 +60,7 @@ async def test_pmc_open():
 
 @pytest.mark.skip(reason="adjust the format of the test data before testing")
 @pytest.mark.asyncio
-async def test_strain_data_retrieval():
+async def test_strain_data_retrieval() -> None:
     resp = await straininfo.get_strain_data(11469)
     assert resp is not None
 
@@ -112,7 +112,7 @@ async def test_strain_data_retrieval():
     )
 
 
-def test_strain_info_api_url():
+def test_strain_info_api_url() -> None:
     assert (
         straininfo.strain_info_api_url(["K-12", "NE1"])
         == "https://api.straininfo.dsmz.de/v1/search/strain/str_des/K-12,NE1"
@@ -130,7 +130,7 @@ def test_strain_info_api_url():
 
 
 @pytest.mark.asyncio
-async def test_expand_doc_gets_pmc_open():
+async def test_expand_doc_gets_pmc_open() -> None:
     doc = Document(
         authors="",
         title="",
@@ -148,7 +148,7 @@ async def test_expand_doc_gets_pmc_open():
 
 
 @pytest.mark.asyncio
-async def test_abstract_with_formatting():
+async def test_abstract_with_formatting() -> None:
     async with NCBIAdapter() as ncbi:
         pmid = "17323951"
         abstracts = await ncbi.fetch_ncbi_abstracts(pmid)

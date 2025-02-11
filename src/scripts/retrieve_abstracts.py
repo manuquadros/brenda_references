@@ -64,5 +64,5 @@ async def run() -> None:
                 await documents.update(doc.model_dump(), doc_ids=[key])
 
 
-def main():
+def main() -> None:
     asyncio.run(run())

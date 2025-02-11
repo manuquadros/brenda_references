@@ -202,7 +202,7 @@ async def fetch_and_annotate(
     return target_docs
 
 
-async def run():
+async def run() -> None:
     async with AIOTinyDB(
         config["documents"],
         storage=CachingMiddleware(AIOJSONStorage),
@@ -240,5 +240,5 @@ async def run():
         progress_bar.close()
 
 
-def main():
+def main() -> None:
     asyncio.run(run())

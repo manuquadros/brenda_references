@@ -13,10 +13,11 @@ from brenda_references.straininfo import StrainInfoAdapter
 from utils import CachingMiddleware
 
 
-async def run():
+async def run() -> None:
     async with (
         AIOTinyDB(
-            config["documents"], storage=CachingMiddleware(AIOJSONStorage),
+            config["documents"],
+            storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
         StrainInfoAdapter() as straininfo,
     ):
@@ -28,7 +29,8 @@ async def run():
         )
         for batch in tqdm(
             itertools.batched(
-                docdb.table("strains").search(where("id") == None), batch_size,
+                docdb.table("strains").search(where("id") == None),
+                batch_size,
             ),
             total=total,
         ):
@@ -44,5 +46,5 @@ async def run():
             )
 
 
-def main():
+def main() -> None:
     asyncio.run(run())

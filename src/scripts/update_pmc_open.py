@@ -13,7 +13,7 @@ from brenda_references.config import config
 from ncbi import NCBIAdapter
 
 
-async def run():
+async def run() -> None:
     async with (
         AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
         NCBIAdapter() as ncbi,
@@ -27,5 +27,5 @@ async def run():
                 )
 
 
-def main():
+def main() -> None:
     asyncio.run(run())
