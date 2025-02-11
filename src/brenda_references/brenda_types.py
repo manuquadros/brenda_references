@@ -1,7 +1,7 @@
 import datetime
 from collections.abc import Mapping
 from functools import cached_property
-from typing import Annotated, Any, NamedTuple, TypeAlias
+from typing import Annotated, Any, NamedTuple, Self, TypeAlias
 
 from pydantic import (
     AliasChoices,
@@ -45,28 +45,28 @@ class Triple(BaseModel, frozen=True):  # type: ignore
     subject: int
     object: int
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Self) -> bool:
         if not isinstance(other, Triple):
             return NotImplemented
 
         return self.subject == other.subject and self.object == other.object
 
-    def __ne__(self, other) -> bool:
+    def __ne__(self, other: Self) -> bool:
         return not self == other
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: Self) -> bool:
         if self.subject == other.subject:
             return self.object < other.object
         else:
             return self.subject < other.subject
 
-    def __le__(self, other) -> bool:
+    def __le__(self, other: Self) -> bool:
         return self < other or self == other
 
-    def __gt__(self, other) -> bool:
+    def __gt__(self, other: Self) -> bool:
         return self != other and (not self < other)
 
-    def __ge__(self, other) -> bool:
+    def __ge__(self, other: Self) -> bool:
         return not self < other
 
 
@@ -104,7 +104,7 @@ class EntityMarkup(BaseModel):
     entity_id: int
     label: str
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Self) -> bool:
         if not isinstance(other, EntityMarkup):
             return NotImplemented
 
@@ -113,10 +113,10 @@ class EntityMarkup(BaseModel):
             for field in self.model_fields_set
         )
 
-    def __ne__(self, other) -> bool:
+    def __ne__(self, other: Self) -> bool:
         return not self == other
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: Self) -> bool:
         for field in ("start", "end", "label", "entity_id"):
             attr1, attr2 = getattr(self, field), getattr(other, field)
 
@@ -127,13 +127,13 @@ class EntityMarkup(BaseModel):
 
         return False
 
-    def __le__(self, other) -> bool:
+    def __le__(self, other: Self) -> bool:
         return self < other or self == other
 
-    def __gt__(self, other) -> bool:
+    def __gt__(self, other: Self) -> bool:
         return self != other and (not self < other)
 
-    def __ge__(self, other) -> bool:
+    def __ge__(self, other: Self) -> bool:
         return not self < other
 
 

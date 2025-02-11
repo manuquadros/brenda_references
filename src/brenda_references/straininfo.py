@@ -1,6 +1,7 @@
 import re
 from collections.abc import Collection, Iterable, MutableMapping, Sequence
 from functools import singledispatchmethod
+from types import TracebackType
 from typing import Any, Self, cast
 
 import httpx
@@ -70,7 +71,12 @@ class StrainInfoAdapter(APIAdapter):
     def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.__flush_buffer()
 
     async def retrieve_strain_models(
@@ -79,18 +85,18 @@ class StrainInfoAdapter(APIAdapter):
     ) -> MutableMapping[int, Strain]:
         # Map each possible strain designation from the normalized name of the model
         # to the id of the model.
-        known_names = {
+        known_names: dict[str, int] = {
             name: ix
             for ix, model in strains.items()
             for name in normalize_strain_names(model.designations)
         }
 
-        ids = await self.get_strain_ids(list(known_names.keys()))
-        straininfo_data = await self.get_strain_data(ids)
+        ids: list[int] = await self.get_strain_ids(list(known_names.keys()))
+        straininfo_data: tuple[Strain, ...] = await self.get_strain_data(ids)
 
         # Update the _Strain models with Straininfo information if available
         for entry in straininfo_data:
-            names = entry.designations | frozenset(
+            names: frozenset[str] = entry.designations | frozenset(
                 cult.strain_number for cult in entry.cultures
             )
             try:

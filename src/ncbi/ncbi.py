@@ -48,7 +48,7 @@ class NCBIAdapter(APIAdapter):
     async def fetch_ncbi_abstracts(
         self,
         pubmed_ids: str | Iterable[str],
-        batch_size=10000,
+        batch_size: int = 10000,
     ) -> dict[str, str]:
         """Fetch abstracts and copyright information for the given `pubmed_ids`.
 

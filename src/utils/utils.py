@@ -2,6 +2,7 @@ import time
 from asyncio import Semaphore, sleep
 from collections.abc import Callable
 from functools import wraps
+from types import TracebackType
 from typing import Any, Self
 
 import httpx
@@ -61,7 +62,12 @@ class APIAdapter:
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.client.aclose()
 
     @retry_if_too_many_requests

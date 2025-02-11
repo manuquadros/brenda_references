@@ -1,5 +1,5 @@
 """
-This module provides the interface to the BRENDA database.
+Provides the interface to the BRENDA database.
 
 `brenda_references`
     Provides a list of article references from BRENDA.
@@ -17,6 +17,7 @@ import os
 import re
 from collections.abc import Iterable
 from functools import lru_cache
+from types import TracebackType
 from typing import Any, Self
 
 from rapidfuzz import fuzz, process
@@ -142,7 +143,12 @@ class BRENDA:
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.session.close()
 
     def references(self) -> Iterable[_Reference]:

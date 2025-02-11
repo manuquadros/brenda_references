@@ -153,19 +153,21 @@ async def fetch_and_annotate(
     docs: Sequence[TDBDocument],
     docdb: AIOTinyDB,
     ncbi: NCBIAdapter,
-) -> None:
+) -> tuple[TDBDocument]:
     """Add abstract and/or entity spans to the elements of `docs`.
 
     Return a tuple with the updated documents.
     """
-    target_docs = tuple(filter(lambda d: not d.get("entity_spans"), docs))
+    target_docs: tuple[TDBDocument] = tuple(
+        filter(lambda d: not d.get("entity_spans"), docs),
+    )
 
-    processed_docs = await add_abstracts(
+    processed_docs: tuple[Document] = await add_abstracts(
         tuple(map(Document.model_validate, target_docs)),
         ncbi,
     )
 
-    marked_docs = await asyncio.gather(
+    marked_docs: list[Document] = await asyncio.gather(
         *[mark_entities(doc, docdb) for doc in processed_docs],
     )
 
