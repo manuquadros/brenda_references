@@ -42,6 +42,9 @@ def fuzzy_find_all(
     """Find all fuzzy matches of pattern in text with given threshold."""
     matches = []
 
+    if not pattern.strip():
+        return []
+
     if text:
         words = text.split()
 
