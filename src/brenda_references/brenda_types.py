@@ -146,7 +146,7 @@ EntityMarkupSet: TypeAlias = Annotated[
 
 class Document(BaseReference):
     def model_post_init(self, __context: Any) -> None:
-        self.modified = self.created
+        self.reviewed = self.created
 
     pmc_id: str | None = None
     pmc_open: bool | None = None
@@ -155,7 +155,14 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC),
         frozen=True,
     )
-    modified: AwareDatetime | None = None
+    reviewed: AwareDatetime | None = Field(
+        description=(
+            "Last time the document the information in the document"
+            " was checked. In particular, when abstract retrieval and entity"
+            " span annotation was last attempted."
+        ),
+        default=None,
+    )
     abstract: str | None = None
     enzymes: IntSet = Field(
         description="Set of BRENDA IDs for each EC Class linked to this reference.",
@@ -167,7 +174,7 @@ class Document(BaseReference):
     relations: StringToTripleSetMapping
     entity_spans: EntityMarkupSet
 
-    @field_serializer("created", "modified")
+    @field_serializer("created", "reviewed")
     def serialize_dt(self, dt: datetime.datetime, _info):
         return dt.isoformat()
 
