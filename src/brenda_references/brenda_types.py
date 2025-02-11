@@ -22,24 +22,20 @@ from log import logger
 from .lpsn_interface import lpsn_id, name_parts
 
 
-def serialize_in_order(items: set[str | int]) -> list[str | int]:
-    return sorted(items)
-
-
 def serialize_mapping_in_order(mapping: Mapping[Any, set[Any]]) -> dict[Any, list[Any]]:
-    return {key: serialize_in_order(items) for key, items in mapping.items()}
+    return {key: sorted(items) for key, items in mapping.items()}
 
 
 StringSet: TypeAlias = Annotated[
     frozenset[str],
     Field(default=frozenset()),
-    PlainSerializer(serialize_in_order),
+    PlainSerializer(sorted),
 ]
 
 IntSet: TypeAlias = Annotated[
     frozenset[int],
     Field(default=frozenset()),
-    PlainSerializer(serialize_in_order),
+    PlainSerializer(sorted),
 ]
 
 
@@ -153,7 +149,7 @@ class EntityMarkup(BaseModel):
 EntityMarkupSet: TypeAlias = Annotated[
     frozenset[EntityMarkup],
     Field(default=frozenset()),
-    PlainSerializer(serialize_in_order),
+    PlainSerializer(sorted),
 ]
 
 
