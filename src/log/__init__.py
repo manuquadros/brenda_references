@@ -1,3 +1,3 @@
-from .log import logger
+from .log import logger, stderr_logger
 
-__all__ = ["logger"]
+__all__ = ["logger", "stderr_logger"]
