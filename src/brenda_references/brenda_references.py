@@ -56,11 +56,7 @@ async def add_abstracts(
 
     for pubmed_id, abstract in abstracts.items():
         index = targets.get(pubmed_id)
-        try:
-            docs[index] = docs[index].model_copy(update={"abstract": abstract})
-        except TypeError:
-            print(targets)
-            print(index)
+        docs[index] = docs[index].model_copy(update={"abstract": abstract})
 
     return docs
 

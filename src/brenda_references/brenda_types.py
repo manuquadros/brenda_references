@@ -1,4 +1,5 @@
 import datetime
+import string
 from collections.abc import Mapping
 from enum import StrEnum
 from functools import cached_property
@@ -189,6 +190,15 @@ class Document(BaseReference):
     @field_serializer("created", "reviewed")
     def serialize_dt(self, dt: datetime.datetime) -> str:  # noqa: PLR6301
         return dt.isoformat()
+
+    @field_validator("pmc_id", "pubmed_id", mode="before")
+    @classmethod
+    def strip_invalid_chars(cls, v: str | None) -> str | None:
+        if v is not None:
+            return v.strip(
+                string.whitespace + string.punctuation + string.ascii_letters,
+            )
+        return v
 
 
 class BaseOrganism(BaseModel):
