@@ -187,7 +187,7 @@ class Document(BaseReference):
     entity_spans: EntityMarkupSet
 
     @field_serializer("created", "reviewed")
-    def serialize_dt(self, dt: datetime.datetime, _info) -> str:
+    def serialize_dt(self, dt: datetime.datetime) -> str:  # noqa: PLR6301
         return dt.isoformat()
 
 
@@ -195,13 +195,13 @@ class BaseOrganism(BaseModel):
     organism: str
 
 
-class Organism(BaseOrganism, frozen=True):  # type: ignore
+class Organism(BaseOrganism, frozen=True):
     id: int = Field(validation_alias=AliasChoices("id", "organism_id"))
     synonyms: StringSet
 
 
 class Bacteria(Organism):
-    @computed_field  # type: ignore
+    @computed_field
     @cached_property
     def lpsn_id(self) -> int | None:
         return lpsn_id(self.organism)
@@ -263,12 +263,12 @@ class Strain(BaseModel):
     cultures: Annotated[
         frozenset[Culture],
         Field(description="Cultures related to the strain", default=frozenset()),
-        PlainSerializer(lambda cultures: list(cultures)),
+        PlainSerializer(list),
     ]
     designations: Annotated[
         StringSet,
         Field(
-            description="Designations for the strain other than the culture identifiers",
+            description="Designations other than the culture identifiers",
         ),
     ]
 
