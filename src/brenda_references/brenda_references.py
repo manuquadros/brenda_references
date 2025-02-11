@@ -32,9 +32,16 @@ async def add_abstracts(
     docs: Iterable[Document],
     adapter: NCBIAdapter,
 ) -> tuple[Document, ...]:
-    """Add abstracts to the documents in `docs` when they are available."""
-    # Create a copy to avoid modifying the input
-    docs = list(docs)
+    """Add abstracts to the documents in `docs` when they are available.
+
+    :param docs: Document models to be augmented with a retrieved abstract
+    :param adapter: The API adapter connecting to NCBI
+
+    :return: The documents in `docs` are returned in the same order, but with
+             abstracts added to then, when are available
+    """
+    # Ensure that we have an indexable sequence
+    docs = tuple(docs)
 
     targets = {
         doc.pubmed_id: ix
@@ -51,7 +58,7 @@ async def add_abstracts(
         index = targets.get(pubmed_id)
         docs[index] = docs[index].model_copy(update={"abstract": abstract})
 
-    return tuple(docs)
+    return docs
 
 
 async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
@@ -169,10 +176,11 @@ async def sync_doc_db() -> None:
         straininfo.storage = docdb
 
         print("Retrieving literature references.")
+        # TODO: Improve concurrency here. Use async tasks to speed it up
         with tqdm(total=brenda.count_references()) as progress_bar:
             for reference in brenda.references():
                 if not docdb.table("documents").contains(doc_id=reference.reference_id):
-                    add_document(docdb, ncbi, reference)
+                    await add_document(docdb, ncbi, reference)
                 progress_bar.update(1)
 
         print("Retrieving enzyme-organism relations from BRENDA.")
