@@ -48,9 +48,12 @@ class RDFClass(StrEnum):
     D3OStrain = "d3o:Strain"
 
 
-class Triple(BaseModel, frozen=True):  # type: ignore
+class Triple(BaseModel, frozen=True):
     subject: int
     object: int
+
+    def __hash__(self):
+        return hash((self.subject, self.object))
 
     def __eq__(self, other: Self) -> bool:
         if not isinstance(other, Triple):
@@ -109,6 +112,9 @@ class EntityMarkup(BaseModel):
     end: int
     entity_id: int
     label: str
+
+    def __hash__(self):
+        return hash((self.start, self.end, self.entity_id, self.label))
 
     def __eq__(self, other: Self) -> bool:
         if not isinstance(other, EntityMarkup):
