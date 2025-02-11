@@ -64,8 +64,7 @@ class Triple(BaseModel, frozen=True):  # type: ignore
     def __lt__(self, other: Self) -> bool:
         if self.subject == other.subject:
             return self.object < other.object
-        else:
-            return self.subject < other.subject
+        return self.subject < other.subject
 
     def __le__(self, other: Self) -> bool:
         return self < other or self == other
