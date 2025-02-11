@@ -272,15 +272,6 @@ class Strain(BaseModel):
         ),
     ]
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_taxon(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "taxon" not in data:
-            logger().warning(f"StrainInfo has no taxon information for {data}")
-            data["taxon"] = None
-
-        return data
-
 
 class Store(BaseModel):
     documents: dict[int, Document] = {}
