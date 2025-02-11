@@ -103,10 +103,3 @@ def lpsn_id(name: str) -> int | None:
         return None
 
     return int(record["record_no"])
-
-
-def record_nos() -> tuple[int, ...]:
-    lpsn = get_lpsn()
-    nums = lpsn["record_no"]
-
-    return tuple(nums)
