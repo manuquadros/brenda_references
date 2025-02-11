@@ -18,7 +18,7 @@ from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
 from brenda_references import db
-from log import logger
+from log import stderr_logger
 from ncbi import NCBIAdapter
 from utils import CachingMiddleware
 
