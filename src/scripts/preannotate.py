@@ -201,9 +201,11 @@ async def run() -> None:
         storage=CachingMiddleware(AIOJSONStorage),
     ) as docdb:
         documents = docdb.table("documents").search(
-            (~Query().entity_spans.exists() | (Query().entity_spans == []))
-            & (Query().reviewed == Query().created),
+            ~(Query().entity_spans.exists()) | (Query().entity_spans == []),
         )
+        documents = [
+            doc for doc in documents if doc.get("reviewed") == doc.get("created")
+        ]
 
         if not documents or not len(documents):
             print("No documents to annotate")
