@@ -186,7 +186,8 @@ async def run():
         storage=CachingMiddleware(AIOJSONStorage),
     ) as docdb:
         documents = docdb.table("documents").search(
-            ~Query().entity_spans.exists() | (Query().entity_spans == []),
+            (~Query().entity_spans.exists() | (Query().entity_spans == []))
+            & (Query().reviewed == Query().created),
         )
 
         if not documents or not len(documents):
