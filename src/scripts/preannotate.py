@@ -11,13 +11,10 @@ import asyncio
 import datetime
 import itertools
 import math
-import string
 from collections.abc import Collection, Sequence
 
-import nltk
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
-from rapidfuzz import fuzz
 from tinydb import Query
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
@@ -28,51 +25,6 @@ from brenda_references.brenda_types import Document, EntityMarkup, RDFClass
 from brenda_references.config import config
 from ncbi import NCBIAdapter
 from utils import CachingMiddleware
-
-
-def ratio(a: str, b: str) -> float:
-    return (fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)) / 2
-
-
-def fuzzy_find_all(
-    text: str,
-    pattern: str,
-    threshold: int = 83,
-    try_abbrev: bool = False,
-) -> list[tuple[int, int]]:
-    """Find all fuzzy matches of pattern in text with given threshold."""
-    matches = []
-
-    if not pattern.strip():
-        return []
-
-    if text:
-        words = text.split()
-
-        for i, group in enumerate(nltk.ngrams(words, len(pattern.split()))):
-            test_str = " ".join(group).strip(string.punctuation)
-            ratio_pass = ratio(test_str, pattern) >= threshold
-            abbrev_ratio_pass = (
-                ratio(test_str, abbreviate_bacteria(pattern)) >= threshold
-                if try_abbrev
-                else False
-            )
-            if ratio_pass or abbrev_ratio_pass:
-                start = sum(len(w) + 1 for w in words[:i])
-                end = start + len(test_str)
-                matches.append((start, end))
-
-    return matches
-
-
-def abbreviate_bacteria(name: str) -> str:
-    if name:
-        parts = name.split()
-        parts[0] = parts[0][0] + "."
-
-        return " ".join(parts)
-
-    return name
 
 
 async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
