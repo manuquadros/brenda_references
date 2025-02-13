@@ -1,3 +1,15 @@
-from .utils import APIAdapter, CachingMiddleware
+from .utils import (
+    APIAdapter,
+    CachingMiddleware,
+    abbreviate_bacteria,
+    fuzzy_find_all,
+    ratio,
+)
 
-__all__ = ["APIAdapter", "CachingMiddleware"]
+__all__ = [
+    "APIAdapter",
+    "CachingMiddleware",
+    "abbreviate_bacteria",
+    "fuzzy_find_all",
+    "ratio",
+]
