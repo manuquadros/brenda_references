@@ -13,7 +13,7 @@ from brenda_references.straininfo import StrainInfoAdapter
 from utils import CachingMiddleware
 
 
-async def run() -> None:
+async def run() -> None:  # noqa: D103
     async with (
         AIOTinyDB(
             config["documents"],
@@ -46,5 +46,5 @@ async def run() -> None:
             )
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     asyncio.run(run())
