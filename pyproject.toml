@@ -22,6 +22,7 @@ dependencies = [
     "aiotinydb>=2.0.0,<3",
     "httpx>=0.28.1,<0.29",
     "pytest-asyncio>=0.25.3,<0.26",
+    "orjson>=3.10.15",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +35,7 @@ retrieve_abstracts = "src.scripts.retrieve_abstracts:main"
 fix_missing_strains = "src.scripts.fix_missing_strains:main"
 preannotate = "src.scripts.preannotate:main"
 generate_json_schemas = "src.scripts.generate_json_schemas:main"
+generate_entity_names_dataset = "src.scripts.generate_entity_names_dataset:main"
 
 [dependency-groups]
 dev = [
@@ -90,7 +92,7 @@ build-backend = "hatchling.build"
 [tool.ruff.lint]
 preview = true
 select = ["F", "E", "W", "C90", "I", "N", "D", "UP", "ANN", "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "FA", "ISC", "ICN", "LOG", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TC", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", "PLC", "PLE", "PLR", "PLW", "TRY", "FLY", "PERF", "FURB", "DOC", "RUF"]
-ignore = ["D213", "D212", "D400", "D415", "D211", "DOC201", "T201"]
+ignore = ["D213", "D212", "D400", "D415", "D211", "DOC201", "T201", "D413"]
 fixable = ["ANN201"]
 
 [tool.ruff.lint.per-file-ignores]
