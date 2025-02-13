@@ -1,6 +1,6 @@
 """Generate JSON schemas from Pydantic models in the brenda_references package.
 
-This module provides functionality to automatically generate JSON schemas for all 
+This module provides functionality to automatically generate JSON schemas for all
 Pydantic BaseModel subclasses defined in the brenda_types module.
 
 Example:
@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from brenda_references import brenda_types
 
 
-def main() -> None:
+def main() -> None:  # noqa: D103
     for name in dir(brenda_types):
         attr = getattr(brenda_types, name)
 
