@@ -73,3 +73,66 @@ async def test_annotate_nureki() -> None:
     assert tup_to_markup(1142, 1157, 2305, "d3o:Bacteria") in markup
 
     assert tup_to_markup(87, 90, 6880, "d3o:Strain") in markup
+
+
+@pytest.mark.asyncio
+async def test_deak() -> None:
+    doc = {
+        "authors": "Deak, F.; Denes, G.",
+        "title": "Purification and some properties of rat liver tyrosyl-tRNA synthetase",
+        "journal": "Biochim. Biophys. Acta",
+        "volume": "526",
+        "pages": "626-634",
+        "year": 1978,
+        "pubmed_id": "31184",
+        "path": "/home/data/brenda/literatur/6/6_1_1_1/Biochim_Biophys_Acta_526_626.pdf",
+        "pmc_id": None,
+        "pmc_open": False,
+        "doi": "10.1016/0005-2744(78)90153-5",
+        "created": "2025-01-15T18:46:35.151975+00:00",
+        "enzymes": [3494],
+        "bacteria": {},
+        "strains": [],
+        "other_organisms": {"5301": "Rattus norvegicus"},
+        "relations": {"HasEnzyme": [{"subject": 5301, "object": 3494}]},
+        "abstract": (
+            "Rat liver cytoplasmic tyrosine:tRNA ligase "
+            "(tyrosine:tRNA ligase, EC 6.1.1.1) was purifie"
+            "d by ultracentrifugation, DEAE-cellulose chromatography "
+            "and repeated phosphocellulose chromatography by mo"
+            "re than 1500-fold. The molecular weight of the enzyme was "
+            "approx. 150 000 as determined by Sephadex G-200 "
+            "gel filtration. On the basis of sodium dodecyl sulfate-polyacrylamide "
+            "gel electrophoresis, the enzyme consisted of two subunits, "
+            "each of 68 000 daltons. We found the following Km values for "
+            "the enzyme: 13 micrometer for tyrosine and 1.7 mM for ATP in "
+            "the ATP:PPi exchange reaction and 13 micrometer for tyrosine, 210 "
+            "micrometer for ATP and 0.14 micrometer for tRNATyr in the aminoacylation "
+            "reaction. The rate of tyrosyl-tRNA synthesis was 50-fold lower than that "
+            "of ATP:PPi exchange. Addition of a saturating amount of tRNA did not "
+            "affect the rate of ATP:PPi exchange."
+        ),
+        "entity_spans": [
+            {"start": 713, "end": 735, "entity_id": 3494, "label": "d3o:Enzyme"},
+            {"start": 43, "end": 63, "entity_id": 3494, "label": "d3o:Enzyme"},
+            {"start": 22, "end": 42, "entity_id": 3494, "label": "d3o:Enzyme"},
+        ],
+        "reviewed": "2025-01-15T18:46:35.151975+00:00",
+    }
+
+    async with (
+        AIOTinyDB(
+            config["documents"],
+            storage=CachingMiddleware(AIOJSONStorage),
+        ) as docdb,
+        NCBIAdapter() as ncbi,
+    ):
+
+        doc = await fetch_and_annotate([doc], docdb, ncbi)
+        doc = Document.validate(doc[0])
+
+    markup = doc.entity_spans
+
+    assert tup_to_markup(22, 42, 3494, "d3o:Enzyme") in markup
+    assert tup_to_markup(44, 64, 3494, "d3o:Enzyme") in markup
+    assert tup_to_markup(713, 725, 3494, "d3o:Enzyme") in markup
