@@ -5,7 +5,7 @@ from aiotinydb.storage import AIOJSONStorage
 from brenda_references.brenda_types import Document, EntityMarkup
 from brenda_references.config import config
 from ncbi import NCBIAdapter
-from scripts.preannotate import fetch_and_annotate
+from scripts.preannotate import mark_entities
 from utils import CachingMiddleware
 
 
@@ -52,10 +52,10 @@ async def test_annotate_nureki() -> None:
         NCBIAdapter() as ncbi,
     ):
 
-        doc = await fetch_and_annotate([doc], docdb, ncbi)
-        doc = Document.validate(doc[0])
+        annotated_doc = await mark_entities(doc, docdb)
+        annotated_doc = Document.validate(annotated_doc)
 
-    markup = doc.entity_spans
+    markup = annotated_doc.entity_spans
 
     assert tup_to_markup(17, 36, 3502, "d3o:Enzyme") in markup
     assert tup_to_markup(194, 213, 3502, "d3o:Enzyme") in markup
@@ -127,11 +127,10 @@ async def test_deak() -> None:
         ) as docdb,
         NCBIAdapter() as ncbi,
     ):
+        annotated_doc = await mark_entities(doc, docdb)
+        annotated_doc = Document.validate(annotated_doc)
 
-        doc = await fetch_and_annotate([doc], docdb, ncbi)
-        doc = Document.validate(doc[0])
-
-    markup = doc.entity_spans
+    markup = annotated_doc.entity_spans
 
     assert tup_to_markup(22, 42, 3494, "d3o:Enzyme") in markup
     assert tup_to_markup(44, 64, 3494, "d3o:Enzyme") in markup
