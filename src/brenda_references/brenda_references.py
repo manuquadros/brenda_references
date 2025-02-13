@@ -11,6 +11,7 @@ the latter.
 """
 
 from collections.abc import Iterable
+from pprint import pformat
 
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
@@ -24,6 +25,7 @@ from utils import CachingMiddleware
 
 from .brenda_types import EC, Bacteria, Document
 from .config import config
+from .log import stderr_logger
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import StrainInfoAdapter
 
@@ -56,7 +58,17 @@ async def add_abstracts(
 
     for pubmed_id, abstract in abstracts.items():
         index = targets.get(pubmed_id)
-        docs[index] = docs[index].model_copy(update={"abstract": abstract})
+        try:
+            docs[index] = docs[index].model_copy(update={"abstract": abstract})
+        except TypeError:
+            logger = stderr_logger()
+            logger.debug(pformat(targets))
+            logger.debug(index)
+            logger.debug(pubmed_id)
+            for doc in docs:
+                if doc.pubmed_id.strip() == pubmed_id.strip():
+                    print(doc)
+            raise
 
     return docs
 
