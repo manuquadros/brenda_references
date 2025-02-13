@@ -23,6 +23,7 @@ from .lpsn_interface import lpsn_id, name_parts
 
 
 def serialize_mapping_in_order(mapping: Mapping[Any, set[Any]]) -> dict[Any, list[Any]]:
+    """Serialize an Any -> Set mapping by sorting each set value."""
     return {key: sorted(items) for key, items in mapping.items()}
 
 
@@ -191,9 +192,12 @@ class Document(BaseReference):
     @classmethod
     def strip_invalid_chars(cls, v: str | None) -> str | None:
         if v is not None:
-            return v.strip(
-                string.whitespace + string.punctuation + string.ascii_letters,
+            translation_table = str.maketrans(
+                dict.fromkeys(
+                    string.whitespace + string.punctuation + string.ascii_letters,
+                ),
             )
+            return v.translate(translation_table)
         return v
 
 
