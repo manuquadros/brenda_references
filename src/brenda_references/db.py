@@ -59,11 +59,13 @@ class Protein_Connect(SQLModel, table=True):  # type: ignore
         description="Reference to the EC Class of the protein.",
     )
     protein_organism_strain_id: int | None = Field(
-        description="Reference to a specific strain related to the protein, if available.",
+        description="Reference to a specific strain related to the protein, "
+        "if available."
     )
     reference_id: int = Field(
         nullable=False,
-        description="Reference to an article in which the connection is attested.",
+        description="Reference to an article in which the connection"
+        " is attested.",
     )
 
 
@@ -164,7 +166,9 @@ class BRENDA:
         """Return entities and relations attested in `reference_id`."""
         query = (
             select(Protein_Connect, _Organism, _EC, _Strain)
-            .join(_Organism, Protein_Connect.organism_id == _Organism.organism_id)
+            .join(
+                _Organism, Protein_Connect.organism_id == _Organism.organism_id
+            )
             .join(_EC, Protein_Connect.ec_class_id == _EC.ec_class_id)
             .outerjoin(
                 _Strain,
@@ -175,19 +179,24 @@ class BRENDA:
         records = self.session.exec(query).fetchall()
 
         output: dict[str, Any] = {
-            key: set() for key in ("enzymes", "bacteria", "strains", "other_organisms")
+            key: set()
+            for key in ("enzymes", "bacteria", "strains", "other_organisms")
         }
         output["triples"] = {}
 
         for record in records:
-            organism, no_activity_organism = clean_name(record._Organism, "organism")
+            organism, no_activity_organism = clean_name(
+                record._Organism, "organism"
+            )
 
             if record._Strain:
                 strain, no_activity_strain = clean_name(record._Strain, "name")
 
                 if not no_activity_strain:
                     output["triples"].setdefault("HasEnzyme", set()).add(
-                        HasEnzyme(subject=strain.id, object=record._EC.ec_class_id),
+                        HasEnzyme(
+                            subject=strain.id, object=record._EC.ec_class_id
+                        ),
                     )
 
                 output["triples"].setdefault("HasSpecies", set()).add(
@@ -212,7 +221,9 @@ class BRENDA:
                     Organism.model_validate(organism, from_attributes=True),
                 )
 
-            output["enzymes"].add(EC.model_validate(record._EC, from_attributes=True))
+            output["enzymes"].add(
+                EC.model_validate(record._EC, from_attributes=True)
+            )
 
         return output
 
@@ -241,10 +252,14 @@ def get_engine() -> Engine:
     variables.
     """
     try:
-        user, password = os.environ["BRENDA_USER"], os.environ["BRENDA_PASSWORD"]
+        user, password = (
+            os.environ["BRENDA_USER"],
+            os.environ["BRENDA_PASSWORD"],
+        )
     except KeyError as err:
         err.add_note(
-            "Please set the BRENDA_USER and BRENDA_PASSWORD environment variables",
+            "Please set the BRENDA_USER and BRENDA_PASSWORD",
+            " environment variables",
         )
         raise
 
@@ -262,7 +277,9 @@ def get_engine() -> Engine:
 
 def is_bacteria(organism: str) -> bool:
     """Check whether `organism` is the name of a bacteria."""
-    _, ratio, _ = process.extract(organism, bacteria, scorer=fuzz.QRatio, limit=1)[0]
+    _, ratio, _ = process.extract(
+        organism, bacteria, scorer=fuzz.QRatio, limit=1
+    )[0]
 
     return ratio > 90
 

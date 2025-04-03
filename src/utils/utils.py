@@ -20,7 +20,10 @@ class CachingMiddleware(SyncCachingMiddleware, AIOMiddlewareMixin):
 def retry_if_too_many_requests(func: Callable) -> Callable:
     async def handler(exception: Exception):
         if isinstance(exception, httpx.HTTPError):
-            if hasattr(exception, "response") and exception.response.status_code == 429:
+            if (
+                hasattr(exception, "response")
+                and exception.response.status_code == 429
+            ):
                 print("HTTP Error 429: Too Many Requests. Retrying...")
             else:
                 print(f"HTTP error {exception}, retrying...")
@@ -52,7 +55,9 @@ class APIAdapter:
     Subclasses can initialize the headers parameter of the parent.
     """
 
-    def __init__(self, headers: dict[str, str] = {}, rate_limit: int = 3) -> None:
+    def __init__(
+        self, headers: dict[str, str] = {}, rate_limit: int = 3
+    ) -> None:
         self.client = httpx.AsyncClient(
             headers=headers,
             timeout=30.0,
@@ -93,7 +98,9 @@ def ratio(a: str, b: str) -> float:
     :returns: average of the similarity computation over two conditions: lower-casing
               the arguments vs not doing so.
     """
-    return (fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)) / 2
+    return (
+        fuzz.ratio(a, b, processor=lambda s: s.lower()) + fuzz.ratio(a, b)
+    ) / 2
 
 
 def fuzzy_find_all(
