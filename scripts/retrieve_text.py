@@ -4,6 +4,7 @@ Feed the document database with abstracts  and full text retrieved from PubMed.
 """
 
 import asyncio
+import time
 from collections.abc import Iterable, Iterator, MutableMapping
 from types import TracebackType
 from typing import Self
@@ -72,12 +73,17 @@ class Missing(MutableMapping):
 
     async def set(self, key: str, value: Document) -> None:
         """Asynchronous wrapper over __setitem__, tracking `self.batch_size`"""
-        self[key] = value
-
-        print(len(self))
         if len(self) >= self.batch_size:
-            print("flushing")
+            print(key)
+            time.sleep(0.25)
+            print(self._dict.keys())
             await self.flush()
+
+            # We remove the documents already processed
+            # from the buffer.
+            self._dict.clear()
+
+        self[key] = value
 
     def __delitem__(self, key: str) -> None:  # noqa: D105
         self._dict.__delitem__(key)
@@ -111,11 +117,9 @@ class Missing(MutableMapping):
                     },
                 )
 
-        self._store_in_db()
+        print(f"retrieved {len(retrieved)} records.")
 
-        # We remove the documents already processed
-        # from the buffer.
-        self.clear()
+        # self._store_in_db()
 
 
 class MissingAbstract(Missing):
