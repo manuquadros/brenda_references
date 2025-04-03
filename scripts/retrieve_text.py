@@ -74,8 +74,8 @@ class Missing(MutableMapping):
         """Asynchronous wrapper over __setitem__, tracking `self.batch_size`"""
         self[key] = value
 
-        print(hasattr(self, "flush"), len(self))
-        if hasattr(self, "flush") and len(self) >= self.batch_size:
+        print(len(self))
+        if len(self) >= self.batch_size:
             print("flushing")
             await self.flush()
 
