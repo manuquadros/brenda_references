@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """Script for verifying the status of documents marked as not pmc_open."""
 
 import asyncio
