@@ -25,7 +25,6 @@ from utils import CachingMiddleware
 
 from .brenda_types import EC, Bacteria, Document
 from .config import config
-from .log import stderr_logger
 from .lpsn_interface import lpsn_synonyms
 from .straininfo import StrainInfoAdapter
 
@@ -103,7 +102,9 @@ async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
 
 class UnknownDocumentError(Exception):
     def __init__(self, reference_id: str) -> None:
-        super().__init__(f"{reference_id} was not found in the document database")
+        super().__init__(
+            f"{reference_id} was not found in the document database"
+        )
 
 
 def get_document(docdb: AIOTinyDB, reference: db._Reference) -> Document:
@@ -129,7 +130,9 @@ async def add_document(
 
     :return: Document model containing all the metadata retrieved.
     """
-    doc = await expand_doc(ncbi, Document.model_validate(reference.model_dump()))
+    doc = await expand_doc(
+        ncbi, Document.model_validate(reference.model_dump())
+    )
     docdb.table("documents").insert(
         TDBDocument(doc.model_dump(), doc_id=reference.reference_id),
     )
@@ -192,7 +195,9 @@ async def sync_doc_db() -> None:
         # TODO: Improve concurrency here. Use async tasks to speed it up
         with tqdm(total=brenda.count_references()) as progress_bar:
             for reference in brenda.references():
-                if not docdb.table("documents").contains(doc_id=reference.reference_id):
+                if not docdb.table("documents").contains(
+                    doc_id=reference.reference_id
+                ):
                     await add_document(docdb, ncbi, reference)
                 progress_bar.update(1)
 
@@ -219,13 +224,20 @@ async def sync_doc_db() -> None:
             document = Document.model_validate(doc).copy(
                 update={
                     "relations": relations["triples"],
-                    "enzymes": frozenset(enzyme.id for enzyme in relations["enzymes"]),
-                    "bacteria": {bac.id: bac.organism for bac in relations["bacteria"]},
+                    "enzymes": frozenset(
+                        enzyme.id for enzyme in relations["enzymes"]
+                    ),
+                    "bacteria": {
+                        bac.id: bac.organism for bac in relations["bacteria"]
+                    },
                     "strains": [strain.id for strain in relations["strains"]],
                     "other_organisms": {
-                        org.id: org.organism for org in relations["other_organisms"]
+                        org.id: org.organism
+                        for org in relations["other_organisms"]
                     },
                 },
             )
 
-            docdb.table("documents").update(document.model_dump(), doc_ids=[doc.doc_id])
+            docdb.table("documents").update(
+                document.model_dump(), doc_ids=[doc.doc_id]
+            )

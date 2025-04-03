@@ -1,5 +1,5 @@
-documents = "data/documents.json"
-entities = "data/entities.json"
+documents = "src/brenda_references/data/documents.json"
+entities = "src/brenda_references/data/entities.json"
 
 [database]
 host = "dmz-dbcluster.dmz.dsmz.de"
@@ -7,6 +7,6 @@ database = "brenda_conn"
 backend = "mysql"
 
 [sources]
-bacteria = "data/bacteria.txt"
-lpsn = "data/lpsn_gss_2024-11-19.csv"
+bacteria = "src/brenda_references/data/bacteria.txt"
+lpsn = "src/brenda_references/data/lpsn_gss_2024-11-19.csv"
 

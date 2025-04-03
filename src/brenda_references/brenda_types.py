@@ -5,10 +5,12 @@ from enum import StrEnum
 from functools import cached_property
 from typing import Annotated, Any, NamedTuple, Self, TypeAlias
 
+from log import logger
 from pydantic import (
     AliasChoices,
     AwareDatetime,
     BaseModel,
+    ConfigDict,
     Field,
     computed_field,
     field_serializer,
@@ -17,12 +19,13 @@ from pydantic import (
 )
 from pydantic.functional_serializers import PlainSerializer
 
-from log import logger
-
 from .lpsn_interface import lpsn_id, name_parts
+from .pydantic_frozendict import FrozenDict
 
 
-def serialize_mapping_in_order(mapping: Mapping[Any, set[Any]]) -> dict[Any, list[Any]]:
+def serialize_mapping_in_order(
+    mapping: Mapping[Any, set[Any]],
+) -> dict[Any, list[Any]]:
     """Serialize an Any -> Set mapping by sorting each set value."""
     return {key: sorted(items) for key, items in mapping.items()}
 
@@ -78,7 +81,7 @@ class Triple(BaseModel, frozen=True):
 
 
 StringToTripleSetMapping: TypeAlias = Annotated[
-    dict[str, set[Triple]],
+    FrozenDict[str, frozenset[Triple]],
     Field(default={}),
     PlainSerializer(serialize_mapping_in_order),
 ]
@@ -155,15 +158,13 @@ EntityMarkupSet: TypeAlias = Annotated[
 
 
 class Document(BaseReference):
-    def model_post_init(self, __context: Any) -> None:  # noqa: PYI063
-        self.reviewed = self.created
+    model_config = ConfigDict(frozen=True)
 
     pmc_id: str | None = None
     pmc_open: bool | None = None
     doi: str | None = None
     created: AwareDatetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.UTC),
-        frozen=True,
     )
     reviewed: AwareDatetime | None = Field(
         description=(
@@ -171,16 +172,16 @@ class Document(BaseReference):
             " was checked. In particular, when abstract retrieval and entity"
             " span annotation was last attempted."
         ),
-        default=None,
+        default_factory=lambda: datetime.datetime.now(datetime.UTC),
     )
     abstract: str | None = None
     enzymes: IntSet = Field(
         description="Set of BRENDA IDs for each EC Class linked to this reference.",
         default={},
     )
-    bacteria: dict[int, str] = {}
+    bacteria: FrozenDict[int, str] = {}
     strains: IntSet
-    other_organisms: dict[int, str] = {}
+    other_organisms: FrozenDict[int, str] = {}
     relations: StringToTripleSetMapping
     entity_spans: EntityMarkupSet
 
@@ -194,7 +195,9 @@ class Document(BaseReference):
         if v is not None:
             translation_table = str.maketrans(
                 dict.fromkeys(
-                    string.whitespace + string.punctuation + string.ascii_letters,
+                    string.whitespace
+                    + string.punctuation
+                    + string.ascii_letters,
                 ),
             )
             return v.translate(translation_table)
@@ -220,7 +223,9 @@ class Bacteria(Organism):
     @classmethod
     def remove_strain_designation(cls, name: str) -> str:
         return " ".join(
-            term for key, term in name_parts(name).items() if key != "strain" and term
+            term
+            for key, term in name_parts(name).items()
+            if key != "strain" and term
         )
 
 
@@ -265,14 +270,18 @@ class Strain(BaseModel):
     )
     doi: str | None = None
     merged: list[int] | None = None
-    bacdive: int | None = Field(description="ID of the strain on BacDive", default=None)
+    bacdive: int | None = Field(
+        description="ID of the strain on BacDive", default=None
+    )
     taxon: Taxon | None = Field(
         description="Species to which the strain corresponds, if available",
         default=None,
     )
     cultures: Annotated[
         frozenset[Culture],
-        Field(description="Cultures related to the strain", default=frozenset()),
+        Field(
+            description="Cultures related to the strain", default=frozenset()
+        ),
         PlainSerializer(list),
     ]
     designations: Annotated[

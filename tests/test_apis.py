@@ -13,8 +13,12 @@ from ncbi import NCBIAdapter
 
 get_lpsn()
 straininfo = StrainInfoAdapter()
-caldanaerobacter = Organism(organism_id=1, organism="Caldanaerobacter subterraneus")
-thermoanaerobacter = Organism(organism_id=2, organism="Thermoanaerobacter subterraneus")
+caldanaerobacter = Organism(
+    organism_id=1, organism="Caldanaerobacter subterraneus"
+)
+thermoanaerobacter = Organism(
+    organism_id=2, organism="Thermoanaerobacter subterraneus"
+)
 
 
 def test_bacteria_post_init_lpsn_id() -> None:
@@ -29,8 +33,12 @@ def test_strain_in_bacteria_name_is_detected() -> None:
 
 
 def test_subterraneus_synonyms() -> None:
-    assert thermoanaerobacter.organism in lpsn_synonyms(caldanaerobacter.organism)
-    assert caldanaerobacter.organism in lpsn_synonyms(thermoanaerobacter.organism)
+    assert thermoanaerobacter.organism in lpsn_synonyms(
+        caldanaerobacter.organism
+    )
+    assert caldanaerobacter.organism in lpsn_synonyms(
+        thermoanaerobacter.organism
+    )
 
 
 def test_lpsn_id_works() -> None:
@@ -143,8 +151,8 @@ async def test_expand_doc_gets_pmc_open() -> None:
     )
 
     async with NCBIAdapter() as ncbi:
-        doc = await expand_doc(ncbi, doc)
-        assert doc.pmc_open is True
+        updated_doc = await expand_doc(ncbi, doc)
+        assert updated_doc.pmc_open is True
 
 
 @pytest.mark.asyncio
