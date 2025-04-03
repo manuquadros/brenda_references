@@ -52,6 +52,9 @@ async def test_annotate_nureki() -> None:
         NCBIAdapter() as ncbi,
     ):
 
+        doc = await fetch_and_annotate([doc], docdb, ncbi)
+        doc = Document.validate(doc[0])
+
         annotated_doc = await mark_entities(doc, docdb)
         annotated_doc = Document.validate(annotated_doc)
 
@@ -113,7 +116,12 @@ async def test_deak() -> None:
             "affect the rate of ATP:PPi exchange."
         ),
         "entity_spans": [
-            {"start": 713, "end": 735, "entity_id": 3494, "label": "d3o:Enzyme"},
+            {
+                "start": 713,
+                "end": 735,
+                "entity_id": 3494,
+                "label": "d3o:Enzyme",
+            },
             {"start": 43, "end": 63, "entity_id": 3494, "label": "d3o:Enzyme"},
             {"start": 22, "end": 42, "entity_id": 3494, "label": "d3o:Enzyme"},
         ],
