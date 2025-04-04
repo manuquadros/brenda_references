@@ -25,6 +25,8 @@ class Missing(MutableMapping):
     and update the database with the results.
     """
 
+    semaphore = asyncio.Semaphore(3)
+
     def __init__(
         self,
         docdb: AIOTinyDB,
@@ -43,7 +45,7 @@ class Missing(MutableMapping):
         self._docdb = docdb
         self._api = api
 
-    def __repr__(self) -> None:  # noqa: D105
+    def __repr__(self) -> str:  # noqa: D105
         return self._dict.__repr__()
 
     async def __aenter__(self) -> Self:  # noqa: D105
@@ -73,15 +75,9 @@ class Missing(MutableMapping):
 
     async def set(self, key: str, value: Document) -> None:
         """Asynchronous wrapper over __setitem__, tracking `self.batch_size`"""
-        if len(self) >= self.batch_size:
-            print(key)
-            time.sleep(0.25)
-            print(self._dict.keys())
+        if len(self._dict) >= self.batch_size:
             await self.flush()
-
-            # We remove the documents already processed
-            # from the buffer.
-            self._dict.clear()
+            await asyncio.sleep(0.5)
 
         self[key] = value
 
@@ -103,23 +99,32 @@ class Missing(MutableMapping):
         function is self._fetch, and the appropriate NCBI id for retrieval is
         self._ncbi_id,
         """
-        retrieved = await self._fetch(
-            getattr(doc, self._ncbi_id)
-            for doc in self.values()
-            if hasattr(doc, self._ncbi_id)
-        )
+        docs = self._dict.copy()
+        self._dict.clear()
 
-        for doc_id, doc in self.items():
-            if hasattr(doc, self._ncbi_id):
-                self[doc_id] = doc.model_copy(
-                    update={
-                        self._field: retrieved.get(getattr(doc, self._ncbi_id)),
-                    },
-                )
+        async with Missing.semaphore:
+            ids_to_retrieve = (
+                getattr(doc, self._ncbi_id)
+                for doc in docs.values()
+                if hasattr(doc, self._ncbi_id)
+            )
 
-        print(f"retrieved {len(retrieved)} records.")
+            retrieved = await self._fetch(ids_to_retrieve)
 
-        # self._store_in_db()
+            for doc_id, doc in docs.items():
+                if hasattr(doc, self._ncbi_id):
+                    docs[doc_id] = doc.model_copy(
+                        update={
+                            self._field: retrieved.get(
+                                getattr(doc, self._ncbi_id)
+                            ),
+                        },
+                    )
+
+            if len(retrieved):
+                print(f"Retrieved {len(retrieved)} {self._field}records.")
+
+        await self._store_in_db()
 
 
 class MissingAbstract(Missing):
@@ -149,7 +154,7 @@ class MissingFullText(Missing):
         super().__init__(docdb, api, elems)
         self._ncbi_id = "pmc_id"
         self._field = "fulltext"
-        self._fetch = self._api.fetch_fulltext
+        self._fetch = self._api.fetch_fulltext_articles
 
 
 async def run() -> None:  # noqa: D103
@@ -163,7 +168,8 @@ async def run() -> None:  # noqa: D103
         MissingFullText(docdb=docdb, api=ncbi) as missing_fulltext,
         asyncio.TaskGroup() as tg,
     ):
-        for doc in tqdm(docdb.table("documents")):
+        missing_abstract = 
+        for counter, doc in enumerate(docdb.table("documents")):
             if doc.get("pubmed_id") and not doc.get("abstract", []):
                 tg.create_task(
                     missing_abstract.set(doc.doc_id, Document.validate(doc)),
@@ -171,7 +177,7 @@ async def run() -> None:  # noqa: D103
             if (
                 doc.get("pmc_id")
                 and doc.get("pmc_open")
-                and not doc.get("fulltext", [])
+                and not doc.get("fulltext")
             ):
                 tg.create_task(
                     missing_fulltext.set(doc.doc_id, Document.validate(doc)),
