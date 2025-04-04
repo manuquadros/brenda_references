@@ -168,7 +168,6 @@ async def run() -> None:  # noqa: D103
         MissingFullText(docdb=docdb, api=ncbi) as missing_fulltext,
         asyncio.TaskGroup() as tg,
     ):
-        missing_abstract = 
         for counter, doc in enumerate(docdb.table("documents")):
             if doc.get("pubmed_id") and not doc.get("abstract", []):
                 tg.create_task(
