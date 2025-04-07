@@ -2,8 +2,10 @@
 
 import math
 from collections import Counter
+from functools import reduce
 
 from brenda_references.config import config
+from ncbi.parser import is_scanned
 from tinydb import TinyDB, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
@@ -11,8 +13,14 @@ from tinydb.storages import JSONStorage
 import matplotlib.pyplot as plt
 
 
+def hbar() -> None:
+    print("-" * 70)
+
+
 def main() -> None:
-    with TinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb:
+    with TinyDB(
+        config["documents"], storage=CachingMiddleware(JSONStorage)
+    ) as docdb:
         documents = docdb.table("documents")
         print("Number of references:", len(documents))
 
@@ -43,8 +51,22 @@ def main() -> None:
             f" {strain_docs_count} ({strain_docs_count / len(bacdocs):.2%})"
         )
 
+        hbar()
         pmc_open = documents.search(where("pmc_open") == True)
+        fulltext = documents.search(
+            where("fulltext").exists() & (where("fulltext") != "")
+        )
+        scanned = reduce(
+            lambda sum, _: sum + 1,
+            filter(lambda doc: is_scanned(doc["fulltext"]), fulltext),
+            0,
+        )
         print("Number of open access references:", len(pmc_open))
+        print("Full text articles: ", len(fulltext))
+        print(
+            f"Some of which, {scanned}, are only available as scanned images."
+        )
+        hbar()
 
         pmc_open_to_be_resolved = documents.search(
             (where("pmc_open") == True)
