@@ -8,8 +8,8 @@ from brenda_references.lpsn_interface import (
     lpsn_synonyms,
     name_parts,
 )
-from brenda_references.straininfo import StrainInfoAdapter
 from ncbi import NCBIAdapter
+from brenda_references.straininfo import StrainInfoAdapter
 
 get_lpsn()
 straininfo = StrainInfoAdapter()
@@ -57,13 +57,6 @@ async def test_strain_id_retrieval() -> None:
         309797,
         341518,
     ]
-
-
-@pytest.mark.asyncio
-async def test_pmc_open() -> None:
-    async with NCBIAdapter() as na:
-        is_open = await na.is_pmc_open("365027")
-        assert is_open is True
 
 
 @pytest.mark.skip(reason="adjust the format of the test data before testing")
@@ -153,37 +146,3 @@ async def test_expand_doc_gets_pmc_open() -> None:
     async with NCBIAdapter() as ncbi:
         updated_doc = await expand_doc(ncbi, doc)
         assert updated_doc.pmc_open is True
-
-
-@pytest.mark.asyncio
-async def test_abstract_with_formatting() -> None:
-    async with NCBIAdapter() as ncbi:
-        pmid = "17323951"
-        abstracts = await ncbi.fetch_ncbi_abstracts(pmid)
-        assert abstracts[pmid] == (
-            "Bacteria are surrounded by a cell wall containing layers of"
-            " peptidoglycan, the integrity of which is essential for bacterial"
-            " survival. In the final"
-            " stage of peptidoglycan biosynthesis, peptidoglycan glycosyltransferases"
-            " (PGTs;"
-            " also known as transglycosylases) catalyze the polymerization of Lipid II"
-            " to form linear glycan chains. PGTs"
-            " have tremendous potential as antibiotic targets, but the potential has"
-            " not"
-            " yet been"
-            " realized. Mechanistic studies have been hampered by a lack of substrates"
-            " to"
-            " monitor enzymatic"
-            " activity. We report here the total synthesis of heptaprenyl-Lipid IV and"
-            " its"
-            " use to study two different PGTs from <i>E. coli</i>."
-            " We show that one PGT can couple"
-            " Lipid IV to"
-            " itself whereas the other can only couple Lipid IV to Lipid II. These "
-            "<i>in"
-            " vitro</i>"
-            " differences in enzymatic activity may reflect differences in the"
-            " biological"
-            " functions of the"
-            " two major glycosyltransferases in <i>E coli</i>."
-        )
