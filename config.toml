@@ -8,5 +8,5 @@ backend = "mysql"
 
 [sources]
 bacteria = "src/brenda_references/data/bacteria.txt"
-lpsn = "src/brenda_references/data/lpsn_gss_2024-11-19.csv"
+lpsn = "src/brenda_references/data/lpsn_gss_2025-04-07.csv"
 
