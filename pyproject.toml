@@ -59,19 +59,11 @@ include = [
   "data/lpsn_gss_2024-11-19.csv",
 ]
 
-[tool.hatch.build.targets.wheel.sources]
-"src/brenda_references" = "brenda_references"
-
 [tool.uv.sources]
-xmlparser = { workspace = true }
 gme = { git = "https://github.com/idiap/gme-sampler" }
+xmlparser = { workspace = true }
 apiadapters = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[dependency-groups]
-dev = [
-    "ipython-autotime>=0.3.2",
-]
