@@ -175,6 +175,7 @@ class Document(BaseReference):
         default_factory=lambda: datetime.datetime.now(datetime.UTC),
     )
     abstract: str | None = None
+    fulltext: str | None = None
     enzymes: IntSet = Field(
         description="Set of BRENDA IDs for each EC Class linked to this reference.",
         default={},
