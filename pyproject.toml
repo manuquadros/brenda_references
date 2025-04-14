@@ -1,9 +1,9 @@
 [project]
-name = "brenda-references"
+name = "brenda_references"
 version = "0.1.0"
 description = ""
 authors = [
-  { name = "Emanuel Quadros", email = "emanuel.souza.de.quadros@dsmz.de" },
+  { name = "Emanuel Quadros", email = "emanuel.quadros@dsmz.de" },
 ]
 requires-python = "~=3.11"
 readme = "README.md"
