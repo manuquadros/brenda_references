@@ -27,6 +27,8 @@ dependencies = [
   "orjson>=3.10.15",
   "xmlparser",
   "frozendict>=2.4.6",
+  "gme",
+  "apiadapters",
 ]
 
 [project.scripts]
@@ -63,7 +65,14 @@ include = [
 
 [tool.uv.sources]
 xmlparser = { workspace = true }
+gme = { git = "https://github.com/idiap/gme-sampler" }
+apiadapters = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ipython-autotime>=0.3.2",
+]
