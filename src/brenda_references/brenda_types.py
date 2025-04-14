@@ -5,7 +5,7 @@ from enum import StrEnum
 from functools import cached_property
 from typing import Annotated, Any, NamedTuple, Self, TypeAlias
 
-from log import logger
+from loggers import logger
 from pydantic import (
     AliasChoices,
     AwareDatetime,

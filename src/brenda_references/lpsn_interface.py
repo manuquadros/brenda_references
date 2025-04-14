@@ -5,7 +5,7 @@ from typing import cast
 import pandas as pd
 from cacheout import Cache
 
-from log import logger
+from loggers import logger
 
 from .config import config
 
@@ -35,7 +35,9 @@ def lpsn_name(record: pd.Series) -> str:
     if subs_epithet:
         subs_epithet = "subsp. " + subs_epithet
 
-    return " ".join((record["genus_name"], record["sp_epithet"], subs_epithet)).strip()
+    return " ".join(
+        (record["genus_name"], record["sp_epithet"], subs_epithet)
+    ).strip()
 
 
 @lru_cache
@@ -51,7 +53,9 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
         case "int":
             lpsn = get_lpsn()
             own_lnk = lpsn.query("record_no == @query")["record_lnk"].values[0]
-            syn_records = lpsn.query("record_lnk == @query | record_no == @own_lnk")
+            syn_records = lpsn.query(
+                "record_lnk == @query | record_no == @own_lnk"
+            )
 
             if syn_records.empty:
                 return frozenset()
