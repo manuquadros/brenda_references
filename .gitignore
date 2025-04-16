@@ -51,3 +51,7 @@ env.bak/
 auto-save-list
 tramp
 .\#*
+
+# diagnostics
+.coverage
+coverage.xml
