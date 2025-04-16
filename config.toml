@@ -7,6 +7,6 @@ database = "brenda_conn"
 backend = "mysql"
 
 [sources]
-bacteria = "src/brenda_references/data/bacteria.txt"
-lpsn = "src/brenda_references/data/lpsn_gss_2025-04-07.csv"
+bacteria = "resources/bacteria.txt"
+lpsn = "resources/lpsn_gss_2025-04-07.csv"
 
