@@ -146,7 +146,9 @@ class StrainInfoAdapter(APIAdapter):
             case 200:
                 return response.json()
             case 404:
-                logger().error("%s not found on StrainInfo.", url.split("/")[-1])
+                logger().error(
+                    "%s not found on StrainInfo.", url.split("/")[-1]
+                )
                 return []
             case _:
                 raise response.raise_for_status()
@@ -197,7 +199,9 @@ class StrainInfoAdapter(APIAdapter):
 
         return []
 
-    async def get_strain_data(self, query: int | Iterable[int]) -> tuple[Strain, ...]:
+    async def get_strain_data(
+        self, query: int | Iterable[int]
+    ) -> tuple[Strain, ...]:
         """Retrieve StrainInfo data for the strain IDs given in the argument.
 
         :param query: IDs to be queried through the API.
@@ -214,7 +218,9 @@ class StrainInfoAdapter(APIAdapter):
             return tuple(
                 Strain(
                     **item["strain"],
-                    cultures=item["strain"]["relation"].get("culture", frozenset()),
+                    cultures=item["strain"]["relation"].get(
+                        "culture", frozenset()
+                    ),
                     designations=item["strain"]["relation"].get(
                         "designation",
                         frozenset(),
