@@ -1,5 +1,4 @@
 from .utils import (
-    APIAdapter,
     CachingMiddleware,
     abbreviate_bacteria,
     fuzzy_find_all,
@@ -7,7 +6,6 @@ from .utils import (
 )
 
 __all__ = [
-    "APIAdapter",
     "CachingMiddleware",
     "abbreviate_bacteria",
     "fuzzy_find_all",

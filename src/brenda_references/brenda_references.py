@@ -19,8 +19,8 @@ from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
 from brenda_references import db
-from log import stderr_logger
-from ncbi import NCBIAdapter
+from loggers import stderr_logger
+from apiadapters.ncbi import NCBIAdapter
 from utils import CachingMiddleware
 
 from .brenda_types import EC, Bacteria, Document

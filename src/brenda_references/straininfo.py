@@ -9,8 +9,8 @@ import tinydb
 from pydantic import ValidationError
 from tinydb import TinyDB
 
-from log import logger
-from utils import APIAdapter
+from loggers import logger
+from apiadapters import APIAdapter
 
 from .brenda_types import Strain, StrainRef
 
