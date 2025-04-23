@@ -8,7 +8,7 @@ from typing import Iterable
 
 from brenda_references.config import config
 from brenda_references.brenda_types import Document
-from ncbi.parser import is_scanned
+from apiadapters.ncbi.parser import is_scanned
 
 
 def fulltext_articles() -> tuple[TDocument]:
