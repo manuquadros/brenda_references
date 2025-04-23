@@ -18,6 +18,7 @@ from pydantic import (
     model_validator,
 )
 from pydantic.functional_serializers import PlainSerializer
+from taxonomy import ncbitax
 
 from .lpsn_interface import lpsn_id, name_parts
 from .pydantic_frozendict import FrozenDict
@@ -223,11 +224,9 @@ class Bacteria(Organism):
     @field_validator("organism")
     @classmethod
     def remove_strain_designation(cls, name: str) -> str:
-        return " ".join(
-            term
-            for key, term in name_parts(name).items()
-            if key != "strain" and term
-        )
+        decomposed = ncbitax.decompose_strain_name(name)
+
+        return getattr(decomposed, "species", name)
 
 
 class BaseEC(BaseModel):
