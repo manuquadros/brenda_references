@@ -26,4 +26,7 @@ def fulltext_articles() -> tuple[TDocument]:
 
 def documents() -> Iterable[TDocument]:
     """Retrieve all documents from the database."""
-    # TODO
+    with TinyDB(
+        config["documents"], storage=CachingMiddleware(JSONStorage)
+    ) as docdb:
+        return iter(docdb.table("documents"))
