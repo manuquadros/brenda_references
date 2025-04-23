@@ -123,3 +123,16 @@ def lpsn_id(name: str) -> int | None:
         return None
 
     return int(record["record_no"])
+
+
+@lru_cache
+def lpsn_parent(_id: int) -> tuple[int, str] | None:
+    """Retrieve the record number and name to which `_id` is linked, if any."""
+    lpsn = get_lpsn()
+
+    try:
+        parent_id = lpsn[lpsn["record_no"] == _id]["record_lnk"].iloc[0]
+        record = lpsn[lpsn["record_no"] == parent_id].iloc[0]
+        return (record["record_no"], lpsn_name(record))
+    except IndexError:
+        return None
