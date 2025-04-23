@@ -1,11 +1,11 @@
 import string
 from functools import lru_cache
+from numbers import Integral
 from typing import cast
 
 import pandas as pd
 from cacheout import Cache
-
-from loggers import logger
+from loggers import stderr_logger
 
 from .config import config
 
@@ -48,31 +48,27 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
 
     :returns: set of synonyms for the species in record no. `query`.
     """
-    qtype = type(query).__name__
-    match qtype:
-        case "int":
-            lpsn = get_lpsn()
-            own_lnk = lpsn.query("record_no == @query")["record_lnk"].values[0]
-            syn_records = lpsn.query(
-                "record_lnk == @query | record_no == @own_lnk"
-            )
+    if isinstance(query, Integral):
+        lpsn = get_lpsn()
+        own_lnk = lpsn.query("record_no == @query")["record_lnk"].values[0]
+        syn_records = lpsn.query("record_lnk == @query | record_no == @own_lnk")
 
-            if syn_records.empty:
-                return frozenset()
-
-            names = syn_records.apply(lpsn_name, axis=1)
-            return frozenset(names)
-
-        case "str":
-            _id = lpsn_id(cast(str, query))
-            return lpsn_synonyms(_id) if _id else frozenset()
-
-        case _:
-            logger().error(
-                "Invalid LPSN synonym query: %s is not int or string.",
-                qtype,
-            )
+        if syn_records.empty:
             return frozenset()
+
+        names = syn_records.apply(lpsn_name, axis=1)
+        return frozenset(names)
+
+    elif isinstance(query, str):
+        _id = lpsn_id(cast(str, query))
+        return lpsn_synonyms(_id) if _id else frozenset()
+
+    else:
+        stderr_logger().error(
+            "Invalid LPSN synonym query: %s is not int or string.",
+            query,
+        )
+        return frozenset()
 
 
 @lru_cache
