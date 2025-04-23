@@ -4,6 +4,7 @@ from tinydb import TinyDB, where
 from tinydb.table import Document as TDocument
 from tinydb.storages import JSONStorage
 from tinydb.middlewares import CachingMiddleware
+from typing import Iterable
 
 from brenda_references.config import config
 from brenda_references.brenda_types import Document
@@ -21,3 +22,8 @@ def fulltext_articles() -> tuple[TDocument]:
         return tuple(
             filter(lambda doc: not is_scanned(doc["fulltext"]), fulltext)
         )
+
+
+def documents() -> Iterable[TDocument]:
+    """Retrieve all documents from the database."""
+    # TODO
