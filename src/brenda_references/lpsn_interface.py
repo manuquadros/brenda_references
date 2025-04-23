@@ -84,12 +84,13 @@ def name_parts(name: str) -> dict[str, str]:
         .replace("ssp.", "")
         .replace("sp.", "")
         .replace("pv.", "")
+        .replace("serovar", "")
         .split()
     )
     keys = ("genus_name", "sp_epithet", "subsp_epithet", "strain")
     out = {key: "" for key in keys}
 
-    for index, term in enumerate(name_parts):
+    for index, term in enumerate(name_parts[:4]):
         if any(char not in string.ascii_lowercase for char in term[1:]):
             out["strain"] = term
             break
