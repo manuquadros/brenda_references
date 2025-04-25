@@ -1,8 +1,8 @@
 """Module providing queries into the document database."""
 
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from types import TracebackType
-from typing import Any, Iterable, Self, cast
+from typing import Any, Iterable, Self, Set, cast
 
 from apiadapters.ncbi.parser import is_scanned
 from tinydb import Query, TinyDB, where
@@ -124,21 +124,24 @@ class BrendaDocDB:
             synonyms=synonyms,
         )
 
-        print(newbac.model_dump())
-
-        # table.insert(
-        #     TDocument(newbac.model_dump(exclude={"id"}), doc_id=newbac.id),
-        # )
+        table.insert(
+            TDocument(newbac.model_dump(exclude={"id"}), doc_id=newbac.id),
+        )
 
         return newbac.id
 
-    def add_bac_synonyms(self, doc_id: int, synonyms: frozenset[str]) -> None:
+    def add_bac_synonyms(self, doc_id: int, synonyms: Set[str]) -> None:
         """Add `synonyms` to the synonym set of the `doc_id` record."""
+
+        def add_synonyms(synset_field: str, synonyms: Set[str]):
+            def transform(doc: MutableMapping):
+                doc[synset_field] = doc[synset_field] | frozenset(synonyms)
+
+            return transform
+
         self.bacteria.update(
-            lambda record: record.update(
-                synonyms=record.get(synonyms, frozenset()) | synonyms
-            ),
-            doc_id=doc_id,
+            add_synonyms("synonyms", synonyms),
+            doc_ids=[doc_id],
         )
 
     def get_or_add_bacteria_record(self, query: str) -> int:
