@@ -126,6 +126,36 @@
       },
       "abstract": "Since Flegg (H.M. Flegg, An investigation of the determination of serum cholesterol by an enzymatic method, Ann. Clin. Biochem. 10 (1973) 79-84) and Richmond (W. Richmond, The development of an enzymatic technique for the assay of cholesterol in biological fluids, Scand. J. clin. Lab. Invest. 29 (1972) 25; W. Richmond, Preparation and properties of a bacterial cholesterol oxidase from Nocardia sp. and its application to enzyme assay of total cholesterol in serum, Clinical Chemistry 19 (1973) 1350-1356) first illustrated the suitability of cholesterol oxidase (COD) for the analysis of serum cholesterol, COD has risen to become the most widely used enzyme in clinical laboratories with the exception of glucose oxidase (GOD). The use is widespread because assays incorporating the enzyme are extremely simple, specific, and highly sensitive and thus offer distinct advantages over the Liebermann-Burchard analytical methodologies which employ corrosive reagents and can be prone to unreliable results due to interfering substances such as bilirubin. Individuals can now readily determine their own serum cholesterol levels with a simple disposable test kit. This review discusses COD in some detail and includes the topics: (1) The variety of bacterial sources available; (2) The various extraction/purification protocols utilised in order to obtain protein of sufficient clarification (purity) for use in food/clinical analysis; (3) Significant differences in the properties of the individual enzymes; (4) Substrate specificities of the various enzymes; (5) Examples of biological assays which have employed cholesterol oxidase as an integral part of the analysis, and the various assay protocols; (6) New steroidal products of COD. This review is not a comprehensive description of published work, but is intended to provide an account of recent and current research, and should promote further interest in the application of enzymes to analytical selectivity.",
       "reviewed": "2025-01-15T19:55:37.708921+00:00"
+    },
+    "766653": {
+      "authors": "du Plooy, S.; Anandraj, A.; White, S.; Perissinotto, R.; du Preez, D.",
+      "title": "Robust photosystem I activity by Cyanothece sp. (Cyanobacteria) and its role in prolonged bloom persistence in lake St Lucia, South Africa",
+      "journal": "Extremophiles",
+      "volume": "22",
+      "pages": "639-650",
+      "year": 2018,
+      "pubmed_id": "29651560",
+      "path": "",
+      "pmc_id": null,
+      "pmc_open": false,
+      "doi": "10.1007/s00792-018-1025-8",
+      "created": "2025-01-16T07:04:45.012768+00:00",
+      "enzymes": [64878],
+      "bacteria": {},
+      "strains": [],
+      "other_organisms": {
+        "8115": "Crocosphaera subtropica ATCC 51142"
+      },
+      "relations": {
+        "HasEnzyme": [
+          {
+            "subject": 8115,
+            "object": 64878
+          }
+        ]
+      },
+      "reviewed": "2025-02-11T17:57:49.508994+00:00",
+      "abstract": "Worldwide, cyanobacterial blooms are becoming more frequent, exacerbated by eutrophication, anthropogenic effects, and global climate change. Environmental factors play a direct role in photosynthesis of cyanobacteria and subsequent cellular changes, growth, and bloom dynamics. This study investigated the photosynthetic functioning of a persistent bloom-forming (18 months) cyanobacterium, Cyanothece sp., isolated from Lake St Lucia, South Africa. DUAL-PAM fluorometric methods were used to observe physiological responses in Cyanothece sp. photosystems I and II. Results show that photosystem I activity was maintained under all environmental conditions tested, while photosystem II activity was not observed at all. Out of the environmental factors tested (temperature, salinity, and nitrogen presence), only temperature significantly influenced photosystem I activity. In particular, high temperature (40 °C) facilitated faster electron transport rates, while effects of salinity and nitrogen were variable. Cyanothece sp. has shown to sustain bloom status for long periods largely because of the essential role of photosystem I activity during highly dynamic and even extreme (e.g., salinities higher than 200) environmental conditions. This ensures the continual supply of cellular energy (e.g. ATP) to important processes such as nitrogen assimilation, which is essential for protein synthesis, cell growth and, therefore, bloom maintenance."
     }
   },
   "enzymes": {
@@ -172,6 +202,40 @@
         "cholesterol-O2 oxidoreductase",
         "oxidase, cholesterol",
         "type I ChOx"
+      ]
+    },
+    "64878": {
+      "ec_class": "1.97.1.12",
+      "recommended_name": "photosystem I",
+      "synonyms": [
+        "OsCRR6",
+        "PS I",
+        "PS-I",
+        "PS-I complex",
+        "PS1",
+        "PSA",
+        "PSAO",
+        "PSI",
+        "PSI core complex",
+        "PSI-LHCI",
+        "PsaA",
+        "PsaB",
+        "PsaB1",
+        "PsaC",
+        "PsaD",
+        "PsaE",
+        "PsaF",
+        "PsaI",
+        "PsaJ",
+        "PsaK",
+        "PsaL",
+        "PsaM",
+        "PsaN",
+        "PsaX",
+        "photosystem I P700 chlorophyll a apoprotein A2",
+        "photosystem I light-harvesting complex I supercomplex",
+        "plastocyanin/cytc6-ferredoxin oxidoreductase",
+        "plastocyanin:ferredoxin oxidoreductase"
       ]
     }
   },

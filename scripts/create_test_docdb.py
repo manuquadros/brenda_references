@@ -8,11 +8,20 @@ if __name__ == "__main__":
         BrendaDocDB() as maindb,
         BrendaDocDB(path=str(TEST_DIR / "test_files/testdb.json")) as testdb,
     ):
-        sample = maindb.get_reference(287675)
-        testdb.insert(table="documents", record=sample)
+        samples = (maindb.get_reference(287675), maindb.get_reference(766653))
 
-        for tblname in ("enzymes", "bacteria", "strains", "other_organisms"):
-            for organism in sample.get(tblname, []):
-                record = maindb.get_record(table=tblname, doc_id=int(organism))
-                if record is not None:
-                    testdb.insert(table=tblname, record=record)
+        for sample in samples:
+            testdb.insert(table="documents", record=sample)
+
+            for tblname in (
+                "enzymes",
+                "bacteria",
+                "strains",
+                "other_organisms",
+            ):
+                for organism in sample.get(tblname, []):
+                    record = maindb.get_record(
+                        table=tblname, doc_id=int(organism)
+                    )
+                    if record is not None:
+                        testdb.insert(table=tblname, record=record)
