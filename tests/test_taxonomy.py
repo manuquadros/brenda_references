@@ -7,7 +7,7 @@ import pathlib
 TESTDB_PATH = pathlib.Path(__file__).parent / "test_files/testdb.json"
 
 
-def test_fix_testdb():
+def test_fix_bacteria():
     with BrendaDocDB(path=str(TESTDB_PATH)) as testdb_disk:
         data = testdb_disk.as_dict()
 
@@ -36,3 +36,30 @@ def test_fix_testdb():
         for name in other_bac_names:
             assert name in testdoc_names
             assert testdb.bacteria_by_name(name) is not None
+
+
+def test_fix_strains():
+    with BrendaDocDB(path=str(TESTDB_PATH)) as testdb_disk:
+        data = testdb_disk.as_dict()
+
+    with BrendaDocDB(storage="memory") as testdb:
+        testdb._db.storage.write(data)
+        testdoc = testdb.documents.get(doc_id=766653)
+
+        assert (
+            "Crocosphaera subtropica ATCC 51142"
+            in testdoc["other_organisms"].values()
+        )
+        assert "Crocosphaera subtropica" not in testdoc["bacteria"].values()
+        assert not testdoc["strains"]
+        assert testdb.strain_by_designation("ATCC 51142") is None
+
+        fix_taxonomy.fix_taxonomy(testdb)
+        testdoc = testdb.documents.get(doc_id=766653)
+
+        assert "Crocosphaera subtropica" in testdoc["bacteria"].values()
+        assert testdoc["strains"]
+
+        strain_id = testdoc["strains"][0]
+        assert strain_id in testdb.strains
+        assert testdb.strain_by_designation("ATCC 51142") is not None
