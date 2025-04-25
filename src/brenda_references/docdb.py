@@ -5,7 +5,7 @@ from types import TracebackType
 from typing import Any, Iterable, Self, cast
 
 from apiadapters.ncbi.parser import is_scanned
-from tinydb import TinyDB, where
+from tinydb import Query, TinyDB, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage, MemoryStorage, Storage
 from tinydb.table import Document as TDocument
@@ -28,6 +28,7 @@ class BrendaDocDB:
 
         self.documents = self._db.table("documents")
         self.bacteria = self._db.table("bacteria")
+        self.strains = self._db.table("strains")
 
     def __enter__(self) -> Self:
         self._db.__enter__()
@@ -84,6 +85,19 @@ class BrendaDocDB:
         match = table.get(
             (where("organism") == query)
             | (where("synonyms").test(lambda syns: query in syns))
+        )
+
+        if match is not None:
+            return cast(TDocument, match)
+
+        return None
+
+    def strain_by_designation(self, query: str) -> TDocument | None:
+        """Return a strain record with `query` among its designations."""
+        match = self.strains.get(
+            (Query().taxon.name == query)
+            | (Query().cultures.any(Query().strain_number == query))
+            | (Query().designations.test(lambda names: query in names))
         )
 
         if match is not None:
