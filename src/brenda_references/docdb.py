@@ -81,10 +81,15 @@ class BrendaDocDB:
     def bacteria_by_name(self, query: str) -> TDocument | None:
         """Return a bacteria record with `query` in its designations"""
         table = self._db.table("bacteria")
-        return table.get(
+        match = table.get(
             (where("organism") == query)
             | (where("synonyms").test(lambda syns: query in syns))
         )
+
+        if match is not None:
+            return cast(TDocument, match)
+
+        return None
 
     def __add_bacteria_record(
         self, organism: str, synonyms: frozenset[str]
