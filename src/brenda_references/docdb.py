@@ -130,19 +130,28 @@ class BrendaDocDB:
 
         return newbac.id
 
-    def add_bac_synonyms(self, doc_id: int, synonyms: Set[str]) -> None:
+    def add_synonyms(self, table: str, doc_id: int, synonyms: Set[str]) -> None:
         """Add `synonyms` to the synonym set of the `doc_id` record."""
 
-        def add_synonyms(synset_field: str, synonyms: Set[str]):
+        def add(synset_field: str, synonyms: Set[str]):
             def transform(doc: MutableMapping):
                 doc[synset_field] = doc[synset_field] | frozenset(synonyms)
 
             return transform
 
-        self.bacteria.update(
-            add_synonyms("synonyms", synonyms),
+        synset_field = {"bacteria": "synonyms", "strains": "designations"}
+
+        getattr(self, table).update(
+            add(synset_field[table], synonyms),
             doc_ids=[doc_id],
         )
+
+    def add_bac_synonyms(self, doc_id: int, synonyms: Set[str]) -> None:
+        """Add `synonyms` to the synonym set of the `doc_id` record."""
+        self.add_synonyms(table="bacteria", doc_id=doc_id, synonyms=synonyms)
+
+    def add_strain_synonyms(self, doc_id: int, synonyms: Set[str]) -> None:
+        self.add_synonyms(table="strains", doc_id=doc_id, synonyms=synonyms)
 
     def insert_bacteria_record(self, query: str) -> int:
         """Return the id of a bacteria record if it exists or of a new one."""
