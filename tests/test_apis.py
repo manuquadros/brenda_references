@@ -8,7 +8,7 @@ from brenda_references.lpsn_interface import (
     lpsn_synonyms,
     name_parts,
 )
-from ncbi import NCBIAdapter
+from apiadapters.ncbi import NCBIAdapter
 from brenda_references.straininfo import StrainInfoAdapter
 
 get_lpsn()

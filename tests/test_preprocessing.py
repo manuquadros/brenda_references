@@ -1,4 +1,4 @@
-from ncbi.parser import is_scanned
+from apiadapters.ncbi.parser import is_scanned
 
 
 def test_is_scanned():
