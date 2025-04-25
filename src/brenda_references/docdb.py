@@ -105,6 +105,13 @@ class BrendaDocDB:
 
         return None
 
+    def update_record(
+        self, table: str, fields: dict[str, Any], doc_id: int
+    ) -> None:
+        """Update `doc_id` according to `fields`."""
+        tbl = self._db.table(table)
+        tbl.update(fields=fields, doc_ids=[doc_id])
+
     def __add_bacteria_record(
         self, organism: str, synonyms: frozenset[str]
     ) -> int:
