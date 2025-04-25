@@ -56,7 +56,10 @@ class BrendaDocDB:
 
     def insert(self, table: str, record: Mapping) -> None:
         """Insert `record` in `table`."""
-        self._db.table(table).insert(record)
+        try:
+            self._db.table(table).insert(record)
+        except ValueError:
+            pass
 
     def get_record(self, table: str, doc_id: int) -> TDocument | None:
         """Return doc at `doc_id` on `table`."""
