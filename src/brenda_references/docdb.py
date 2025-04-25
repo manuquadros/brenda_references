@@ -78,7 +78,7 @@ class BrendaDocDB:
         """Retrieve bacteria record from `self`"""
         return cast(TDocument, self._db.table("bacteria").get(doc_id=int(_id)))
 
-    def search_bac_by_name(self, query: str) -> TDocument | None:
+    def bacteria_by_name(self, query: str) -> TDocument | None:
         """Return a bacteria record with `query` in its designations"""
         table = self._db.table("bacteria")
         return table.get(
@@ -117,7 +117,7 @@ class BrendaDocDB:
 
     def get_or_add_bacteria_record(self, query: str) -> int:
         """Return the id of a bacteria record if it exists or of a new one."""
-        match = self.search_bac_by_name(query)
+        match = self.bacteria_by_name(query)
 
         if isinstance(match, TDocument):
             return match.doc_id
@@ -130,7 +130,7 @@ class BrendaDocDB:
 
                 # Check if there is already a record for the parent LPSN.
                 # In that case, we just add `query` to its synonym set.
-                parent_record = self.search_bac_by_name(organism)
+                parent_record = self.bacteria_by_name(organism)
                 if parent_record is not None:
                     self.add_bac_synonyms(
                         doc_id=parent_record.doc_id, synonyms={query}
