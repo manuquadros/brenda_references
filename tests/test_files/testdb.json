@@ -1,0 +1,307 @@
+{
+  "documents": {
+    "287675": {
+      "authors": "MacLachlan, J.; Wotherspoon, A.T.L.; Ansell, R.O.; Brooks, C.J.W.",
+      "title": "Cholesterol oxidase: sources, physical properties and analytical applications",
+      "journal": "J. Steroid Biochem. Mol. Biol.",
+      "volume": "72",
+      "pages": "169-195",
+      "year": 2000,
+      "pubmed_id": "10822008",
+      "path": "/home/data/brenda/literatur/neuePDFsVonTool/10822008.pdf",
+      "pmc_id": null,
+      "pmc_open": false,
+      "doi": "10.1016/s0960-0760(00)00044-3",
+      "created": "2025-01-15T19:55:37.708921+00:00",
+      "enzymes": [34567],
+      "bacteria": {
+        "6027": "Streptomyces griseocarneus",
+        "5085": "Pseudomonas",
+        "5397": "Rhodococcus",
+        "6052": "Streptomyces lividans",
+        "1646": "Rhodococcus hoagii",
+        "1284": "Streptomyces",
+        "1590": "Comamonas testosteroni",
+        "133": "Streptomyces lavendulae",
+        "5389": "Rhodococcus erythropolis",
+        "6043": "Streptomyces hygroscopicus",
+        "138": "Streptomyces violascens",
+        "3490": "Mycobacterium",
+        "4360": "Nocardia"
+      },
+      "strains": [289],
+      "other_organisms": {
+        "978": "Brevibacterium sterolicum",
+        "4346": "Nocardia erythropolis",
+        "1665": "Corynebacterium cholesterolicum",
+        "4358": "Nocardia rhodochrous",
+        "456": "Pimelobacter simplex",
+        "5611": "Schizophyllum commune"
+      },
+      "relations": {
+        "HasEnzyme": [
+          {
+            "subject": 133,
+            "object": 34567
+          },
+          {
+            "subject": 138,
+            "object": 34567
+          },
+          {
+            "subject": 289,
+            "object": 34567
+          },
+          {
+            "subject": 456,
+            "object": 34567
+          },
+          {
+            "subject": 978,
+            "object": 34567
+          },
+          {
+            "subject": 1284,
+            "object": 34567
+          },
+          {
+            "subject": 1590,
+            "object": 34567
+          },
+          {
+            "subject": 1646,
+            "object": 34567
+          },
+          {
+            "subject": 1665,
+            "object": 34567
+          },
+          {
+            "subject": 3490,
+            "object": 34567
+          },
+          {
+            "subject": 4346,
+            "object": 34567
+          },
+          {
+            "subject": 4358,
+            "object": 34567
+          },
+          {
+            "subject": 4360,
+            "object": 34567
+          },
+          {
+            "subject": 5085,
+            "object": 34567
+          },
+          {
+            "subject": 5389,
+            "object": 34567
+          },
+          {
+            "subject": 5611,
+            "object": 34567
+          },
+          {
+            "subject": 6027,
+            "object": 34567
+          },
+          {
+            "subject": 6043,
+            "object": 34567
+          },
+          {
+            "subject": 6052,
+            "object": 34567
+          }
+        ],
+        "HasSpecies": [
+          {
+            "subject": 289,
+            "object": 5397
+          }
+        ]
+      },
+      "abstract": "Since Flegg (H.M. Flegg, An investigation of the determination of serum cholesterol by an enzymatic method, Ann. Clin. Biochem. 10 (1973) 79-84) and Richmond (W. Richmond, The development of an enzymatic technique for the assay of cholesterol in biological fluids, Scand. J. clin. Lab. Invest. 29 (1972) 25; W. Richmond, Preparation and properties of a bacterial cholesterol oxidase from Nocardia sp. and its application to enzyme assay of total cholesterol in serum, Clinical Chemistry 19 (1973) 1350-1356) first illustrated the suitability of cholesterol oxidase (COD) for the analysis of serum cholesterol, COD has risen to become the most widely used enzyme in clinical laboratories with the exception of glucose oxidase (GOD). The use is widespread because assays incorporating the enzyme are extremely simple, specific, and highly sensitive and thus offer distinct advantages over the Liebermann-Burchard analytical methodologies which employ corrosive reagents and can be prone to unreliable results due to interfering substances such as bilirubin. Individuals can now readily determine their own serum cholesterol levels with a simple disposable test kit. This review discusses COD in some detail and includes the topics: (1) The variety of bacterial sources available; (2) The various extraction/purification protocols utilised in order to obtain protein of sufficient clarification (purity) for use in food/clinical analysis; (3) Significant differences in the properties of the individual enzymes; (4) Substrate specificities of the various enzymes; (5) Examples of biological assays which have employed cholesterol oxidase as an integral part of the analysis, and the various assay protocols; (6) New steroidal products of COD. This review is not a comprehensive description of published work, but is intended to provide an account of recent and current research, and should promote further interest in the application of enzymes to analytical selectivity.",
+      "reviewed": "2025-01-15T19:55:37.708921+00:00"
+    }
+  },
+  "enzymes": {
+    "34567": {
+      "ec_class": "1.1.3.6",
+      "recommended_name": "cholesterol oxidase",
+      "synonyms": [
+        "3beta-hydroxy steroid oxidoreductase",
+        "3beta-hydroxysteroid: oxygen oxidoreductase",
+        "3beta-hydroxysteroid:oxygen oxidoreductase",
+        "3beta-hydroxysterol oxidase",
+        "BsChOx",
+        "CHO",
+        "CHO-U",
+        "CHOD",
+        "CHOLOX",
+        "CO",
+        "CO1",
+        "COD",
+        "COD-B",
+        "COX",
+        "COase",
+        "CgChoA",
+        "ChO3",
+        "ChOx",
+        "ChoA",
+        "ChoG",
+        "ChoL",
+        "ChoM1",
+        "ChoM2",
+        "ChoRI",
+        "ChoRII",
+        "ChoS",
+        "HCEO-forming enzyme",
+        "HMPREF0204_11499",
+        "PimE",
+        "ShChOx",
+        "choBb",
+        "choM",
+        "choP",
+        "cholesterol oxidase",
+        "cholesterol oxidase I",
+        "cholesterol oxidase II",
+        "cholesterol-O2 oxidoreductase",
+        "oxidase, cholesterol",
+        "type I ChOx"
+      ]
+    }
+  },
+  "bacteria": {
+    "6027": {
+      "organism": "Streptomyces griseocarneus",
+      "synonyms": [
+        "Streptomyces alboverticillatus",
+        "Streptomyces septatus",
+        "Streptoverticillium alboverticillatum",
+        "Streptoverticillium griseocarneum",
+        "Streptoverticillium septatum"
+      ],
+      "lpsn_id": 781709
+    },
+    "5085": {
+      "organism": "Pseudomonas",
+      "synonyms": [
+        "Aquipseudomonas",
+        "Chryseomonas",
+        "Ectopseudomonas",
+        "Flavimonas",
+        "Geopseudomonas",
+        "Metapseudomonas",
+        "Phytopseudomonas",
+        "Serpens",
+        "Zestomonas"
+      ],
+      "lpsn_id": 517405
+    },
+    "5397": {
+      "organism": "Rhodococcus",
+      "synonyms": ["Prescottella", "Rhodococcoides"],
+      "lpsn_id": 516476
+    },
+    "6052": {
+      "organism": "Streptomyces lividans",
+      "synonyms": [],
+      "lpsn_id": null
+    },
+    "1646": {
+      "organism": "Rhodococcus hoagii",
+      "synonyms": ["Corynebacterium hoagii"],
+      "lpsn_id": 791654
+    },
+    "1284": {
+      "organism": "Streptomyces",
+      "synonyms": [
+        "Actinacidiphila",
+        "Actinopycnidium",
+        "Actinosporangium",
+        "Carbonactinospora",
+        "Chainia",
+        "Elytrosporangium",
+        "Kitasatoa",
+        "Microellobosporia",
+        "Streptoverticillium"
+      ],
+      "lpsn_id": 517119
+    },
+    "1590": {
+      "organism": "Comamonas testosteroni",
+      "synonyms": ["Pseudomonas testosteroni"],
+      "lpsn_id": 775085
+    },
+    "133": {
+      "organism": "Streptomyces lavendulae",
+      "synonyms": [],
+      "lpsn_id": 781796
+    },
+    "5389": {
+      "organism": "Rhodococcus erythropolis",
+      "synonyms": [
+        "Rhodococcus baikonurensis",
+        "Rhodococcus degradans",
+        "Rhodococcus enclensis",
+        "Rhodococcus jialingiae",
+        "Rhodococcus qingshengii"
+      ],
+      "lpsn_id": 780449
+    },
+    "6043": {
+      "organism": "Streptomyces hygroscopicus",
+      "synonyms": [
+        "Streptomyces demainii",
+        "Streptomyces endus",
+        "Streptomyces hygroscopicus subsp. sporocinereus",
+        "Streptomyces sporocinereus"
+      ],
+      "lpsn_id": 781756
+    },
+    "138": {
+      "organism": "Streptomyces violascens",
+      "synonyms": [],
+      "lpsn_id": 782115
+    },
+    "3490": {
+      "organism": "Mycobacterium",
+      "synonyms": [
+        "Mycobacteroides",
+        "Mycolicibacillus",
+        "Mycolicibacter",
+        "Mycolicibacterium"
+      ],
+      "lpsn_id": 516137
+    },
+    "4360": {
+      "organism": "Nocardia",
+      "synonyms": ["Micropolyspora"],
+      "lpsn_id": 516182
+    }
+  },
+  "strains": {
+    "289": {
+      "id": 299098,
+      "doi": "10.60712/SI-ID299098.1",
+      "merged": null,
+      "bacdive": null,
+      "taxon": {
+        "name": "Schizosaccharomyces pombe",
+        "lpsn": null,
+        "ncbi": 4896
+      },
+      "cultures": [
+        {
+          "siid": 694259,
+          "strain_number": "ATCC 201872"
+        }
+      ],
+      "designations": ["GK1"]
+    }
+  }
+}
