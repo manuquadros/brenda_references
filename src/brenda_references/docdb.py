@@ -144,7 +144,7 @@ class BrendaDocDB:
             doc_ids=[doc_id],
         )
 
-    def get_or_add_bacteria_record(self, query: str) -> int:
+    def insert_bacteria_record(self, query: str) -> int:
         """Return the id of a bacteria record if it exists or of a new one."""
         match = self.bacteria_by_name(query)
 
