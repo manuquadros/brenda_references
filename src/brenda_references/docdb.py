@@ -16,15 +16,15 @@ from brenda_references.lpsn_interface import lpsn_id, lpsn_parent, lpsn_synonyms
 
 
 class BrendaDocDB:
-    def __init__(
-        self, path: str | None = None, storage: type[Storage] = JSONStorage
-    ) -> None:
+    def __init__(self, path: str | None = None, storage: str = "json") -> None:
         self._path = path or config["documents"]
 
-        if isinstance(storage, MemoryStorage):
-            self._db: TinyDB = TinyDB(storage=CachingMiddleware(storage))
+        if storage == "memory":
+            self._db: TinyDB = TinyDB(storage=CachingMiddleware(MemoryStorage))
         else:
-            self._db = TinyDB(self._path, storage=storage)
+            self._db = TinyDB(
+                self._path, storage=CachingMiddleware(JSONStorage)
+            )
 
         self.documents = self._db.table("documents")
         self.bacteria = self._db.table("bacteria")
