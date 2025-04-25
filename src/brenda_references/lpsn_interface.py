@@ -112,14 +112,10 @@ def lpsn_id(name: str) -> int | None:
     try:
         record = lpsn.query(query).iloc[0]
     except IndexError:
-        logger().error(
-            (
-                "Couldn't find an LPSN record for %s. "
-                "The query was %s, where @name_parts = %s."
-            ),
+        stderr_logger().error(
+            ("Couldn't find an LPSN record for %s. " "The query was %s."),
             name,
             query,
-            name_parts,
         )
         return None
 
