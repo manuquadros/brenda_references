@@ -15,6 +15,7 @@ dependencies = [
   "gme",
   "httpx>=0.28.1,<0.29",
   "lxml>=5.3.0,<6",
+  "ncbitax",
   "nltk>=3.9.1,<4",
   "orjson>=3.10.15",
   "pandas>=2.2.3,<3",
@@ -50,6 +51,7 @@ statistics = "scripts.statistics:main"
 gme = { git = "https://github.com/idiap/gme-sampler" }
 xmlparser = { workspace = true }
 apiadapters = { workspace = true }
+ncbitax = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
