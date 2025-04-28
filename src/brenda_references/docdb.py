@@ -160,33 +160,31 @@ class BrendaDocDB:
 
         if isinstance(match, TDocument):
             return match.doc_id
-        else:
-            _lpsn_id = lpsn_id(query)
-            synonyms: frozenset[str] = frozenset()
 
-            if _lpsn_id:
-                _lpsn_parent = lpsn_parent(_lpsn_id)
+        _lpsn_id = lpsn_id(query)
+        synonyms: frozenset[str] = frozenset()
 
-                if _lpsn_parent:
-                    parent_id, organism = _lpsn_parent
+        if _lpsn_id:
+            _lpsn_parent = lpsn_parent(_lpsn_id)
 
-                    # Check if there is already a record for the parent LPSN.
-                    # In that case, we just add `query` to its synonym set.
-                    parent_record = self.bacteria_by_name(organism)
-                    if parent_record is not None:
-                        self.add_bac_synonyms(
-                            doc_id=parent_record.doc_id, synonyms={query}
-                        )
-                        return parent_record.doc_id
+            if _lpsn_parent:
+                parent_id, organism = _lpsn_parent
 
-                    synonyms = (
-                        lpsn_synonyms(_lpsn_id)
-                        | lpsn_synonyms(parent_id)
-                        | {query}
+                # Check if there is already a record for the parent LPSN.
+                # In that case, we just add `query` to its synonym set.
+                parent_record = self.bacteria_by_name(organism)
+                if parent_record is not None:
+                    self.add_bac_synonyms(
+                        doc_id=parent_record.doc_id, synonyms={query}
                     )
-                else:
-                    return self.__add_bacteria_record(
-                        organism=query, synonyms=lpsn_synonyms(_lpsn_id)
-                    )
+                    return parent_record.doc_id
 
-            return self.__add_bacteria_record(organism=query, synonyms=synonyms)
+                synonyms = (
+                    lpsn_synonyms(_lpsn_id) | lpsn_synonyms(parent_id) | {query}
+                )
+            else:
+                return self.__add_bacteria_record(
+                    organism=query, synonyms=lpsn_synonyms(_lpsn_id)
+                )
+
+        return self.__add_bacteria_record(organism=query, synonyms=synonyms)

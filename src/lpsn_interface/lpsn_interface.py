@@ -61,16 +61,15 @@ def lpsn_synonyms(query: int | str) -> frozenset[str]:
         names = syn_records.apply(lpsn_name, axis=1)
         return frozenset(names)
 
-    elif isinstance(query, str):
+    if isinstance(query, str):
         _id = lpsn_id(cast(str, query))
         return lpsn_synonyms(_id) if _id else frozenset()
 
-    else:
-        stderr_logger().error(
-            "Invalid LPSN synonym query: %s is not int or string.",
-            query,
-        )
-        return frozenset()
+    stderr_logger().error(
+        "Invalid LPSN synonym query: %s is not int or string.",
+        query,
+    )
+    return frozenset()
 
 
 @lru_cache
