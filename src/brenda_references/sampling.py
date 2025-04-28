@@ -16,17 +16,17 @@ def relation_records(doc: Mapping[str, Any]) -> list[dict[str, str]]:
 
     for predicate, argpairs in doc["relations"].items():
         for args in argpairs:
-            subject = str(args["subject"])
-            object = str(args["object"])
+            subj = str(args["subject"])
+            obj = str(args["object"])
 
             if predicate == "HasSpecies":
                 subj_prefix = "str_"
                 obj_prefix = "bac_"
             else:
                 obj_prefix = "enz_"
-                if subject in doc["bacteria"]:
+                if subj in doc["bacteria"]:
                     subj_prefix = "bac_"
-                elif subject in doc["strains"]:
+                elif subj in doc["strains"]:
                     subj_prefix = "str_"
                 else:
                     subj_prefix = "oos_"
@@ -35,8 +35,8 @@ def relation_records(doc: Mapping[str, Any]) -> list[dict[str, str]]:
                 {
                     "pubmed_id": pmid,
                     "predicate": predicate,
-                    "subject": subj_prefix + subject,
-                    "object": obj_prefix + object,
+                    "subject": subj_prefix + subj,
+                    "object": obj_prefix + obj,
                 }
             )
 
@@ -47,7 +47,9 @@ def build_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
     """Build DataFrame where each row is a relation found in the database."""
 
     rows = (
-        relation_record for doc in docs for relation_record in relation_records(doc)
+        relation_record
+        for doc in docs
+        for relation_record in relation_records(doc)
     )
 
     return pd.DataFrame(rows)
