@@ -61,5 +61,5 @@ def test_fix_strains():
         assert testdoc["strains"]
 
         strain_id = testdoc["strains"][0]
-        assert strain_id in testdb.strains
+        assert testdb.strains.get(doc_id=strain_id) is not None
         assert testdb.strain_by_designation("ATCC 51142") is not None
