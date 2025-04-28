@@ -20,7 +20,7 @@ from pydantic import (
 from pydantic.functional_serializers import PlainSerializer
 from taxonomy import ncbitax
 
-from .lpsn_interface import lpsn_id, name_parts
+from lpsn_interface import lpsn_id, name_parts
 from .pydantic_frozendict import FrozenDict
 
 

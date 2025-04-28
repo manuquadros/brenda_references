@@ -23,10 +23,10 @@ from loggers import stderr_logger
 from apiadapters.ncbi import NCBIAdapter
 from utils import CachingMiddleware
 
-from .brenda_types import EC, Bacteria, Document
 from .config import config
-from .lpsn_interface import lpsn_synonyms
-from .straininfo import StrainInfoAdapter
+from brenda_types import EC, Bacteria, Document
+from lpsn_interface import lpsn_synonyms
+from apiadapters.straininfo import StrainInfoAdapter
 
 
 async def add_abstracts(
@@ -186,7 +186,7 @@ async def sync_doc_db() -> None:
             storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
         NCBIAdapter() as ncbi,
-        StrainInfoAdapter() as straininfo,
+        AsyncStrainInfoAdapter() as straininfo,
         db.BRENDA() as brenda,
     ):
         straininfo.storage = docdb

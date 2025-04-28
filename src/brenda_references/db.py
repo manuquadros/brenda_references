@@ -25,7 +25,7 @@ from sqlalchemy import URL, Column, Engine, Integer, String
 from sqlalchemy.orm import declarative_base
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from .brenda_types import (
+from brenda_types import (
     EC,
     Bacteria,
     BaseEC,
