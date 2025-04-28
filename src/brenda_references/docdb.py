@@ -122,17 +122,9 @@ class BrendaDocDB:
         """Store a new bacteria record and return its doc_id."""
         table = self.bacteria
 
-        newbac = Bacteria(
-            id=table._get_next_id(),
-            organism=organism,
-            synonyms=synonyms,
-        )
+        doc_id = table.insert({"organism": organism, "synonyms": synonyms})
 
-        table.insert(
-            TDocument(newbac.model_dump(exclude={"id"}), doc_id=newbac.id),
-        )
-
-        return newbac.id
+        return doc_id
 
     def add_synonyms(self, table: str, doc_id: int, synonyms: Set[str]) -> None:
         """Add `synonyms` to the synonym set of the `doc_id` record."""
