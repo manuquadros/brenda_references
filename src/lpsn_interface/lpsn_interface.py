@@ -85,6 +85,7 @@ def name_parts(name: str) -> dict[str, str]:
         .replace("sp.", "")
         .replace("pv.", "")
         .replace("serovar", "")
+        .replace("serotype", "")
         .split()
     )
     keys = ("genus_name", "sp_epithet", "subsp_epithet", "strain")
