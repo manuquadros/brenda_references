@@ -99,17 +99,18 @@ def fix_taxonomy(docdb: BrendaDocDB) -> None:
         for orgname in strains:
             update_doc_strain(docdb, doc, orgname)
 
-        docdb.update_record(
-            table="documents",
-            fields={
-                "other_organisms": {
-                    k: v
-                    for k, v in doc["other_organisms"].items()
-                    if k not in delete_from_other
-                }
-            },
-            doc_id=doc_id,
-        )
+        if delete_from_other:
+            docdb.update_record(
+                table="documents",
+                fields={
+                    "other_organisms": {
+                        k: v
+                        for k, v in doc["other_organisms"].items()
+                        if k not in delete_from_other
+                    }
+                },
+                doc_id=doc_id,
+            )
 
 
 if __name__ == "__main__":
