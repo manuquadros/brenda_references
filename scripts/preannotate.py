@@ -162,7 +162,7 @@ async def run() -> None:
             if doc.get("reviewed") == doc.get("created")
         ]
 
-        if not documents or not len(documents):
+        if not documents:
             print("No documents to annotate")
             return
 
