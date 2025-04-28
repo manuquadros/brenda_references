@@ -55,12 +55,12 @@ class BrendaDocDB:
             filter(lambda doc: not is_scanned(doc["fulltext"]), fulltext)
         )
 
-    def insert(self, table: str, record: Mapping) -> None:
-        """Insert `record` in `table`."""
+    def insert(self, table: str, record: Mapping) -> int | None:
+        """Insert `record` in `table` and return its id."""
         try:
-            self._db.table(table).insert(record)
+            return self._db.table(table).insert(record)
         except ValueError:
-            pass
+            return None
 
     def get_record(self, table: str, doc_id: int) -> TDocument | None:
         """Return doc at `doc_id` on `table`."""
