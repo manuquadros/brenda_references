@@ -117,7 +117,7 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
 async def fetch_and_annotate(
     docs: Sequence[TDBDocument],
     docdb: AIOTinyDB,
-    ncbi: NCBIAdapter,
+    ncbi: AsyncNCBIAdapter,
 ) -> tuple[TDBDocument]:
     """Add abstract and/or entity spans to the elements of `docs`.
 
