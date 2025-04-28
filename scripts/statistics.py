@@ -7,6 +7,7 @@ from functools import reduce
 from brenda_references.config import config
 from apiadapters.ncbi.parser import is_scanned
 from tinydb import TinyDB, where
+from tinydb.table import Table
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 
@@ -15,55 +16,58 @@ def hbar() -> None:
     print("-" * 70)
 
 
+def reference_counts(documents: Table) -> None:
+    print("Number of references:", len(documents))
+
+    references_without_abstract = documents.search(
+        (~(where("abstract").exists()) | (where("abstract") == ""))
+    )
+    print(
+        "Number of references without an abstract:",
+        len(references_without_abstract),
+    )
+
+    pmc_open = documents.search(where("pmc_open") == True)
+    fulltext = documents.search(
+        where("fulltext").exists() & (where("fulltext") != "")
+    )
+    scanned = reduce(
+        lambda sum, _: sum + 1,
+        filter(lambda doc: is_scanned(doc["fulltext"]), fulltext),
+        0,
+    )
+    print("Number of open access references:", len(pmc_open))
+    print("Full text articles: ", len(fulltext))
+    print(f"Some of which, {scanned}, are only available as scanned images.")
+
+    bacdocs = documents.search(
+        (where("bacteria").exists()) & ~(where("bacteria") == {}),
+    )
+    print("Number of references mentioning bacteria:", len(bacdocs))
+
+    strain_docs_count = len(
+        documents.search(
+            (where("strains").exists()) & ~(where("strains") == []),
+        )
+    )
+
+    print(
+        f"Number of references resolved at the strain level: "
+        f" {strain_docs_count} ({strain_docs_count / len(bacdocs):.2%})"
+    )
+
+
 def main() -> None:
     with TinyDB(
         config["documents"], storage=CachingMiddleware(JSONStorage)
     ) as docdb:
         documents = docdb.table("documents")
-        print("Number of references:", len(documents))
 
-        references_without_abstract = documents.search(
-            (~(where("abstract").exists()) | (where("abstract") == ""))
-        )
-        print(
-            "Number of references without an abstract:",
-            len(references_without_abstract),
-        )
-
-        bacdocs = documents.search(
-            (where("bacteria").exists()) & ~(where("bacteria") == {}),
-        )
-        print("Number of references mentioning bacteria:", len(bacdocs))
+        reference_counts(documents)
 
         print("Number of bacterial species:", len(docdb.table("bacteria")))
         print("Number of bacterial strains:", len(docdb.table("strains")))
 
-        strain_docs_count = len(
-            documents.search(
-                (where("strains").exists()) & ~(where("strains") == []),
-            )
-        )
-
-        print(
-            f"Number of references resolved at the strain level: "
-            f" {strain_docs_count} ({strain_docs_count / len(bacdocs):.2%})"
-        )
-
-        hbar()
-        pmc_open = documents.search(where("pmc_open") == True)
-        fulltext = documents.search(
-            where("fulltext").exists() & (where("fulltext") != "")
-        )
-        scanned = reduce(
-            lambda sum, _: sum + 1,
-            filter(lambda doc: is_scanned(doc["fulltext"]), fulltext),
-            0,
-        )
-        print("Number of open access references:", len(pmc_open))
-        print("Full text articles: ", len(fulltext))
-        print(
-            f"Some of which, {scanned}, are only available as scanned images."
-        )
         hbar()
 
         pmc_open_to_be_resolved = documents.search(
@@ -122,3 +126,7 @@ def main() -> None:
         # ax.hist(related_strains.values())
         # fig.savefig("plot.png")  # save the figure to file
         # plt.close(fig)  # close the figure window
+
+
+if __name__ == "__main__":
+    main()
