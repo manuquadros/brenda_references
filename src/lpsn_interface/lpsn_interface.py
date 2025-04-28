@@ -5,7 +5,7 @@ from typing import cast
 
 import pandas as pd
 from cacheout import Cache
-from loggers import logger
+from loggers import logger, stderr_logger
 
 from .config import config
 
