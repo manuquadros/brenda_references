@@ -64,13 +64,17 @@ def update_doc_strain(
 
 def fix_taxonomy(docdb: BrendaDocDB) -> None:
     """Make sure there are no bacteria in the other_organisms field."""
-    for doc in tqdm(docdb.references):
+    docs = tuple(
+        doc for doc in docdb.references if doc.get("other_organisms", {})
+    )
+
+    for doc in tqdm(docs):
         doc_id = doc.doc_id
         delete_from_other: set[int] = set()
         bacteria: set[str] = set()
         strains: set[str] = set()
 
-        for _id, orgname in doc.get("other_organisms", {}).items():
+        for _id, orgname in doc["other_organisms"].items():
             if ncbitax.is_bacterial_strain(orgname):
                 delete_from_other.add(_id)
 
