@@ -4,7 +4,8 @@ from tinydb.storages import MemoryStorage
 
 import pathlib
 
-TESTDB_PATH = pathlib.Path(__file__).parent / "test_files/testdb.json"
+TESTDB_DIR = pathlib.Path(__file__).parent / "test_files"
+TESTDB_PATH = TESTDB_DIR / "testdb.json"
 
 
 def test_fix_bacteria():
@@ -63,3 +64,10 @@ def test_fix_strains():
         strain_id = testdoc["strains"][0]
         assert testdb.strains.get(doc_id=strain_id) is not None
         assert testdb.strain_by_designation("ATCC 51142") is not None
+
+        data = testdb.as_dict()
+
+    with BrendaDocDB(
+        path=str(TESTDB_DIR / "testdb_modified.json")
+    ) as testdbmod:
+        testdbmod._db.storage.write(data)

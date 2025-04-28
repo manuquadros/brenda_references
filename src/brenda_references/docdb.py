@@ -122,16 +122,22 @@ class BrendaDocDB:
         """Store a new bacteria record and return its doc_id."""
         table = self.bacteria
 
-        doc_id = table.insert({"organism": organism, "synonyms": synonyms})
+        doc_id = table.insert(
+            {"organism": organism, "synonyms": list(synonyms)}
+        )
 
         return doc_id
 
-    def add_synonyms(self, table: str, doc_id: int, synonyms: Set[str]) -> None:
+    def add_synonyms(
+        self, table: str, doc_id: int, synonyms: Iterable[str]
+    ) -> None:
         """Add `synonyms` to the synonym set of the `doc_id` record."""
 
-        def add(synset_field: str, synonyms: Set[str]):
+        def add(synset_field: str, synonyms: Iterable[str]):
             def transform(doc: MutableMapping):
-                doc[synset_field] = doc[synset_field] | frozenset(synonyms)
+                synset = set(doc[synset_field])
+                synset.update(synonyms)
+                doc[synset_field] = list(synset)
 
             return transform
 
