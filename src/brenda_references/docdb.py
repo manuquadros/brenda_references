@@ -10,9 +10,10 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage, MemoryStorage, Storage
 from tinydb.table import Document as TDocument
 
-from brenda_references.brenda_types import Bacteria, Document
 from brenda_references.config import config
-from brenda_references.lpsn_interface import lpsn_id, lpsn_parent, lpsn_synonyms
+from brenda_types import Bacteria, Document, Strain
+from lpsn_interface import lpsn_id, lpsn_parent, lpsn_synonyms
+from apiadapters.straininfo import StrainInfoAdapter
 
 
 class BrendaDocDB:
