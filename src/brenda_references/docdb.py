@@ -7,13 +7,12 @@ from typing import Any, Iterable, Self, Set, cast
 from apiadapters.ncbi.parser import is_scanned
 from tinydb import Query, TinyDB, where
 from tinydb.middlewares import CachingMiddleware
-from tinydb.storages import JSONStorage, MemoryStorage, Storage
+from tinydb.storages import JSONStorage, MemoryStorage
 from tinydb.table import Document as TDocument
 
 from brenda_references.config import config
-from brenda_types import Bacteria, Document, Strain
+from brenda_types import Document, Strain
 from lpsn_interface import lpsn_id, lpsn_parent, lpsn_synonyms
-from apiadapters.straininfo import StrainInfoAdapter
 
 
 class BrendaDocDB:

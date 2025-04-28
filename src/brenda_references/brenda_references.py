@@ -20,19 +20,19 @@ from tqdm import tqdm
 
 from brenda_references import db
 from loggers import stderr_logger
-from apiadapters.ncbi import NCBIAdapter
+from apiadapters.ncbi import AsyncNCBIAdapter
 from utils import CachingMiddleware
 
 from .config import config
 from brenda_types import EC, Bacteria, Document
 from lpsn_interface import lpsn_synonyms
-from apiadapters.straininfo import StrainInfoAdapter
+from apiadapters.straininfo import AsyncStrainInfoAdapter
 
 
 async def add_abstracts(
     docs: Iterable[Document],
-    adapter: NCBIAdapter,
-) -> list[Document, ...]:
+    adapter: AsyncNCBIAdapter,
+) -> list[Document]:
     """Add abstracts to the documents in `docs` when they are available.
 
     :param docs: Document models to be augmented with a retrieved abstract
@@ -72,7 +72,7 @@ async def add_abstracts(
     return docs
 
 
-async def expand_doc(ncbi: NCBIAdapter, doc: Document) -> Document:
+async def expand_doc(ncbi: AsyncNCBIAdapter, doc: Document) -> Document:
     """Check if we can find a PMCID and a DOI for the article."""
     if not doc.pubmed_id:
         return doc
@@ -119,7 +119,7 @@ def get_document(docdb: AIOTinyDB, reference: db._Reference) -> Document:
 
 async def add_document(
     docdb: AIOTinyDB,
-    ncbi: NCBIAdapter,
+    ncbi: AsyncNCBIAdapter,
     reference: db._Reference,
 ) -> None:
     """Add document metadata to the JSON database, retrieving from NCBI.
@@ -185,7 +185,7 @@ async def sync_doc_db() -> None:
             config["documents"],
             storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
-        NCBIAdapter() as ncbi,
+        AsyncNCBIAdapter() as ncbi,
         AsyncStrainInfoAdapter() as straininfo,
         db.BRENDA() as brenda,
     ):

@@ -7,9 +7,9 @@ from aiotinydb.storage import AIOJSONStorage
 from tinydb import where
 from tqdm import tqdm
 
-from brenda_references.brenda_types import Strain
+from brenda_types import Strain
 from brenda_references.config import config
-from brenda_references.straininfo import StrainInfoAdapter
+from apiadapters.straininfo import AsyncStrainInfoAdapter
 from utils import CachingMiddleware
 
 
@@ -19,7 +19,7 @@ async def run() -> None:  # noqa: D103
             config["documents"],
             storage=CachingMiddleware(AIOJSONStorage),
         ) as docdb,
-        StrainInfoAdapter() as straininfo,
+        AsyncStrainInfoAdapter() as straininfo,
     ):
         straininfo.storage = docdb
 
@@ -40,7 +40,9 @@ async def run() -> None:  # noqa: D103
 
             await asyncio.gather(
                 *(
-                    docdb.table("strains").update(strain.model_dump(), doc_ids=[key])
+                    docdb.table("strains").update(
+                        strain.model_dump(), doc_ids=[key]
+                    )
                     for key, strain in strains.items()
                 ),
             )

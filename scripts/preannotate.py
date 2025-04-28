@@ -19,12 +19,12 @@ from tinydb import Query
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
-import log
+import loggers
 from brenda_references import add_abstracts
-from brenda_references.brenda_types import Document, EntityMarkup, RDFClass
+from brenda_types import Document, EntityMarkup, RDFClass
 from brenda_references.config import config
-from ncbi import NCBIAdapter
-from utils import CachingMiddleware
+from apiadapters.ncbi import AsyncNCBIAdapter
+from utils import CachingMiddleware, fuzzy_find_all
 
 
 async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
@@ -37,7 +37,7 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
     # Enzymes: Get full enzyme metadata including synonyms
 
     new_spans = frozenset()
-    logger = log.stderr_logger()
+    logger = loggers.stderr_logger()
 
     if not getattr(doc, "abstract", None):
         return doc
@@ -48,7 +48,9 @@ async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:
     ) -> frozenset[str]:
         match ent_type:
             case RDFClass.D3OEnzyme:
-                return {ent_dict["recommended_name"]} | frozenset(ent_dict["synonyms"])
+                return {ent_dict["recommended_name"]} | frozenset(
+                    ent_dict["synonyms"]
+                )
             case RDFClass.D3OBacteria:
                 return {ent_dict["organism"]} | frozenset(ent_dict["synonyms"])
             case RDFClass.D3OStrain:
@@ -155,7 +157,9 @@ async def run() -> None:
             ~(Query().entity_spans.exists()) | (Query().entity_spans == []),
         )
         documents = [
-            doc for doc in documents if doc.get("reviewed") == doc.get("created")
+            doc
+            for doc in documents
+            if doc.get("reviewed") == doc.get("created")
         ]
 
         if not documents or not len(documents):
@@ -170,7 +174,7 @@ async def run() -> None:
         progress_bar = tqdm(total=n_tasks)
 
         async def process(docs: Sequence[TDBDocument]) -> None:
-            async with NCBIAdapter() as ncbi:
+            async with AsyncNCBIAdapter() as ncbi:
                 annotated_docs = await fetch_and_annotate(docs, docdb, ncbi)
 
                 for doc in annotated_docs:

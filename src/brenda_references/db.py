@@ -20,11 +20,6 @@ from functools import lru_cache
 from types import TracebackType
 from typing import Any, Self
 
-from rapidfuzz import fuzz, process
-from sqlalchemy import URL, Column, Engine, Integer, String
-from sqlalchemy.orm import declarative_base
-from sqlmodel import Field, Session, SQLModel, create_engine, select
-
 from brenda_types import (
     EC,
     Bacteria,
@@ -36,6 +31,14 @@ from brenda_types import (
     Organism,
     StrainRef,
 )
+from rapidfuzz import fuzz, process
+from sqlalchemy.engine import URL, Engine
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.schema import Column
+from sqlalchemy.sql.expression import Select
+from sqlalchemy.types import Integer, String
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
 from .config import config
 
 Base = declarative_base()
@@ -155,11 +158,10 @@ class BRENDA:
 
     def references(self) -> Iterable[_Reference]:
         """Retrieve list of literature references in BRENDA."""
-        query = select(_Reference).execution_options(yield_per=64)
+        query: Select = select(_Reference).execution_options(yield_per=64)
         return self.session.scalars(query)
 
     def count_references(self) -> int:
-        query = select(_Reference)
         return self.session.query(_Reference.reference_id).count()
 
     def enzyme_relations(self, reference_id: int) -> dict[str, Any]:

@@ -5,12 +5,10 @@ from collections import Counter
 from functools import reduce
 
 from brenda_references.config import config
-from ncbi.parser import is_scanned
+from apiadapters.ncbi.parser import is_scanned
 from tinydb import TinyDB, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
-
-import matplotlib.pyplot as plt
 
 
 def hbar() -> None:

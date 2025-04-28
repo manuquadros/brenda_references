@@ -5,23 +5,20 @@ Feed the document database with abstracts  and full text retrieved from PubMed.
 
 import asyncio
 import itertools
-from collections.abc import Iterable, Iterator, MutableMapping
-from types import TracebackType
-from typing import Self
+from collections.abc import Iterator, MutableMapping
 
-import log
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
-from brenda_references.brenda_types import Document
+from brenda_types import Document
 from brenda_references.config import config
-from ncbi import NCBIAdapter
+from apiadapters.ncbi import AsyncNCBIAdapter
 from tinydb import where
 from tqdm import tqdm
-from utils import APIAdapter, CachingMiddleware
+from utils import AsyncAPIAdapter, CachingMiddleware
 
 
 async def retrieve(
-    field: str, docs: dict[str, Document], api: APIAdapter
+    field: str, docs: dict[str, Document], api: AsyncAPIAdapter
 ) -> dict[str, Document]:
     """Retrieve data for the given `field`, for each doc in `docs`.
 
@@ -86,7 +83,7 @@ async def run() -> None:  # noqa: D103
             & ((~where("fulltext").exists()) | (where("fulltext") == ""))
         )
 
-        async with NCBIAdapter() as ncbi:
+        async with AsyncNCBIAdapter() as ncbi:
             print("Retrieving full text:")
             for batch in itertools.batched(tqdm(missing_fulltext), n=250):
                 docs = {

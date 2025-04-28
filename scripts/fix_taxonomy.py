@@ -15,8 +15,7 @@ from apiadapters.straininfo import StrainInfoAdapter
 from taxonomy import ncbitax
 from tqdm import tqdm
 from brenda_references.docdb import BrendaDocDB
-from brenda_types import Document, Strain
-from tinydb import TinyDB
+from brenda_types import Strain
 
 
 def fix_taxonomy(docdb: BrendaDocDB) -> None:

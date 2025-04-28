@@ -8,13 +8,15 @@ from tinydb.storages import JSONStorage
 from tqdm import tqdm
 
 from brenda_references.config import config
-from ncbi import NCBIAdapter
+from apiadapters.ncbi import AsyncNCBIAdapter
 
 
 async def run() -> None:
     async with (
-        AIOTinyDB(config["documents"], storage=CachingMiddleware(JSONStorage)) as docdb,
-        NCBIAdapter() as ncbi,
+        AIOTinyDB(
+            config["documents"], storage=CachingMiddleware(JSONStorage)
+        ) as docdb,
+        AsyncNCBIAdapter() as ncbi,
     ):
         for doc in tqdm(docdb.table("documents")):
             if doc["pmc_id"] and not doc["pmc_open"]:
