@@ -96,8 +96,7 @@ def name_parts(name: str) -> dict[str, str]:
         if any(char not in string.ascii_lowercase for char in term[1:]):
             out["strain"] = term
             break
-        else:
-            out[keys[index]] = term
+        out[keys[index]] = term
 
     return out
 
