@@ -8,7 +8,11 @@ if __name__ == "__main__":
         BrendaDocDB() as maindb,
         BrendaDocDB(path=str(TEST_DIR / "test_files/testdb.json")) as testdb,
     ):
-        samples = (maindb.get_reference(287675), maindb.get_reference(766653))
+        samples = (
+            maindb.get_reference(287675),
+            maindb.get_reference(766653),
+            maindb.get_reference(755668),
+        )
 
         for sample in samples:
             testdb.insert(table="documents", record=sample)
