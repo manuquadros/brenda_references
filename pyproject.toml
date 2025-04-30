@@ -28,7 +28,6 @@ dependencies = [
   "tinydb>=4.8.2,<5",
   "tqdm>=4.67.0,<5",
   "xmlparser",
-  "xmltodict>=0.14.2,<0.15",
 ]
 
 [dependency-groups]
