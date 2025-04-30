@@ -78,7 +78,7 @@ def fix_taxonomy(docdb: BrendaDocDB) -> None:
             if ncbitax.is_bacterial_strain(orgname):
                 delete_from_other.add(_id)
 
-                nameparts = ncbitax.decompose_strain_name(orgname)
+                nameparts = ncbitax.decompose_name(orgname)
 
                 if nameparts:
                     species, strain = nameparts.species, nameparts.strain
