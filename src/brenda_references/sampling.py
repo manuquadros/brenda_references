@@ -52,4 +52,11 @@ def build_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
         for relation_record in relation_records(doc)
     )
 
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows).astype(
+        dtype={
+            "pubmed_id": "int32",
+            "predicate": "category",
+            "subject": "string",
+            "object": "string",
+        }
+    )
