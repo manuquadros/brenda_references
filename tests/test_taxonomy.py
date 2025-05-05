@@ -1,6 +1,10 @@
+import copy
+import pytest
+import functools
 from scripts import fix_taxonomy
 from brenda_references.docdb import BrendaDocDB
 from tinydb.storages import MemoryStorage
+from typing import Any
 
 import pathlib
 
@@ -8,12 +12,22 @@ TESTDB_DIR = pathlib.Path(__file__).parent / "test_files"
 TESTDB_PATH = TESTDB_DIR / "testdb.json"
 
 
-def test_fix_bacteria():
+@functools.cache
+def load_disk_test_data() -> dict[str, dict[str, Any]]:
     with BrendaDocDB(path=str(TESTDB_PATH)) as testdb_disk:
         data = testdb_disk.as_dict()
 
+    if data:
+        return data
+    else:
+        raise RuntimeError("No test data")
+
+
+def test_fix_bacteria():
+    data = load_disk_test_data()
+
     with BrendaDocDB(storage="memory") as testdb:
-        testdb._db.storage.write(data)
+        testdb._db.storage.write(copy.deepcopy(data))
         other_bacids = (978, 4346, 1665, 4358, 456)
         testdoc = testdb.documents.get(doc_id=287675)
         other_bac_names = set(
@@ -40,11 +54,10 @@ def test_fix_bacteria():
 
 
 def test_fix_strains():
-    with BrendaDocDB(path=str(TESTDB_PATH)) as testdb_disk:
-        data = testdb_disk.as_dict()
+    data = load_disk_test_data()
 
     with BrendaDocDB(storage="memory") as testdb:
-        testdb._db.storage.write(data)
+        testdb._db.storage.write(copy.deepcopy(data))
         testdoc = testdb.documents.get(doc_id=766653)
 
         assert (
@@ -74,12 +87,11 @@ def test_fix_strains():
 
 
 def test_29345379():
-    DOC_ID = 29345379
-    with BrendaDocDB(path=str(TESTDB_PATH)) as testdb_disk:
-        data = testdb_disk.as_dict()
+    DOC_ID = 755668
+    data = load_disk_test_data()
 
     with BrendaDocDB(path=str(TESTDB_DIR / "testdb_modified.json")) as testdb:
-        testdb._db.storage.write(data)
+        testdb._db.storage.write(copy.deepcopy(data))
         testdoc = testdb.documents.get(doc_id=DOC_ID)
 
         assert (
