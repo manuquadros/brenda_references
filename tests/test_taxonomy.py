@@ -107,5 +107,11 @@ def test_29345379():
         test_doc = testdb.documents.get(doc_id=DOC_ID)
         assert testdb.strain_by_designation("ATCC 23218") is not None
 
+        bacteria = (
+            "Agrobacterium rhizogenes",
+            "Variovorax sp. P21",
+            "Nocardiopsis dassonvillei",
+        )
+
         for bac in bacteria:
             assert bac in testdoc["bacteria"].values()
