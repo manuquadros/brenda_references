@@ -94,12 +94,18 @@ def test_29345379():
         testdb._db.storage.write(copy.deepcopy(data))
         testdoc = testdb.documents.get(doc_id=DOC_ID)
 
-        assert (
-            "Nocardiopsis dassonvillei ATCC 23218"
-            in testdoc["other_organisms"].values()
+        bacteria = (
+            "Agrobacterium rhizogenes",
+            "Variovorax sp. P21",
+            "Nocardiopsis dassonvillei ATCC 23218",
         )
+
+        for bac in bacteria:
+            assert bac in testdoc["other_organisms"].values()
 
         fix_taxonomy.fix_taxonomy(testdb)
         test_doc = testdb.documents.get(doc_id=DOC_ID)
         assert testdb.strain_by_designation("ATCC 23218") is not None
-        assert "Nocardiopsis dassonvillei" in testdoc["bacteria"].values()
+
+        for bac in bacteria:
+            assert bac in testdoc["bacteria"].values()
