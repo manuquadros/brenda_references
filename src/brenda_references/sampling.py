@@ -50,6 +50,7 @@ def build_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
         relation_record
         for doc in docs
         for relation_record in relation_records(doc)
+        if doc["pubmed_id"]
     )
 
     return pd.DataFrame(rows).astype(
