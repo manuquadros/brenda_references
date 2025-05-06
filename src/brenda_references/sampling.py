@@ -1,9 +1,12 @@
 """Module providing functions for sampling references from the dataset."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 import pandas as pd
+from gme.gme import GreedyMaximumEntropySampler
+
+pd.options.mode.copy_on_write = True
 
 
 def relation_records(doc: Mapping[str, Any]) -> list[dict[str, str]]:
@@ -43,9 +46,8 @@ def relation_records(doc: Mapping[str, Any]) -> list[dict[str, str]]:
     return records
 
 
-def build_sampling_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
+def build_sampling_df(docs: Iterable[Mapping[str, Any]]) -> pd.DataFrame:
     """Build DataFrame where each row is a relation found in the database."""
-
     rows = (
         relation_record
         for doc in docs
@@ -61,3 +63,43 @@ def build_sampling_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
             "object": "string",
         }
     )
+
+
+class GMESampler:
+    def __init__(self, data: Iterable[Mapping[str, Any]]) -> None:
+        """Initialize sampler.
+
+        :param data: Iterable containing records to sample from
+        """
+        self._sampler = GreedyMaximumEntropySampler(
+            selector="dutopia", binarised=False
+        )
+        self._data = data
+
+        self._sampling_df = build_sampling_df(self._data)
+
+    def sample(
+        self,
+        n: int,
+        item_column: str = "pubmed_id",
+        on_columns: list[str] | None = None,
+        approx: int = 0,
+    ) -> pd.DataFrame:
+        """Sample `N` items from the dataset, without replacement."""
+        if on_columns is None:
+            on_columns = ["subject", "object"]
+
+        sample = self._sampler.sample(
+            data=self._sampling_df,
+            N=min(n, len(self._data)),
+            item_column=item_column,
+            on_columns=on_columns,
+            approx=approx,
+        )
+        self._data = tuple(
+            doc
+            for doc in self._data
+            if doc["pubmed_id"] not in sample["pubmed_id"]
+        )
+
+        return sample
