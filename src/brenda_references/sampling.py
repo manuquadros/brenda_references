@@ -43,7 +43,7 @@ def relation_records(doc: Mapping[str, Any]) -> list[dict[str, str]]:
     return records
 
 
-def build_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
+def build_sampling_df(docs: tuple[Mapping[str, Any]]) -> pd.DataFrame:
     """Build DataFrame where each row is a relation found in the database."""
 
     rows = (
