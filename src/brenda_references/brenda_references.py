@@ -10,23 +10,48 @@ update the JSON database it founds references that are not already stored in
 the latter.
 """
 
+import pathlib
 from collections.abc import Iterable
 from pprint import pformat
 
+import pandas as pd
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
+from apiadapters.ncbi import AsyncNCBIAdapter
+from apiadapters.straininfo import AsyncStrainInfoAdapter
+from brenda_types import EC, Bacteria, Document
+from loggers import stderr_logger
+from lpsn_interface import lpsn_synonyms
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
-
-from brenda_references import db
-from loggers import stderr_logger
-from apiadapters.ncbi import AsyncNCBIAdapter
 from utils import CachingMiddleware
 
+from brenda_references import db
+
 from .config import config
-from brenda_types import EC, Bacteria, Document
-from lpsn_interface import lpsn_synonyms
-from apiadapters.straininfo import AsyncStrainInfoAdapter
+
+DATA_DIR = pathlib.Path(__file__).parent.parent / "data"
+
+
+def load_split(split: str) -> pd.DataFrame:
+    """Load dataset split."""
+    path = DATA_DIR / f"{split}_data.csv"
+    return pd.read_csv(path)
+
+
+def validation_data() -> pd.DataFrame:
+    """Load validation data."""
+    return load_split("validation")
+
+
+def training_data() -> pd.DataFrame:
+    """Load training data."""
+    return load_split("training")
+
+
+def test_data() -> pd.DataFrame:
+    """Load test data."""
+    return load_split("test")
 
 
 async def add_abstracts(
@@ -102,6 +127,7 @@ async def expand_doc(ncbi: AsyncNCBIAdapter, doc: Document) -> Document:
 
 class UnknownDocumentError(Exception):
     def __init__(self, reference_id: str) -> None:
+        """Custom exception for unknown reference ids"""
         super().__init__(
             f"{reference_id} was not found in the document database"
         )
@@ -126,7 +152,8 @@ async def add_document(
 
     :param docdb: The JSON database
     :param ncbi: The API adapter connecting to NCBI
-    :param reference: SQLModel containing the initial metadata retrieved from BRENDA.
+    :param reference: SQLModel containing the initial metadata retrieved
+        from BRENDA.
 
     :return: Document model containing all the metadata retrieved.
     """
@@ -203,7 +230,7 @@ async def sync_doc_db() -> None:
 
         print("Retrieving enzyme-organism relations from BRENDA.")
 
-        # Collect all organism/enzyme relations annotated in BRENDA for each document
+        # Collect all organism/enzyme relations for each document
         for doc in tqdm(docdb.table("documents")):
             relations = brenda.enzyme_relations(doc.doc_id)
 
