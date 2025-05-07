@@ -9,6 +9,7 @@ from brenda_references.sampling import GMESampler
 DATA_DIR = pathlib.Path(__file__).parent.parent / "data"
 
 if __name__ == "__main__":
+    print("Loading articles...")
     with BrendaDocDB() as docdb:
         data = docdb.fulltext_articles()
 
