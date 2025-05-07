@@ -1,16 +1,28 @@
-from aiotinydb import AIOTinyDB
-from aiotinydb.storage import AIOJSONStorage
-from tinydb.table import Document as TDBDocument
-from utils import CachingMiddleware
+"""Generate dataset splits, recording entropy values across sampling steps."""
 
+import pathlib
 
-async def preprocess(doc: TDBDocument):
-    """Convert a do"""
+import pandas as pd
+from brenda_references.docdb import BrendaDocDB
+from brenda_references.sampling import GMESampler
 
+DATA_DIR = pathlib.Path(__file__).parent.parent / "data"
 
-async def run() -> None:
-    async with AIOTinyDB(
-        config["documents"],
-        storage=CachingMiddleware(AIOJSONStorage),
-    ) as docdb:
-        pass
+if __name__ == "__main__":
+    with BrendaDocDB() as docdb:
+        data = docdb.fulltext_articles()
+
+    sampler = GMESampler(data=data)
+
+    dfs = sampler.dataset_splits()
+
+    for split, df in dfs.items():
+        df.to_csv(DATA_DIR / f"{split}_entropies.csv")
+
+        data_split = filter(
+            lambda doc: int(doc["pubmed_id"]) in df["pubmed_id"].to_numpy(),
+            data,
+        )
+        data_split = pd.DataFrame(data_split)
+
+        data_split.to_csv(DATA_DIR / f"{split}_data.csv")
