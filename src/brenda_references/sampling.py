@@ -1,5 +1,6 @@
 """Module providing functions for sampling references from the dataset."""
 
+import math
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -98,10 +99,58 @@ class GMESampler:
             on_columns=self.on_columns,
             approx=approx,
         )
-        self._data = tuple(
-            doc
-            for doc in self._data
-            if doc["pubmed_id"] not in sample["pubmed_id"]
-        )
+
+        # Update the sampling_df so there is no overlap between splits.
+        self._sampling_df = self._sampling_df[
+            ~self._sampling_df[self.item_column].isin(sample[self.item_column])
+        ]
 
         return sample
+
+    def dataset_splits(
+        self,
+        training: float = 0.7,
+        validation: float = 0.15,
+    ) -> dict[str, pd.DataFrame]:
+        """Split dataset into training, validation and test, using GME sampling.
+
+        :param data: Iterable with records to sample from
+        :param training: The ratio of training samples to dataset size
+        :param validation: The ration of validation samples to dataset size
+
+        :return: Dictionary mapping dataset split to DataFrames containing
+            `pubmed_id` and entropy values for each entity category
+        """
+
+        def get_sample(size: int) -> pd.DataFrame:
+            """Retrieve a sample with the required `size`.
+
+            The number of samples to take from the dataset is estimated
+            to guarantee that the best document in the sample is in the top-20
+            documents of the whole dataset, with 90% confidence.
+            """
+            approx = round(
+                math.log(1 - 0.9) / math.log(1 - 20 / len(self._data))
+            )
+            return self.sample(n=size, approx=approx)
+
+        test_ratio = 1.0 - training - validation
+        val_size = round(len(self._data) * validation)
+        test_size = round(len(self._data) * test_ratio)
+        train_size = len(self._data) - val_size - test_size
+
+        val = get_sample(size=val_size)
+        test = get_sample(size=test_size)
+        train = get_sample(size=train_size)
+
+        dfs = {
+            "validation": val,
+            "test": test,
+            "training": train,
+        }
+
+        for split, dataset in dfs.items():
+            last_row = dataset.iloc[-1]
+            print(f"{split}\n {last_row['subject']}, {last_row['object']}")
+
+        return dfs
