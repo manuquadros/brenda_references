@@ -66,11 +66,18 @@ def build_sampling_df(docs: Iterable[Mapping[str, Any]]) -> pd.DataFrame:
 
 
 class GMESampler:
-    def __init__(self, data: Iterable[Mapping[str, Any]]) -> None:
+    def __init__(
+        self,
+        data: Iterable[Mapping[str, Any]],
+        item_column: str = "pubmed_id",
+        on_columns: list[str] | None = None,
+    ) -> None:
         """Initialize sampler.
 
         :param data: Iterable containing records to sample from
         """
+        self.on_columns = on_columns or ["subject", "object"]
+        self.item_column = item_column
         self._sampler = GreedyMaximumEntropySampler(
             selector="dutopia", binarised=False
         )
@@ -81,19 +88,14 @@ class GMESampler:
     def sample(
         self,
         n: int,
-        item_column: str = "pubmed_id",
-        on_columns: list[str] | None = None,
         approx: int = 0,
     ) -> pd.DataFrame:
         """Sample `N` items from the dataset, without replacement."""
-        if on_columns is None:
-            on_columns = ["subject", "object"]
-
         sample = self._sampler.sample(
             data=self._sampling_df,
             N=min(n, len(self._data)),
-            item_column=item_column,
-            on_columns=on_columns,
+            item_column=self.item_column,
+            on_columns=self.on_columns,
             approx=approx,
         )
         self._data = tuple(
