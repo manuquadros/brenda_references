@@ -10,6 +10,7 @@ update the JSON database it founds references that are not already stored in
 the latter.
 """
 
+import ast
 import pathlib
 from collections.abc import Iterable
 from pprint import pformat
@@ -24,19 +25,91 @@ from loggers import stderr_logger
 from lpsn_interface import lpsn_synonyms
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
-from brenda_references.utils import CachingMiddleware
 
 from brenda_references import db
+from brenda_references.utils import CachingMiddleware
 
 from .config import config
 
 DATA_DIR = pathlib.Path(__file__).parent.parent / "data"
 
 
+def preprocess_relations(row: pd.Series) -> pd.Series:
+    """Transform the relations columns.
+
+    Relations are coded like this on the relations column:
+
+    {'HasEnzyme': [{'subject': 2681, 'object': 26836},
+    {'subject': 5301, 'object': 26836},
+    {'subject': 6140, 'object': 26836}]}
+
+    :return:
+        In this example, [{
+            ("oth2681", "enz26836"): "HasEnzyme",
+            ("oth5301", "enz26836"): "HasEnzyme",
+            ("oth6140", "enz26836"): "HasEnzyme",
+        }]
+    """
+
+    def get_key(
+        entities: tuple[int, int], prefixes: tuple[str, str]
+    ) -> tuple[str, str]:
+        return tuple(
+            sorted(
+                (f"{prefixes[0]}{entities[0]}", f"{prefixes[1]}{entities[1]}")
+            )
+        )
+
+    relations = ast.literal_eval(row["relations"])
+    pairs = {}
+
+    for pair in relations.get("HasSpecies", []):
+        key = get_key(
+            entities=(pair["subject"], pair["object"]),
+            prefixes=("str", "bac"),
+        )
+        pairs[key] = "HasSpecies"
+
+    for pair in relations.get("HasEnzyme", []):
+        for enttype in (
+            "bacteria",
+            "strains",
+            "other_organisms",
+        ):
+            if pair["subject"] in row[enttype]:
+                key = get_key(
+                    entities=(pair["subject"], pair["object"]),
+                    prefixes=(enttype[:3], "enz"),
+                )
+                pairs[key] = "HasEnzyme"
+                break
+
+    row.loc["relations"] = [pairs]
+    return row
+
+
+def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
+    """Preprocess the entity labels on `df` for model training"""
+    df["bacteria"] = (
+        df["bacteria"]
+        .apply(ast.literal_eval)
+        .apply(lambda bacdic: [int(bacid) for bacid in bacdic])
+    )
+    df["other_organisms"] = (
+        df["other_organisms"]
+        .apply(ast.literal_eval)
+        .apply(lambda otherdic: [int(otherid) for otherid in otherdic])
+    )
+    for col in ("strains", "enzymes"):
+        df[col] = df[col].apply(ast.literal_eval)
+
+    return df.apply(preprocess_relations, axis=1)
+
+
 def load_split(split: str) -> pd.DataFrame:
     """Load dataset split."""
     path = DATA_DIR / f"{split}_data.csv"
-    return pd.read_csv(path)
+    return preprocess_labels(pd.read_csv(path))
 
 
 def validation_data() -> pd.DataFrame:
