@@ -33,10 +33,22 @@ from .config import config
 DATA_DIR = pathlib.Path(__file__).parent.parent / "data"
 
 
+def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
+    """Preprocess the entity labels on `df` for model training"""
+    df["bacteria"] = df["bacteria"].apply(
+        lambda bacdic: [str(bacid) for bacid in bacdic.keys()]
+    )
+    df["other_organisms"] = df["other_organisms"].apply(
+        lambda otherdic: ["o" + str(otherid) for otherid in otherdic.keys()]
+    )
+
+    return df
+
+
 def load_split(split: str) -> pd.DataFrame:
     """Load dataset split."""
     path = DATA_DIR / f"{split}_data.csv"
-    return pd.read_csv(path)
+    return preprocess(pd.read_csv(path))
 
 
 def validation_data() -> pd.DataFrame:
