@@ -31,7 +31,7 @@ from brenda_references.utils import CachingMiddleware
 
 from .config import config
 
-DATA_DIR = pathlib.Path(__file__).parent.parent / "data"
+DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
 
 
 def preprocess_relations(row: pd.Series) -> pd.Series:
