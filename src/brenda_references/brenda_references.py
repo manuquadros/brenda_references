@@ -24,7 +24,7 @@ from loggers import stderr_logger
 from lpsn_interface import lpsn_synonyms
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
-from utils import CachingMiddleware
+from brenda_references.utils import CachingMiddleware
 
 from brenda_references import db
 

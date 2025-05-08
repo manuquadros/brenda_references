@@ -1,15 +1,15 @@
 import pytest
 
 from brenda_references import expand_doc
-from brenda_references.brenda_types import Bacteria, Document, Organism, Strain
-from brenda_references.lpsn_interface import (
+from brenda_types import Bacteria, Document, Organism, Strain
+from lpsn_interface import (
     get_lpsn,
     lpsn_id,
     lpsn_synonyms,
     name_parts,
 )
 from apiadapters.ncbi import NCBIAdapter
-from brenda_references.straininfo import StrainInfoAdapter
+from apiadapters.straininfo import StrainInfoAdapter
 
 get_lpsn()
 straininfo = StrainInfoAdapter()

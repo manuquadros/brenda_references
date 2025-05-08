@@ -2,11 +2,11 @@ import pytest
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
 
-from brenda_references.brenda_types import Document, EntityMarkup
+from brenda_types import Document, EntityMarkup
 from brenda_references.config import config
 from apiadapters.ncbi import NCBIAdapter
 from scripts.preannotate import mark_entities
-from utils import CachingMiddleware
+from brenda_references.utils import CachingMiddleware
 
 
 def tup_to_markup(*args) -> EntityMarkup:
