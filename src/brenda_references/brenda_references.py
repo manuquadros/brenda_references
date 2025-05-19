@@ -11,9 +11,12 @@ the latter.
 """
 
 import ast
+import itertools
 import pathlib
 from collections.abc import Iterable
+from functools import cache
 from pprint import pformat
+from typing import Any
 
 import pandas as pd
 from aiotinydb import AIOTinyDB
@@ -106,25 +109,42 @@ def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
     return df.apply(preprocess_relations, axis=1)
 
 
-def load_split(split: str) -> pd.DataFrame:
+def load_split(split: str, noise: int = 0) -> pd.DataFrame:
     """Load dataset split."""
     path = DATA_DIR / f"{split}_data.csv"
-    return preprocess_labels(pd.read_csv(path))
+    split_data = preprocess_labels(
+        pd.read_csv(path, index_col=0)
+        .dropna(subset=["abstract", "fulltext"])
+        .truncate(after=99)
+    )
+    noise_data = pd.DataFrame(itertools.islice(psycholinguistics_data(), noise))
+    return pd.concat((split_data, noise_data), axis=0, ignore_index=True)
 
 
-def validation_data() -> pd.DataFrame:
+@cache
+def psycholinguistics_data() -> Iterable[tuple[Any, ...]]:
+    path = DATA_DIR / "pmc_linguistics_articles.json"
+    psyling = pd.read_json(path, lines=True).rename(
+        columns={"body": "fulltext"}
+    )
+    for col in ("bacteria", "enzymes", "strains", "other_organisms"):
+        psyling[col] = [[]] * len(psyling)
+    return psyling.sample(n=len(psyling), replace=False).itertuples(index=False)
+
+
+def validation_data(noise: int = 0) -> pd.DataFrame:
     """Load validation data."""
-    return load_split("validation")
+    return load_split("validation", noise=noise)
 
 
-def training_data() -> pd.DataFrame:
+def training_data(noise: int = 0) -> pd.DataFrame:
     """Load training data."""
-    return load_split("training")
+    return load_split("training", noise=noise)
 
 
-def test_data() -> pd.DataFrame:
+def test_data(noise: int = 0) -> pd.DataFrame:
     """Load test data."""
-    return load_split("test")
+    return load_split("test", noise=noise)
 
 
 async def add_abstracts(
