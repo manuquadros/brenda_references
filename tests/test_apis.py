@@ -1,5 +1,6 @@
 import pytest
-
+from apiadapters.ncbi import NCBIAdapter
+from apiadapters.straininfo import StrainInfoAdapter
 from brenda_references import expand_doc
 from brenda_types import Bacteria, Document, Organism, Strain
 from lpsn_interface import (
@@ -8,8 +9,6 @@ from lpsn_interface import (
     lpsn_synonyms,
     name_parts,
 )
-from apiadapters.ncbi import NCBIAdapter
-from apiadapters.straininfo import StrainInfoAdapter
 
 get_lpsn()
 straininfo = StrainInfoAdapter()
@@ -46,9 +45,8 @@ def test_lpsn_id_works() -> None:
     assert lpsn_id("Agrobacterium") == 515059
 
 
-@pytest.mark.asyncio
-async def test_strain_id_retrieval() -> None:
-    assert await straininfo.get_strain_ids("K-12") == [
+def test_strain_id_retrieval() -> None:
+    assert straininfo.get_strain_ids("K-12") == [
         11469,
         35283,
         38539,
@@ -60,9 +58,8 @@ async def test_strain_id_retrieval() -> None:
 
 
 @pytest.mark.skip(reason="adjust the format of the test data before testing")
-@pytest.mark.asyncio
-async def test_strain_data_retrieval() -> None:
-    resp = await straininfo.get_strain_data(11469)
+def test_strain_data_retrieval() -> None:
+    resp = straininfo.get_strain_data(11469)
     assert resp is not None
 
     strain = next(iter(resp))
@@ -130,8 +127,7 @@ def test_strain_info_api_url() -> None:
     )
 
 
-@pytest.mark.asyncio
-async def test_expand_doc_gets_pmc_open() -> None:
+def test_expand_doc_gets_pmc_open() -> None:
     doc = Document(
         authors="",
         title="",
@@ -143,6 +139,6 @@ async def test_expand_doc_gets_pmc_open() -> None:
         path="",
     )
 
-    async with NCBIAdapter() as ncbi:
-        updated_doc = await expand_doc(ncbi, doc)
+    with NCBIAdapter() as ncbi:
+        updated_doc = expand_doc(ncbi, doc)
         assert updated_doc.pmc_open is True
