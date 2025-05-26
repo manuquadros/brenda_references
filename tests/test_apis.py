@@ -1,5 +1,7 @@
+import asyncio
+
 import pytest
-from apiadapters.ncbi import NCBIAdapter
+from apiadapters.ncbi import AsyncNCBIAdapter, NCBIAdapter
 from apiadapters.straininfo import StrainInfoAdapter
 from brenda_references import expand_doc
 from brenda_types import Bacteria, Document, Organism, Strain
@@ -121,7 +123,8 @@ def test_strain_info_api_url() -> None:
     )
 
 
-def test_expand_doc_gets_pmc_open() -> None:
+@pytest.mark.asyncio
+async def test_expand_doc_gets_pmc_open() -> None:
     doc = Document(
         authors="",
         title="",
@@ -133,6 +136,6 @@ def test_expand_doc_gets_pmc_open() -> None:
         path="",
     )
 
-    with NCBIAdapter() as ncbi:
-        updated_doc = expand_doc(ncbi, doc)
+    async with AsyncNCBIAdapter() as ncbi:
+        updated_doc = await expand_doc(ncbi, doc)
         assert updated_doc.pmc_open is True
