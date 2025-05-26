@@ -210,7 +210,7 @@ class BaseOrganism(BaseModel):
 
 class Organism(BaseOrganism, frozen=True):
     id: int = Field(validation_alias=AliasChoices("id", "organism_id"))
-    synonyms: StringSet
+    synonyms: StringSet = Field(default=frozenset())
 
 
 class Bacteria(Organism):
