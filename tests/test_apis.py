@@ -1,25 +1,14 @@
-import asyncio
-
 import pytest
-from apiadapters.ncbi import AsyncNCBIAdapter, NCBIAdapter
+from apiadapters.ncbi import AsyncNCBIAdapter
 from apiadapters.straininfo import StrainInfoAdapter
 from brenda_references import expand_doc
 from brenda_types import Bacteria, Document, Organism, Strain
-from lpsn_interface import (
-    get_lpsn,
-    lpsn_id,
-    lpsn_synonyms,
-    name_parts,
-)
+from lpsn_interface import get_lpsn, lpsn_id, lpsn_synonyms, name_parts
 
 get_lpsn()
 straininfo = StrainInfoAdapter()
-caldanaerobacter = Organism(
-    organism_id=1, organism="Caldanaerobacter subterraneus"
-)
-thermoanaerobacter = Organism(
-    organism_id=2, organism="Thermoanaerobacter subterraneus"
-)
+caldanaerobacter = Organism(id=1, organism="Caldanaerobacter subterraneus")
+thermoanaerobacter = Organism(id=2, organism="Thermoanaerobacter subterraneus")
 
 
 def test_bacteria_post_init_lpsn_id() -> None:
@@ -48,7 +37,7 @@ def test_lpsn_id_works() -> None:
 
 
 def test_strain_id_retrieval() -> None:
-    assert set((11469, 35283, 38539, 39812, 66369, 309797, 341518)).issubset(
+    assert {11469, 35283, 38539, 39812, 66369, 309797, 341518}.issubset(
         straininfo.get_strain_ids("K-12")
     )
 
