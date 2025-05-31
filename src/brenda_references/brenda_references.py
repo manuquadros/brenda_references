@@ -19,6 +19,7 @@ from pprint import pformat
 from typing import Any
 
 import pandas as pd
+import xmlparser
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
 from apiadapters.ncbi import AsyncNCBIAdapter
@@ -132,10 +133,12 @@ def load_split(
 def psycholinguistics_data(
     limit: int | None = None,
 ) -> Iterable[tuple[Any, ...]]:
+    """Load psycholinguistics articles for noise."""
     path = DATA_DIR / "pmc_linguistics_articles.json"
     psyling = pd.read_json(path, lines=True, nrows=limit).rename(
         columns={"body": "fulltext"}
     )
+    psyling["abstract"] = psyling["abstract"].apply(xmlparser.remove_tags)
     for col in ("bacteria", "enzymes", "strains", "other_organisms"):
         psyling[col] = [[]] * len(psyling)
     return psyling.sample(n=len(psyling), replace=False).itertuples(index=False)
@@ -151,7 +154,7 @@ def training_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:
     return load_split("training", noise=noise, limit=limit)
 
 
-def test_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:
+def test_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:  # noqa: PT028
     """Load test data."""
     return load_split("test", noise=noise, limit=limit)
 
