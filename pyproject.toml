@@ -13,28 +13,17 @@ dependencies = [
   "cacheout>=0.16.0,<0.17",
   "frozendict>=2.4.6",
   "gme",
-  "httpx>=0.28.1,<0.29",
-  "lxml>=5.3.0,<6",
   "ncbitax",
   "nltk>=3.9.1,<4",
   "orjson>=3.10.15",
   "pandas>=2.2.3,<3",
   "pydantic>=2.10.5,<3",
-  "pytest-asyncio>=0.25.3,<0.26",
   "rapidfuzz>=3.10.1,<4",
-  "requests>=2.32.3,<3",
   "retrying>=1.3.4,<2",
   "sqlmodel==0.*",
   "tinydb>=4.8.2,<5",
   "tqdm>=4.67.0,<5",
   "xmlparser",
-  "xmltodict>=0.14.2,<0.15",
-]
-
-[dependency-groups]
-dev = [
-    "pytest>=8.3.5",
-    "pytest-watcher>=0.4.3",
 ]
 
 [project.scripts]
