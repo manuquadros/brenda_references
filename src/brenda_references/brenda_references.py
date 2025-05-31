@@ -10,23 +10,153 @@ update the JSON database it founds references that are not already stored in
 the latter.
 """
 
+import ast
+import itertools
+import pathlib
 from collections.abc import Iterable
+from functools import cache
 from pprint import pformat
+from typing import Any
 
+import pandas as pd
+import xmlparser
 from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
+from apiadapters.ncbi import AsyncNCBIAdapter
+from apiadapters.straininfo import AsyncStrainInfoAdapter
+from brenda_types import EC, Bacteria, Document
+from loggers import stderr_logger
+from lpsn_interface import lpsn_synonyms
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
 
 from brenda_references import db
-from loggers import stderr_logger
-from apiadapters.ncbi import AsyncNCBIAdapter
-from utils import CachingMiddleware
+from brenda_references.utils import CachingMiddleware
 
 from .config import config
-from brenda_types import EC, Bacteria, Document
-from lpsn_interface import lpsn_synonyms
-from apiadapters.straininfo import AsyncStrainInfoAdapter
+
+DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
+
+
+def preprocess_relations(row: pd.Series) -> pd.Series:
+    """Transform the relations columns.
+
+    Relations are coded like this on the relations column:
+
+    {'HasEnzyme': [{'subject': 2681, 'object': 26836},
+    {'subject': 5301, 'object': 26836},
+    {'subject': 6140, 'object': 26836}]}
+
+    :return:
+        In this example, [{
+            ("oth2681", "enz26836"): "HasEnzyme",
+            ("oth5301", "enz26836"): "HasEnzyme",
+            ("oth6140", "enz26836"): "HasEnzyme",
+        }]
+    """
+
+    def get_key(
+        entities: tuple[int, int], prefixes: tuple[str, str]
+    ) -> tuple[str, str]:
+        return tuple(
+            sorted(
+                (f"{prefixes[0]}{entities[0]}", f"{prefixes[1]}{entities[1]}")
+            )
+        )
+
+    relations = ast.literal_eval(row["relations"])
+    pairs = {}
+
+    for pair in relations.get("HasSpecies", []):
+        key = get_key(
+            entities=(pair["subject"], pair["object"]),
+            prefixes=("str", "bac"),
+        )
+        pairs[key] = "HasSpecies"
+
+    for pair in relations.get("HasEnzyme", []):
+        for enttype in (
+            "bacteria",
+            "strains",
+            "other_organisms",
+        ):
+            if pair["subject"] in row[enttype]:
+                key = get_key(
+                    entities=(pair["subject"], pair["object"]),
+                    prefixes=(enttype[:3], "enz"),
+                )
+                pairs[key] = "HasEnzyme"
+                break
+
+    row.loc["relations"] = [pairs]
+    return row
+
+
+def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
+    """Preprocess the entity labels on `df` for model training"""
+    df["bacteria"] = (
+        df["bacteria"]
+        .apply(ast.literal_eval)
+        .apply(lambda bacdic: [int(bacid) for bacid in bacdic])
+    )
+    df["other_organisms"] = (
+        df["other_organisms"]
+        .apply(ast.literal_eval)
+        .apply(lambda otherdic: [int(otherid) for otherid in otherdic])
+    )
+    for col in ("strains", "enzymes"):
+        df[col] = df[col].apply(ast.literal_eval)
+
+    return df.apply(preprocess_relations, axis=1)
+
+
+def load_split(
+    split: str, noise: int = 0, limit: int | None = None
+) -> pd.DataFrame:
+    """Load dataset split."""
+    path = DATA_DIR / f"{split}_data.csv"
+    if limit is None:
+        split_data = pd.read_csv(path, index_col=0)
+    else:
+        split_data = pd.read_csv(path, index_col=0, nrows=limit)
+
+    split_data = preprocess_labels(
+        split_data.dropna(subset=["abstract", "fulltext"])
+    )
+    noise_data = pd.DataFrame(
+        itertools.islice(psycholinguistics_data(limit), noise)
+    )
+    return pd.concat((split_data, noise_data), axis=0, ignore_index=True)
+
+
+@cache
+def psycholinguistics_data(
+    limit: int | None = None,
+) -> Iterable[tuple[Any, ...]]:
+    """Load psycholinguistics articles for noise."""
+    path = DATA_DIR / "pmc_linguistics_articles.json"
+    psyling = pd.read_json(path, lines=True, nrows=limit).rename(
+        columns={"body": "fulltext"}
+    )
+    psyling["abstract"] = psyling["abstract"].apply(xmlparser.remove_tags)
+    for col in ("bacteria", "enzymes", "strains", "other_organisms"):
+        psyling[col] = [[]] * len(psyling)
+    return psyling.sample(n=len(psyling), replace=False).itertuples(index=False)
+
+
+def validation_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:
+    """Load validation data."""
+    return load_split("validation", noise=noise, limit=limit)
+
+
+def training_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:
+    """Load training data."""
+    return load_split("training", noise=noise, limit=limit)
+
+
+def test_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:  # noqa: PT028
+    """Load test data."""
+    return load_split("test", noise=noise, limit=limit)
 
 
 async def add_abstracts(
@@ -102,6 +232,7 @@ async def expand_doc(ncbi: AsyncNCBIAdapter, doc: Document) -> Document:
 
 class UnknownDocumentError(Exception):
     def __init__(self, reference_id: str) -> None:
+        """Custom exception for unknown reference ids"""
         super().__init__(
             f"{reference_id} was not found in the document database"
         )
@@ -126,7 +257,8 @@ async def add_document(
 
     :param docdb: The JSON database
     :param ncbi: The API adapter connecting to NCBI
-    :param reference: SQLModel containing the initial metadata retrieved from BRENDA.
+    :param reference: SQLModel containing the initial metadata retrieved
+        from BRENDA.
 
     :return: Document model containing all the metadata retrieved.
     """
@@ -203,7 +335,7 @@ async def sync_doc_db() -> None:
 
         print("Retrieving enzyme-organism relations from BRENDA.")
 
-        # Collect all organism/enzyme relations annotated in BRENDA for each document
+        # Collect all organism/enzyme relations for each document
         for doc in tqdm(docdb.table("documents")):
             relations = brenda.enzyme_relations(doc.doc_id)
 

@@ -24,7 +24,7 @@ from brenda_references import add_abstracts
 from brenda_types import Document, EntityMarkup, RDFClass
 from brenda_references.config import config
 from apiadapters.ncbi import AsyncNCBIAdapter
-from utils import CachingMiddleware, fuzzy_find_all
+from brenda_references.utils import CachingMiddleware, fuzzy_find_all
 
 
 async def mark_entities(doc: Document, db: AIOTinyDB) -> Document:

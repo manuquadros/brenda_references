@@ -1,5 +1,6 @@
 from .brenda_types import (
     EC,
+    EntityMarkup,
     Bacteria,
     BaseEC,
     BaseOrganism,
@@ -8,6 +9,8 @@ from .brenda_types import (
     HasEnzyme,
     HasSpecies,
     Organism,
+    RDFClass,
     Strain,
     StrainRef,
+    Triple,
 )

@@ -1,4 +1,4 @@
-from brenda_references.brenda_types import EntityMarkup, Triple
+from brenda_types import EntityMarkup, Triple
 
 
 def test_triple_comparisons() -> None:

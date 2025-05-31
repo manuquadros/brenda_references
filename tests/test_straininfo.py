@@ -1,4 +1,4 @@
-from brenda_references.straininfo import normalize_strain_names
+from apiadapters.straininfo import normalize_strain_names
 
 
 def test_parse_standard() -> None:

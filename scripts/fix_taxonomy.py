@@ -75,23 +75,24 @@ def fix_taxonomy(docdb: BrendaDocDB) -> None:
         strains: set[str] = set()
 
         for _id, orgname in doc["other_organisms"].items():
-            if ncbitax.is_bacterial_strain(orgname):
+            decomposed = ncbitax.decompose_name(orgname)
+
+            if decomposed is not None:
                 delete_from_other.add(_id)
+                species, strain = decomposed.species, decomposed.strain
 
-                nameparts = ncbitax.decompose_strain_name(orgname)
-
-                if nameparts:
-                    species, strain = nameparts.species, nameparts.strain
-                    if species:
+                if species:
+                    if not strain and species not in orgname:
+                        bacteria.add(orgname)
+                    else:
                         bacteria.add(species)
-                    if strain:
-                        strains.add(strain)
-                else:
-                    strains.add(orgname)
 
-            elif ncbitax.is_bacteria(orgname):
-                delete_from_other.add(_id)
-                bacteria.add(orgname)
+                if strain:
+                    strains.add(strain)
+                else:
+                    suffix = orgname.removeprefix(species).strip()
+                    if suffix:
+                        strains.add(suffix)
 
         for orgname in bacteria:
             update_doc_bacteria(docdb, doc, orgname)

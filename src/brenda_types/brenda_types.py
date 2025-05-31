@@ -5,6 +5,7 @@ from enum import StrEnum
 from functools import cached_property
 from typing import Annotated, Any, NamedTuple, Self, TypeAlias
 
+from lpsn_interface import lpsn_id
 from pydantic import (
     AliasChoices,
     AwareDatetime,
@@ -18,7 +19,6 @@ from pydantic import (
 from pydantic.functional_serializers import PlainSerializer
 from taxonomy import ncbitax
 
-from lpsn_interface import lpsn_id
 from .pydantic_frozendict import FrozenDict
 
 
@@ -210,7 +210,7 @@ class BaseOrganism(BaseModel):
 
 class Organism(BaseOrganism, frozen=True):
     id: int = Field(validation_alias=AliasChoices("id", "organism_id"))
-    synonyms: StringSet
+    synonyms: StringSet = Field(default=frozenset())
 
 
 class Bacteria(Organism):
@@ -222,7 +222,7 @@ class Bacteria(Organism):
     @field_validator("organism")
     @classmethod
     def remove_strain_designation(cls, name: str) -> str:
-        decomposed = ncbitax.decompose_strain_name(name)
+        decomposed = ncbitax.decompose_name(name)
 
         return getattr(decomposed, "species", name)
 
