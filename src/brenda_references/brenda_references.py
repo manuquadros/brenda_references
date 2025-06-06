@@ -18,6 +18,7 @@ from functools import cache
 from pprint import pformat
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import xmlparser
 from aiotinydb import AIOTinyDB
@@ -72,7 +73,7 @@ def preprocess_relations(row: pd.Series) -> pd.Series:
             entities=(pair["subject"], pair["object"]),
             prefixes=("str", "bac"),
         )
-        pairs[key] = "HasSpecies"
+        pairs[key] = np.array([0, 1, 0], dtype=np.float16)
 
     for pair in relations.get("HasEnzyme", []):
         for enttype in (
@@ -85,8 +86,12 @@ def preprocess_relations(row: pd.Series) -> pd.Series:
                     entities=(pair["subject"], pair["object"]),
                     prefixes=(enttype[:3], "enz"),
                 )
-                pairs[key] = "HasEnzyme"
+                pairs[key] = np.array([1, 0, 0], dtype=np.float16)
                 break
+
+    for entity_pair in itertools.combinations(row["entities"], r=2):
+        if entity_pair not in pairs:
+            pairs[entity_pair] = np.array([0, 0, 1], dtype=np.float16)
 
     row.loc["relations"] = [pairs]
     return row
@@ -107,6 +112,16 @@ def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
     for col in ("strains", "enzymes"):
         df[col] = df[col].apply(ast.literal_eval)
 
+    def merge_entcols(row: pd.Series) -> list[str]:
+        ents: Iterable[str] = (
+            entcol[:3] + str(ent)
+            for entcol in ("bacteria", "enzymes", "strains", "other_organisms")
+            for ent in row[entcol]
+        )
+        return list(ents)
+
+    df["entities"] = df.apply(merge_entcols, axis=1)
+
     return df.apply(preprocess_relations, axis=1)
 
 
@@ -123,23 +138,26 @@ def load_split(
     split_data = preprocess_labels(
         split_data.dropna(subset=["abstract", "fulltext"])
     )
-    noise_data = pd.DataFrame(
-        itertools.islice(psycholinguistics_data(limit), noise)
-    )
+    noise_data = pd.DataFrame(itertools.islice(psycholinguistics_data(), noise))
     return pd.concat((split_data, noise_data), axis=0, ignore_index=True)
 
 
 @cache
-def psycholinguistics_data(
-    limit: int | None = None,
-) -> Iterable[tuple[Any, ...]]:
+def psycholinguistics_data() -> Iterable[tuple[Any, ...]]:
     """Load psycholinguistics articles for noise."""
     path = DATA_DIR / "pmc_linguistics_articles.json"
-    psyling = pd.read_json(path, lines=True, nrows=limit).rename(
+    psyling = pd.read_json(path, lines=True).rename(
         columns={"body": "fulltext"}
     )
     psyling["abstract"] = psyling["abstract"].apply(xmlparser.remove_tags)
-    for col in ("bacteria", "enzymes", "strains", "other_organisms"):
+    for col in (
+        "bacteria",
+        "enzymes",
+        "strains",
+        "other_organisms",
+        "entities",
+        "relations",
+    ):
         psyling[col] = [[]] * len(psyling)
     return psyling.sample(n=len(psyling), replace=False).itertuples(index=False)
 

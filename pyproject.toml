@@ -21,6 +21,7 @@ dependencies = [
   "rapidfuzz>=3.10.1,<4",
   "retrying>=1.3.4,<2",
   "sqlmodel==0.*",
+  "stackprinter>=0.2.12",
   "tinydb>=4.8.2,<5",
   "tqdm>=4.67.0,<5",
   "xmlparser",
