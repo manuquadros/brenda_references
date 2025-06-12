@@ -164,17 +164,26 @@ def psycholinguistics_data() -> Iterable[tuple[Any, ...]]:
 
 def validation_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:
     """Load validation data."""
-    return load_split("validation", noise=noise, limit=limit)
+    val = load_split("validation", noise=noise, limit=limit)
+    return val[
+        ~(val["bacteria"].astype("bool") & ~val["strains"].astype("bool"))
+    ]
 
 
 def training_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:
     """Load training data."""
-    return load_split("training", noise=noise, limit=limit)
+    train = load_split("training", noise=noise, limit=limit)
+    return train[
+        ~(train["bacteria"].astype("bool") & ~train["strains"].astype("bool"))
+    ]
 
 
 def test_data(noise: int = 0, limit: int | None = None) -> pd.DataFrame:  # noqa: PT028
     """Load test data."""
-    return load_split("test", noise=noise, limit=limit)
+    test = load_split("test", noise=noise, limit=limit)
+    return test[
+        ~(test["bacteria"].astype("bool") & ~test["strains"].astype("bool"))
+    ]
 
 
 async def add_abstracts(
