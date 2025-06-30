@@ -4,12 +4,12 @@ import math
 from collections import Counter
 from functools import reduce
 
-from brenda_references.config import config
 from apiadapters.ncbi.parser import is_scanned
+from brenda_references.config import config
 from tinydb import TinyDB, where
-from tinydb.table import Table
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
+from tinydb.table import Table
 
 
 def hbar() -> None:
