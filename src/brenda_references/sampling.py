@@ -139,9 +139,9 @@ class GMESampler:
         test_size = round(len(self._data) * test_ratio)
         train_size = len(self._data) - val_size - test_size
 
+        train = get_sample(size=train_size)
         val = get_sample(size=val_size)
         test = get_sample(size=test_size)
-        train = get_sample(size=train_size)
 
         dfs = {
             "validation": val,
