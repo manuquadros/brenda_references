@@ -12,6 +12,7 @@ if __name__ == "__main__":
     print("Loading articles...")
     with BrendaDocDB() as docdb:
         data = docdb.fulltext_articles()
+        data = [doc for doc in data if doc["strains"] or not doc["bacteria"]]
 
     sampler = GMESampler(data=data)
 

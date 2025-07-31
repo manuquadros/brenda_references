@@ -134,13 +134,6 @@ def load_split(split: str, noise: int = 0) -> pd.DataFrame:
         split_data.dropna(subset=["abstract", "fulltext"])
     )
 
-    # Filter out documents with bacteria annotations and no strain annotations
-    mask = ~(
-        (split_data["bacteria"].apply(len) > 0)
-        & (split_data["strains"].apply(len) == 0)
-    )
-    split_data = split_data[mask]
-
     noise_data = pd.DataFrame(itertools.islice(psycholinguistics_data(), noise))
     return pd.concat((split_data, noise_data), axis=0, ignore_index=True)
 
