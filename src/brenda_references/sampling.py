@@ -129,9 +129,11 @@ class GMESampler:
             to guarantee that the best document in the sample is in the top-20
             documents of the whole dataset, with 90% confidence.
             """
-            approx = round(
-                math.log(1 - 0.9) / math.log(1 - 20 / len(self._data))
-            )
+            # hardcoding, for now, the maximum number of documents to include
+            # each split.
+            size = min(1200, size)
+            n_docs = len(set(self._sampling_df[self.item_column]))
+            approx = round(math.log(1 - 0.9) / math.log(1 - 20 / n_docs))
             return self.sample(n=size, approx=approx)
 
         test_ratio = 1.0 - training - validation
