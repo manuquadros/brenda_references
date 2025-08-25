@@ -12,7 +12,7 @@ dependencies = [
   "cacheout>=0.16.0,<0.17",
   "frozendict>=2.4.6",
   "gme",
-  "ncbitax",
+  "loggers",
   "nltk>=3.9.1,<4",
   "orjson>=3.10.15",
   "pandas>=2.2.3,<3",
@@ -23,7 +23,6 @@ dependencies = [
   "stackprinter>=0.2.12",
   "tinydb>=4.8.2,<5",
   "tqdm>=4.67.0,<5",
-  "xmlparser",
 ]
 
 [project.scripts]
@@ -39,8 +38,7 @@ statistics = "scripts.statistics:main"
 
 [tool.uv.sources]
 gme = { git = "https://github.com/idiap/gme-sampler" }
-xmlparser = { workspace = true }
-ncbitax = { workspace = true }
+loggers = { git = "ssh://git@github.com/manuquadros/loggers.git" }
 
 [build-system]
 requires = ["hatchling"]
