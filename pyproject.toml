@@ -9,6 +9,7 @@ requires-python = ">=3.12"
 readme = "README.md"
 dependencies = [
   "aiotinydb>=2.0.0,<3",
+  "apiadapters",
   "cacheout>=0.16.0,<0.17",
   "frozendict>=2.4.6",
   "gme",
@@ -39,6 +40,7 @@ statistics = "scripts.statistics:main"
 [tool.uv.sources]
 gme = { git = "https://github.com/idiap/gme-sampler" }
 loggers = { git = "ssh://git@github.com/manuquadros/loggers.git" }
+apiadapters = { git = "ssh://git@github.com/manuquadros/apiadapters.git" }
 
 [build-system]
 requires = ["hatchling"]
