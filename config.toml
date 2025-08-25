@@ -8,5 +8,4 @@ backend = "mysql"
 
 [sources]
 bacteria = "resources/bacteria.txt"
-lpsn = "resources/lpsn_gss_2025-04-07.csv"
 
