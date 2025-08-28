@@ -2,7 +2,7 @@ import pytest
 from apiadapters.ncbi import AsyncNCBIAdapter
 from apiadapters.straininfo import StrainInfoAdapter
 from brenda_references import expand_doc
-from brenda_types import Bacteria, Document, Organism, Strain
+from d3types import Bacteria, Document, Organism, Strain
 from lpsn_interface import get_lpsn, lpsn_id, lpsn_synonyms, name_parts
 
 get_lpsn()

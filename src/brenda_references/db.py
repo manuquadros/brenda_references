@@ -20,7 +20,7 @@ from functools import lru_cache
 from types import TracebackType
 from typing import Any, Self
 
-from brenda_types import (
+from d3types import (
     EC,
     Bacteria,
     BaseEC,

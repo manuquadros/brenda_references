@@ -25,7 +25,7 @@ from aiotinydb import AIOTinyDB
 from aiotinydb.storage import AIOJSONStorage
 from apiadapters.ncbi import AsyncNCBIAdapter
 from apiadapters.straininfo import AsyncStrainInfoAdapter
-from brenda_types import EC, Bacteria, Document
+from d3types import EC, Bacteria, Document
 from loggers import stderr_logger
 from lpsn_interface import lpsn_synonyms
 from tinydb.table import Document as TDBDocument
