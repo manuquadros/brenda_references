@@ -15,6 +15,8 @@ dependencies = [
   "frozendict>=2.4.6",
   "gme",
   "loggers",
+  "lpsn-interface>=0.1.0",
+  "ncbitax",
   "nltk>=3.9.1,<4",
   "orjson>=3.10.15",
   "pandas>=2.2.3,<3",
@@ -43,11 +45,15 @@ gme = { git = "https://github.com/idiap/gme-sampler" }
 loggers = { git = "ssh://git@github.com/manuquadros/loggers.git" }
 d3types = { workspace = true }
 apiadapters = { workspace = true }
+lpsn-interface = { workspace = true }
+ncbitax = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "modules/d3types",
     "modules/apiadapters",
+    "modules/lpsn-interface",
+    "modules/ncbitax",
 ]
 
 [build-system]
@@ -57,6 +63,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "pip-check>=3.1",
+    "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
 ]
 

@@ -4,3 +4,9 @@
 [submodule "modules/apiadapters"]
 	path = modules/apiadapters
 	url = ssh://git@github.com/manuquadros/apiadapters.git
+[submodule "modules/lpsn-interface"]
+	path = modules/lpsn-interface
+	url = git@github.com:manuquadros/lpsn-interface.git
+[submodule "modules/ncbitax"]
+	path = modules/ncbitax
+	url = ssh://git@github.com/manuquadros/ncbitax.git
