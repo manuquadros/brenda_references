@@ -12,11 +12,11 @@ bacteria table of the database.
 """
 
 from apiadapters.straininfo import StrainInfoAdapter
-from taxonomy import ncbitax
-from tqdm import tqdm
 from brenda_references.docdb import BrendaDocDB
-from brenda_types import Strain
+from d3types import Strain
+from taxonomy import ncbitax
 from tinydb.table import Document as TinyDBDoc
+from tqdm import tqdm
 
 
 def update_doc_bacteria(
