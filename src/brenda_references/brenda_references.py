@@ -15,6 +15,7 @@ import itertools
 import pathlib
 from collections.abc import Iterable
 from functools import cache
+from importlib import resources
 from pprint import pformat
 from typing import Any
 
@@ -36,7 +37,7 @@ from brenda_references.utils import CachingMiddleware
 
 from .config import config
 
-DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
+DATA_DIR = resources.files("brenda_references") / "data"
 
 
 def preprocess_relations(row: pd.Series) -> pd.Series:
