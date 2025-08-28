@@ -44,13 +44,6 @@ gme = { git = "https://github.com/idiap/gme-sampler" }
 loggers = { git = "ssh://git@github.com/manuquadros/loggers.git" }
 apiadapters = { git = "ssh://git@github.com/manuquadros/apiadapters.git" }
 
-[tool.hatch.build.targets.wheel.force-include]
-"config.toml" = "brenda_references/config.toml"
-"resources" = "brenda_references/resources"
-"data/test_data.csv" = "brenda_references/data/test_data.csv"
-"data/validation_data.csv" = "brenda_references/data/validation_data.csv"
-"data/training_data.csv" = "brenda_references/data/training_data.csv"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
