@@ -12,7 +12,6 @@ the latter.
 
 import ast
 import itertools
-import pathlib
 from collections.abc import Iterable
 from functools import cache
 from importlib import resources
