@@ -1,6 +1,7 @@
 # Data files
 init_vars.sh
-data/documents.json
+documents.json
+dataset.tar.zst
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
