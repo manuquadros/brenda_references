@@ -125,10 +125,13 @@ def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
     return df.apply(preprocess_relations, axis=1)
 
 
-def load_split(split: str, noise: int = 0) -> pd.DataFrame:
+def load_split(split: str, noise: int = 0, limit: int = 0) -> pd.DataFrame:
     """Load dataset split."""
     path = DATA_DIR / f"{split}_data.csv"
     split_data = pd.read_csv(path, index_col=0)
+
+    if limit:
+        split_data = split_data.truncate(after=limit - 1)
 
     split_data = preprocess_labels(
         split_data.dropna(subset=["abstract", "fulltext"])
@@ -158,25 +161,25 @@ def psycholinguistics_data() -> Iterable[tuple[Any, ...]]:
     return psyling.sample(n=len(psyling), replace=False).itertuples(index=False)
 
 
-def validation_data(noise: int = 0) -> pd.DataFrame:
+def validation_data(noise: int = 0, limit: int = 0) -> pd.DataFrame:
     """Load validation data."""
-    val = load_split("validation", noise=noise)
+    val = load_split("validation", noise=noise, limit=limit)
     return val[
         ~(val["bacteria"].astype("bool") & ~val["strains"].astype("bool"))
     ]
 
 
-def training_data(noise: int = 0) -> pd.DataFrame:
+def training_data(noise: int = 0, limit: int = 0) -> pd.DataFrame:
     """Load training data."""
-    train = load_split("training", noise=noise)
+    train = load_split("training", noise=noise, limit=limit)
     return train[
         ~(train["bacteria"].astype("bool") & ~train["strains"].astype("bool"))
     ]
 
 
-def test_data(noise: int = 0) -> pd.DataFrame:  # noqa: PT028
+def test_data(noise: int = 0, limit: int = 0) -> pd.DataFrame:  # noqa: PT028
     """Load test data."""
-    test = load_split("test", noise=noise)
+    test = load_split("test", noise=noise, limit=limit)
     return test[
         ~(test["bacteria"].astype("bool") & ~test["strains"].astype("bool"))
     ]
