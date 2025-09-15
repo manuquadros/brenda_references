@@ -113,12 +113,12 @@ def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
         df[col] = df[col].apply(ast.literal_eval)
 
     def merge_entcols(row: pd.Series) -> list[str]:
-        ents: Iterable[str] = (
+        ents: list[str] = [
             entcol[:3] + str(ent)
             for entcol in ("bacteria", "enzymes", "strains", "other_organisms")
             for ent in row[entcol]
-        )
-        return list(ents)
+        ]
+        return ents
 
     df["entities"] = df.apply(merge_entcols, axis=1)
 
