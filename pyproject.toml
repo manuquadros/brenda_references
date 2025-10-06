@@ -41,7 +41,6 @@ statistics = "scripts.statistics:main"
 
 [tool.uv.sources]
 gme = { git = "https://github.com/idiap/gme-sampler" }
-loggers = { git = "ssh://git@github.com/manuquadros/loggers.git" }
 apiadapters = { git = "ssh://git@github.com/manuquadros/apiadapters.git" }
 
 [build-system]

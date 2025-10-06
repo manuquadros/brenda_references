@@ -12,6 +12,7 @@ the latter.
 
 import ast
 import itertools
+import logging
 from collections.abc import Iterable
 from functools import cache
 from importlib import resources
@@ -26,7 +27,6 @@ from aiotinydb.storage import AIOJSONStorage
 from apiadapters.ncbi import AsyncNCBIAdapter
 from apiadapters.straininfo import AsyncStrainInfoAdapter
 from d3types import EC, Bacteria, Document
-from loggers import stderr_logger
 from lpsn_interface import lpsn_synonyms
 from tinydb.table import Document as TDBDocument
 from tqdm import tqdm
@@ -37,6 +37,23 @@ from brenda_references.utils import CachingMiddleware
 from .config import config
 
 DATA_DIR = resources.files("brenda_references") / "data"
+
+
+def stderr_logger(level: int = logging.DEBUG) -> logging.Logger:
+    """Create a simple stderr logger for debugging purposes."""
+    ologger = logging.getLogger(__name__)
+    ologger.setLevel(level)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter(
+            fmt="%(asctime)s, %(module)s.%(funcName)s, %(levelname)s, %(message)s",
+            datefmt="%H:%M:%S",
+        ),
+    )
+    ologger.addHandler(handler)
+
+    return ologger
 
 
 def preprocess_relations(row: pd.Series) -> pd.Series:
