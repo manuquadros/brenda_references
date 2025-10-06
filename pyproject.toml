@@ -2,11 +2,10 @@
 name = "brenda_references"
 version = "0.1.0"
 description = ""
-authors = [
-  { name = "Emanuel Quadros", email = "emanuel.quadros@dsmz.de" },
-]
+authors = [{ name = "Emanuel Quadros", email = "emanuel.quadros@dsmz.de" }]
 requires-python = ">=3.12"
 readme = "README.md"
+license = "GPL-3.0-or-later"
 dependencies = [
   "aiotinydb>=2.0.0,<3",
   "apiadapters",
