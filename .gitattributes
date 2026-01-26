@@ -1,1 +1,2 @@
 src/brenda_references/data/training_data.csv filter=lfs diff=lfs merge=lfs -text
+src/brenda_references/data/documents.json filter=lfs diff=lfs merge=lfs -text
