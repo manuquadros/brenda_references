@@ -12,7 +12,6 @@ dependencies = [
   "cacheout>=0.16.0,<0.17",
   "frozendict>=2.4.6",
   "gme",
-  "loggers",
   "lpsn-interface>=0.1.0",
   "ncbitax",
   "nltk>=3.9.1,<4",
@@ -40,7 +39,6 @@ statistics = "scripts.statistics:main"
 
 [tool.uv.sources]
 gme = { git = "https://github.com/idiap/gme-sampler" }
-apiadapters = { git = "ssh://git@github.com/manuquadros/apiadapters.git", tag = "v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]
