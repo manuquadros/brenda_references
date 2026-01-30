@@ -3,57 +3,214 @@
 import math
 from collections import Counter
 from functools import reduce
+from typing import NotRequired, TypedDict
 
+import numpy as np
+import pandas as pd
 from apiadapters.ncbi.parser import is_scanned
 from brenda_references.config import config
+from plotnine import (
+    aes,
+    after_stat,
+    facet_wrap,
+    geom_boxplot,
+    geom_histogram,
+    geom_point,
+    geom_violin,
+    ggplot,
+    labs,
+    scale_x_continuous,
+    scale_x_discrete,
+    scale_y_continuous,
+    theme_minimal,
+    theme_tufte,
+)
 from tinydb import TinyDB, where
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
-from tinydb.table import Table
+from tinydb.table import Document, Table
 
 
 def hbar() -> None:
     print("-" * 70)
 
 
-def reference_counts(documents: Table) -> None:
-    print("Number of references:", len(documents))
+type ReferenceCount = dict[int, set[int]]
 
-    references_without_abstract = documents.search(
-        (~(where("abstract").exists()) | (where("abstract") == ""))
-    )
-    print(
-        "Number of references without an abstract:",
-        len(references_without_abstract),
-    )
 
-    pmc_open = documents.search(where("pmc_open") == True)
-    fulltext = documents.search(
-        where("fulltext").exists() & (where("fulltext") != "")
-    )
-    scanned = reduce(
-        lambda sum, _: sum + 1,
-        filter(lambda doc: is_scanned(doc["fulltext"]), fulltext),
-        0,
-    )
-    print("Number of open access references:", len(pmc_open))
-    print("Full text articles: ", len(fulltext))
-    print(f"Some of which, {scanned}, are only available as scanned images.")
+def plot_counts(counters: dict[str, Counter]) -> None:
+    _labels = []
+    _counts = []
+    _kind = []
+    for name, counter in counters.items():
+        labels, counts = zip(*counter.items())
+        _labels.extend(labels)
+        _counts.extend(counts)
+        _kind.extend([name] * len(labels))
 
-    bacdocs = documents.search(
-        (where("bacteria").exists()) & ~(where("bacteria") == {}),
-    )
-    print("Number of references mentioning bacteria:", len(bacdocs))
-
-    strain_docs_count = len(
-        documents.search(
-            (where("strains").exists()) & ~(where("strains") == []),
+        count_df = pd.DataFrame(data={"id": labels, "frequency": counts})
+        count_df.to_csv(f"{name}.csv")
+        plot = (
+            ggplot(count_df, aes(x="frequency", y=after_stat("density")))
+            + geom_histogram(binwidth=1)
+            + scale_x_continuous(limits=[0, 10], breaks=range(1, 10, 1))
+            + labs(
+                title=(
+                    f"Frequency distribution of {name} reference counts"
+                    " in the dataset"
+                ),
+                x="Number of references",
+                y="Density",
+            )
+            + theme_minimal()
         )
-    )
+        plot.save(f"{name}.png")
 
+
+def entity_stats(docs: list[Document], db: TinyDB) -> dict[str, ReferenceCount]:
+    """Extract reference counts for each entity type from a Document list."""
+    refcounts = {}
+    for doc in docs:
+        entity_ids: list[int] = []
+
+        # Bacteria are stored in a document as dictionary {id: name}
+        # Strains and enzymes are stored as lists of ids.
+        for enttype in ("bacteria", "strains", "enzymes"):
+            entities: dict | list = doc.get(enttype, [])
+            if type(entities) == dict:
+                entity_ids = [int(key) for key in entities.keys()]
+            elif type(entities) == list:
+                entity_ids = entities
+            else:
+                entity_ids = []
+
+            for entid in entity_ids:
+                refcounts.setdefault(enttype, {}).setdefault(entid, set()).add(
+                    doc.doc_id
+                )
+
+        # Relations are stored as dictionaries {"subject": id, "object": id}
+        has_enzyme_rels = (
+            doc["relations"].get("HasEnzyme", {}) if "relations" in doc else {}
+        )
+
+        for rel in has_enzyme_rels:
+            refcounts.setdefault("has_enzyme", {}).setdefault(
+                (rel["subject"], rel["object"]), set()
+            ).add(doc.doc_id)
+
+    return refcounts
+
+
+def report_reference_counts(
+    refcounts: dict[str, ReferenceCount], db: TinyDB
+) -> None:
+    def as_counter(rc: ReferenceCount) -> Counter:
+        return Counter({eid: len(docs) for eid, docs in rc.items()})
+
+    bacdocs = set().union(*refcounts.get("bacteria", {}).values())
+    straindocs = set().union(*refcounts.get("strains", {}).values())
+
+    print("Number of references mentioning bacteria:", len(bacdocs))
     print(
         f"Number of references resolved at the strain level: "
-        f" {strain_docs_count} ({strain_docs_count / len(bacdocs):.2%})"
+        f"{len(straindocs)} ({len(straindocs) / len(bacdocs):.2%})"
+    )
+
+    print("Number of bacterial species:", len(refcounts.get("bacteria", {})))
+    print("Number of bacterial strains:", len(refcounts.get("strains", {})))
+    print("Number of enzymes:", len(refcounts.get("enzymes", {})))
+
+    hbar()
+
+    strains = db.table("strains")
+    enzymes = db.table("enzymes")
+
+    strain_counts = as_counter(refcounts.get("strains", {}))
+    enzyme_counts = as_counter(refcounts.get("enzymes", {}))
+
+    print("Most common strains mentioned:")
+    top_strains = strain_counts.most_common(n=27)
+    top_strains_data = tuple(
+        (strains.get(doc_id=strain_id), count)
+        for strain_id, count in top_strains
+    )
+
+    top_strains_data = tuple(
+        {
+            "doi": strain.get("doi"),
+            "taxon": strain["taxon"]["name"] if strain["taxon"] else "",
+            "designations": ", ".join(strain["designations"]),
+            "count": count,
+        }
+        for strain, count in top_strains_data
+    )
+    top_strains_data = pd.DataFrame(top_strains_data)
+    top_strains_data.to_csv("top_strains.csv", index=False)
+
+    for strain_id, count in strain_counts.most_common(10):
+        strain = strains.get(doc_id=strain_id)
+        print(strain, count)
+
+    hbar()
+    mct = sum(count for _, count in strain_counts.most_common(27))
+    total = strain_counts.total()
+    print(f"{mct}/{total} = {mct / total:.2f}")
+
+    freqdist = Counter(strain_counts.values())
+    print(freqdist)
+
+    print("Most common enzymes mentioned:")
+    for enzyme_id, count in enzyme_counts.most_common(10):
+        enzyme = enzymes.get(doc_id=enzyme_id)
+        print(f"{enzyme['ec_class']}\t{enzyme['recommended_name']}\t{count}")
+    hapax_enzymes = len([val for val in enzyme_counts.values() if val == 1])
+    print("Hapax enzymes:", hapax_enzymes)
+
+    plot_counts({"strain": strain_counts, "enzyme": enzyme_counts})
+    hbar()
+
+    has_enzyme_counts = as_counter(refcounts.get("has_enzyme", {}))
+
+    print(
+        "Number of strain-enzyme relation instances:",
+        has_enzyme_counts.total(),
+    )
+    print("Number of unique strain-enzyme relations:", len(has_enzyme_counts))
+
+    print("Most common enzyme-strain relations:")
+    for (strain_id, enzyme_id), freq in has_enzyme_counts.most_common(5):
+        strain = strains.get(doc_id=strain_id)
+        enzyme = enzymes.get(doc_id=enzyme_id)
+        print()
+        print(f"{strain}\n{enzyme['ec_class'], enzyme['recommended_name']}")
+        print(freq)
+        print()
+    print("\n")
+
+    has_enzyme_rc = refcounts.get("has_enzyme", {})
+    related_strains = Counter(rel[0] for rel in has_enzyme_rc.keys())
+    related_enzymes = Counter(rel[1] for rel in has_enzyme_rc.keys())
+
+    top_strains = related_strains.most_common(
+        math.ceil(len(related_strains) * 0.01)
+    )
+    enzyme_ratio = 0.03
+    top_enzymes = related_enzymes.most_common(
+        math.ceil(len(related_enzymes) * enzyme_ratio)
+    )
+
+    print(
+        f"The 1% ({len(top_strains)}) most commonly related strains account "
+        f"for {sum(c[1] for c in top_strains) / related_strains.total():.2%} "
+        "of all relations."
+    )
+
+    print(
+        f"The {enzyme_ratio:.2%} ({int(len(related_enzymes) * enzyme_ratio)})"
+        " most commonly related strains account "
+        f"for {sum(c[1] for c in top_enzymes) / related_enzymes.total():.2%}"
+        " of all relations."
     )
 
 
@@ -62,65 +219,36 @@ def main() -> None:
         config["documents"], storage=CachingMiddleware(JSONStorage)
     ) as docdb:
         documents = docdb.table("documents")
+        enzymes = docdb.table("enzymes")
+        strains = docdb.table("strains")
 
-        reference_counts(documents)
+        print("Number of references:", len(documents))
 
-        print("Number of bacterial species:", len(docdb.table("bacteria")))
-        print("Number of bacterial strains:", len(docdb.table("strains")))
+        # references_without_abstract = tuple(
+        #     doc for doc in documents if not doc.get("abstract")
+        # )
+        # print(
+        #     "Number of references without an abstract:",
+        #     len(references_without_abstract),
+        # )
 
-        hbar()
-
-        pmc_open_to_be_resolved = documents.search(
-            (where("pmc_open") == True)
-            & (where("bacteria").exists())
-            & ~(where("bacteria") == {})
-            & (~(where("strains").exists()) | ~(where("strains") == []))
+        # pmc_open = documents.search(where("pmc_open") == True)
+        # print("Number of open access references:", len(pmc_open))
+        fulltext = documents.search(
+            where("fulltext").exists() & (where("fulltext") != "")
         )
+        scanned = reduce(
+            lambda sum, _: sum + 1,
+            filter(lambda doc: is_scanned(doc["fulltext"]), fulltext),
+            0,
+        )
+        print("Full text articles: ", len(fulltext))
         print(
-            "Open access references to be resolved at the strain level:",
-            len(pmc_open_to_be_resolved),
+            f"Some of which, {scanned}, are only available as scanned images."
         )
 
-        has_enzyme = Counter(
-            (rel["subject"], rel["object"])
-            for doc in documents
-            for rel in doc["relations"].get("HasEnzyme", [])
-            if rel["subject"] in doc["strains"]
-        )
-        print("Number of enzyme-strain relation instances:", has_enzyme.total())
-        print("Number of unique enzyme-strain relations:", len(has_enzyme))
-
-        print("Most common enzyme-strain relations:", has_enzyme.most_common(5))
-
-        nhapaxes = len([val for val in has_enzyme.values() if val == 1])
-        print(
-            f"Number of hapax enzyme-strain relations: {nhapaxes} "
-            f"({nhapaxes / len(has_enzyme):.2%})"
-        )
-
-        related_strains = Counter(rel[0] for rel in has_enzyme.keys())
-        related_enzymes = Counter(rel[1] for rel in has_enzyme.keys())
-
-        top_strains = related_strains.most_common(
-            math.ceil(len(related_strains) * 0.01)
-        )
-        enzyme_ratio = 0.03
-        top_enzymes = related_enzymes.most_common(
-            math.ceil(len(related_enzymes) * enzyme_ratio)
-        )
-
-        print(
-            f"The 1% ({len(top_strains)}) most commonly related strains account "
-            f"for {sum(c[1] for c in top_strains) / related_strains.total():.2%} "
-            "of all relations."
-        )
-
-        print(
-            f"The {enzyme_ratio:.2%} ({int(len(related_enzymes) * enzyme_ratio)})"
-            " most commonly related strains account "
-            f"for {sum(c[1] for c in top_enzymes) / related_enzymes.total():.2%}"
-            " of all relations."
-        )
+        fulltext_entity_stats = entity_stats(fulltext, docdb)
+        report_reference_counts(fulltext_entity_stats, docdb)
 
         # fig, ax = plt.subplots(nrows=1, ncols=1)  # create figure & 1 axis
         # ax.hist(related_strains.values())
