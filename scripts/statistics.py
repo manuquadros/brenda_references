@@ -1,6 +1,7 @@
 """Script to compute useful statistics about the dataset"""
 
 import math
+import textwrap
 from collections import Counter
 from functools import reduce
 from typing import NotRequired, TypedDict
@@ -12,6 +13,8 @@ from brenda_references.config import config
 from plotnine import (
     aes,
     after_stat,
+    coord_cartesian,
+    element_text,
     facet_wrap,
     geom_boxplot,
     geom_histogram,
@@ -22,6 +25,7 @@ from plotnine import (
     scale_x_continuous,
     scale_x_discrete,
     scale_y_continuous,
+    theme,
     theme_minimal,
     theme_tufte,
 )
@@ -53,16 +57,19 @@ def plot_counts(counters: dict[str, Counter]) -> None:
         plot = (
             ggplot(count_df, aes(x="frequency", y=after_stat("density")))
             + geom_histogram(binwidth=1)
-            + scale_x_continuous(limits=[0, 10], breaks=range(1, 10, 1))
+            + scale_x_continuous(breaks=range(1, 10, 1))
+            + coord_cartesian(xlim=(0, 10))
             + labs(
-                title=(
-                    f"Frequency distribution of {name} reference counts"
-                    " in the dataset"
+                title=textwrap.fill(
+                    f"Frequency distribution of references for each {name}"
+                    " in the dataset",
+                    width=40,
                 ),
                 x="Number of references",
-                y="Density",
+                y=f"Proportion per reference count",
             )
             + theme_minimal()
+            + theme(plot_title=element_text(ha="center", ma="center"))
         )
         plot.save(f"{name}.png")
 
@@ -85,9 +92,10 @@ def entity_stats(docs: list[Document], db: TinyDB) -> dict[str, ReferenceCount]:
                 entity_ids = []
 
             for entid in entity_ids:
-                refcounts.setdefault(enttype, {}).setdefault(entid, set()).add(
-                    doc.doc_id
-                )
+                if db.table(enttype).contains(doc_id=entid):
+                    refcounts.setdefault(enttype, {}).setdefault(
+                        entid, set()
+                    ).add(doc.doc_id)
 
         # Relations are stored as dictionaries {"subject": id, "object": id}
         has_enzyme_rels = (
@@ -118,7 +126,7 @@ def report_reference_counts(
     )
 
     print("Number of bacterial species:", len(refcounts.get("bacteria", {})))
-    print("Number of bacterial strains:", len(refcounts.get("strains", {})))
+    print("Number of strains:", len(refcounts.get("strains", {})))
     print("Number of enzymes:", len(refcounts.get("enzymes", {})))
 
     hbar()
@@ -128,6 +136,7 @@ def report_reference_counts(
 
     strain_counts = as_counter(refcounts.get("strains", {}))
     enzyme_counts = as_counter(refcounts.get("enzymes", {}))
+    bacteria_counts = as_counter(refcounts.get("bacteria", {}))
 
     print("Most common strains mentioned:")
     top_strains = strain_counts.most_common(n=27)
@@ -167,7 +176,13 @@ def report_reference_counts(
     hapax_enzymes = len([val for val in enzyme_counts.values() if val == 1])
     print("Hapax enzymes:", hapax_enzymes)
 
-    plot_counts({"strain": strain_counts, "enzyme": enzyme_counts})
+    plot_counts(
+        {
+            "strain": strain_counts,
+            "enzyme": enzyme_counts,
+            "bacteria": bacteria_counts,
+        }
+    )
     hbar()
 
     has_enzyme_counts = as_counter(refcounts.get("has_enzyme", {}))
