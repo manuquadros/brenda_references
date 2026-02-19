@@ -46,6 +46,7 @@ def plot_counts(counters: dict[str, Counter]) -> None:
     _labels = []
     _counts = []
     _kind = []
+    lim = 20
     for name, counter in counters.items():
         labels, counts = zip(*counter.items())
         _labels.extend(labels)
@@ -57,8 +58,8 @@ def plot_counts(counters: dict[str, Counter]) -> None:
         plot = (
             ggplot(count_df, aes(x="frequency", y=after_stat("density")))
             + geom_histogram(binwidth=1)
-            + scale_x_continuous(breaks=range(1, 10, 1))
-            + coord_cartesian(xlim=(0, 10))
+            + scale_x_continuous(breaks=range(1, lim, 1))
+            + coord_cartesian(xlim=(0, lim))
             + labs(
                 title=textwrap.fill(
                     f"Frequency distribution of references for each {name}"
@@ -103,9 +104,10 @@ def entity_stats(docs: list[Document], db: TinyDB) -> dict[str, ReferenceCount]:
         )
 
         for rel in has_enzyme_rels:
-            refcounts.setdefault("has_enzyme", {}).setdefault(
-                (rel["subject"], rel["object"]), set()
-            ).add(doc.doc_id)
+            if rel["subject"] in doc["strains"]:
+                refcounts.setdefault("has_enzyme", {}).setdefault(
+                    (rel["subject"], rel["object"]), set()
+                ).add(doc.doc_id)
 
     return refcounts
 
