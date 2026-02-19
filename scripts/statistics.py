@@ -104,10 +104,9 @@ def entity_stats(docs: list[Document], db: TinyDB) -> dict[str, ReferenceCount]:
         )
 
         for rel in has_enzyme_rels:
-            if rel["subject"] in doc["strains"]:
-                refcounts.setdefault("has_enzyme", {}).setdefault(
-                    (rel["subject"], rel["object"]), set()
-                ).add(doc.doc_id)
+            refcounts.setdefault("has_enzyme", {}).setdefault(
+                (rel["subject"], rel["object"]), set()
+            ).add(doc.doc_id)
 
     return refcounts
 
@@ -115,6 +114,8 @@ def entity_stats(docs: list[Document], db: TinyDB) -> dict[str, ReferenceCount]:
 def report_reference_counts(
     refcounts: dict[str, ReferenceCount], db: TinyDB
 ) -> None:
+    """Report reference counts for the categories in `refcounts`."""
+
     def as_counter(rc: ReferenceCount) -> Counter:
         return Counter({eid: len(docs) for eid, docs in rc.items()})
 
@@ -175,19 +176,27 @@ def report_reference_counts(
     for enzyme_id, count in enzyme_counts.most_common(10):
         enzyme = enzymes.get(doc_id=enzyme_id)
         print(f"{enzyme['ec_class']}\t{enzyme['recommended_name']}\t{count}")
-    hapax_enzymes = len([val for val in enzyme_counts.values() if val == 1])
-    print("Hapax enzymes:", hapax_enzymes)
+
+    has_enzyme_rc = refcounts.get("has_enzyme", {})
+    has_enzyme_counts = as_counter(has_enzyme_rc)
+
+    related_enzymes = Counter()
+    for (_, enzyme_id), count in has_enzyme_counts.items():
+        related_enzymes[enzyme_id] += count
+    hapax_enzymes = [enz for enz, val in related_enzymes.items() if val == 1]
+
+    print("Hapax enzymes:", len(hapax_enzymes))
+    print(hapax_enzymes[:10])
 
     plot_counts(
         {
             "strain": strain_counts,
             "enzyme": enzyme_counts,
             "bacteria": bacteria_counts,
+            "strain-enzyme relations": has_enzyme_counts,
         }
     )
     hbar()
-
-    has_enzyme_counts = as_counter(refcounts.get("has_enzyme", {}))
 
     print(
         "Number of strain-enzyme relation instances:",
@@ -205,9 +214,9 @@ def report_reference_counts(
         print()
     print("\n")
 
-    has_enzyme_rc = refcounts.get("has_enzyme", {})
     related_strains = Counter(rel[0] for rel in has_enzyme_rc.keys())
-    related_enzymes = Counter(rel[1] for rel in has_enzyme_rc.keys())
+
+    plot_counts({"enzyme": related_enzymes})
 
     top_strains = related_strains.most_common(
         math.ceil(len(related_strains) * 0.01)
@@ -225,7 +234,7 @@ def report_reference_counts(
 
     print(
         f"The {enzyme_ratio:.2%} ({int(len(related_enzymes) * enzyme_ratio)})"
-        " most commonly related strains account "
+        " most commonly related enzymes account "
         f"for {sum(c[1] for c in top_enzymes) / related_enzymes.total():.2%}"
         " of all relations."
     )
