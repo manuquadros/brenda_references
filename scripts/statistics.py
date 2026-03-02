@@ -58,7 +58,7 @@ def plot_counts(counters: dict[str, Counter]) -> None:
         plot = (
             ggplot(count_df, aes(x="frequency", y=after_stat("density")))
             + geom_histogram(binwidth=1)
-            + scale_x_continuous(breaks=range(1, lim, 1))
+            + scale_x_continuous(breaks=range(1, lim + 1, 1))
             + coord_cartesian(xlim=(0, lim))
             + labs(
                 title=textwrap.fill(
@@ -72,7 +72,7 @@ def plot_counts(counters: dict[str, Counter]) -> None:
             + theme_minimal()
             + theme(plot_title=element_text(ha="center", ma="center"))
         )
-        plot.save(f"{name}.png")
+        plot.save(f"{name}.svg")
 
 
 def entity_stats(docs: list[Document], db: TinyDB) -> dict[str, ReferenceCount]:
@@ -128,18 +128,43 @@ def report_reference_counts(
         f"{len(straindocs)} ({len(straindocs) / len(bacdocs):.2%})"
     )
 
-    print("Number of bacterial species:", len(refcounts.get("bacteria", {})))
-    print("Number of strains:", len(refcounts.get("strains", {})))
-    print("Number of enzymes:", len(refcounts.get("enzymes", {})))
-
-    hbar()
-
     strains = db.table("strains")
     enzymes = db.table("enzymes")
 
     strain_counts = as_counter(refcounts.get("strains", {}))
     enzyme_counts = as_counter(refcounts.get("enzymes", {}))
     bacteria_counts = as_counter(refcounts.get("bacteria", {}))
+    has_enzyme_counts = as_counter(refcounts.get("has_enzyme", {}))
+
+    print(r"\begin{table}[ht]")
+    print(r"\centering")
+    print(r"\begin{tabular}{lrrr}")
+    print(r"\toprule")
+    print(r" & & \multicolumn{2}{c}{Reference Counts} \\")
+    print(r"\cmidrule(l){3-4}")
+    print(r"Entity & $n$ & Mean & Range \\")
+    print(r"\midrule")
+    for label, counts in (
+        ("Bacteria", bacteria_counts),
+        ("Strains", strain_counts),
+        ("Enzymes", enzyme_counts),
+        ("Strain--enzyme relations", has_enzyme_counts),
+    ):
+        vals = np.array(list(counts.values()))
+        print(
+            f"{label} & {len(vals)} & {vals.mean():.2f} "
+            f"& [{vals.min()}, {vals.max()}] \\\\"
+        )
+    print(r"\bottomrule")
+    print(r"\end{tabular}")
+    print(
+        r"\caption{Number of bacterial species, strains, enzymes and "
+        r"strain--enzyme relations in the fulltext dataset, along with "
+        r"their mean reference counts.}"
+    )
+    print(r"\end{table}")
+
+    hbar()
 
     print("Most common strains mentioned:")
     top_strains = strain_counts.most_common(n=27)
@@ -178,7 +203,6 @@ def report_reference_counts(
         print(f"{enzyme['ec_class']}\t{enzyme['recommended_name']}\t{count}")
 
     has_enzyme_rc = refcounts.get("has_enzyme", {})
-    has_enzyme_counts = as_counter(has_enzyme_rc)
 
     related_enzymes = Counter()
     for (_, enzyme_id), count in has_enzyme_counts.items():
