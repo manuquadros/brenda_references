@@ -1,6 +1,5 @@
 # Data files
 init_vars.sh
-documents.json
 dataset.tar.zst
 
 # Byte-compiled / optimized / DLL files

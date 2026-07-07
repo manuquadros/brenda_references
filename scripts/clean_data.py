@@ -39,7 +39,6 @@ def main() -> None:
         config["documents"], storage=CachingMiddleware(JSONStorage)
     ) as docdb:
         documents = docdb.table("documents")
-        relations = docdb.table("relations")
         strains = docdb.table("strains")
         non_bacterial_strains = docdb.table("non_bacterial_strains")
 
@@ -56,6 +55,11 @@ def main() -> None:
             f"Moved {len(strains_to_remove)} strain entries to the"
             '"non_bacterial_strains" table.'
         )
+
+        for doc in tqdm(documents):
+            docstrains: list[int] | None = doc.get("strains")
+            if docstrains is not None:
+                keep = []
 
 
 if __name__ == "__main__":

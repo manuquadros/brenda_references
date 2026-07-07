@@ -11,7 +11,7 @@ dependencies = [
   "apiadapters",
   "cacheout>=0.16.0,<0.17",
   "frozendict>=2.4.6",
-  "gme",
+  "gme @ git+https://github.com/idiap/gme-sampler",
   "lpsn-interface>=0.1.0",
   "ncbitax",
   "nltk>=3.9.1,<4",
@@ -37,9 +37,6 @@ preannotate_hmm = "scripts.preannotate_hmm:main"
 generate_json_schemas = "scripts.generate_json_schemas:main"
 generate_entity_names_dataset = "scripts.generate_entity_names_dataset:main"
 statistics = "scripts.statistics:main"
-
-[tool.uv.sources]
-gme = { git = "https://github.com/idiap/gme-sampler" }
 
 [build-system]
 requires = ["hatchling"]
