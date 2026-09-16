@@ -3,17 +3,18 @@ name = "brenda_references"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Emanuel Quadros", email = "emanuel.quadros@dsmz.de" }]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 dependencies = [
   "aiotinydb>=2.0.0,<3",
-  "apiadapters",
+  "apiadapters @ git+https://github.com/manuquadros/apiadapters",
   "cacheout>=0.16.0,<0.17",
+  "d3types @ git+https://github.com/manuquadros/d3types",
   "frozendict>=2.4.6",
   "gme @ git+https://github.com/idiap/gme-sampler",
-  "lpsn-interface>=0.1.0",
-  "ncbitax",
+  "lpsn-interface @ git+https://github.com/manuquadros/lpsn-interface",
+  "ncbitax @ git+https://github.com/manuquadros/ncbitax",
   "nltk>=3.9.1,<4",
   "orjson>=3.10.15",
   "pandas>=2.2.3,<3",
@@ -25,22 +26,22 @@ dependencies = [
   "stackprinter>=0.2.12",
   "tinydb>=4.8.2,<5",
   "tqdm>=4.67.0,<5",
+  "huggingface-hub>=1.28.0",
 ]
 
 [project.scripts]
+sync-doc-db = "brenda_references.brenda_references:main"
 update_pmc_open = "scripts.update_pmc_open:main"
-sync_doc_db = "src.brenda_references.brenda_references:sync_doc_db"
 retrieve_text = "scripts.retrieve_text:main"
 fix_missing_strains = "scripts.fix_missing_strains:main"
 preannotate = "scripts.preannotate:main"
-preannotate_hmm = "scripts.preannotate_hmm:main"
 generate_json_schemas = "scripts.generate_json_schemas:main"
 generate_entity_names_dataset = "scripts.generate_entity_names_dataset:main"
 statistics = "scripts.statistics:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [dependency-groups]
 dev = [
@@ -52,5 +53,17 @@ dev = [
   "types-tqdm>=4.67.0.20250809",
 ]
 
+# Same split the root pyproject.toml documents for these two: d3types pins
+# lpsn-interface through a different URL spelling than the one declared
+# below, and pdm (unlike uv) treats a direct-reference URL as part of the
+# package's identity, so an unresolved standalone lock sees two different
+# packages named lpsn-interface. ncbitax carries the same split.
+[tool.pdm.resolution.overrides]
+lpsn-interface = "git+https://github.com/manuquadros/lpsn-interface"
+ncbitax = "git+https://github.com/manuquadros/ncbitax"
+
 [tool.pytest.ini_options]
-addopts = ["--cov=brenda_references", "--cov-report=xml"]
+addopts = ["--cov=brenda_references", "--cov-report=xml", "-m", "not integration"]
+markers = [
+  "integration: needs network, GPU, or the full BRENDA data files",
+]

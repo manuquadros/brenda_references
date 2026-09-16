@@ -1,23 +1,19 @@
-"""Brenda References
+"""Build a database of article references from BRENDA.
 
-This module provides functions to build a database of article references from
-the BRENDA database. Each article reference is linked to the enzymes it is
-associated with on BRENDA as well as with the organisms that are referenced
-by the article as expressing each particular enzyme.
-
-The main function is sync_doc_db, which will fetch references from BRENDA and
-update the JSON database it founds references that are not already stored in
-the latter.
+Each reference is linked to the enzymes it is associated with on BRENDA and to
+the organisms the article references as expressing each one. `sync_doc_db` is
+the entry point.
 """
 
+import argparse
 import ast
+import asyncio
 import itertools
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from functools import cache
 from importlib import resources
 from pprint import pformat
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -38,6 +34,26 @@ from .config import config
 
 DATA_DIR = resources.files("brenda_references") / "data"
 
+# The permutation of the noise pool has to be identical in every process, not
+# merely random: `train` and `evaluate` each build the splits in a process of
+# their own, and they must agree on which articles are noise for which split.
+NOISE_SEED = 20250818
+
+# A second, independent noise seed for the enzyme-negative pool: it is
+# permuted on its own, so its block assignment does not move if the
+# psycholinguistics pool's size ever changes, or vice versa.
+ENZYME_NOISE_SEED = 20260916
+
+# Split name -> the [first, last) fraction of a permuted pool it draws from.
+# Disjoint by construction, which is what keeps a noise article out of both
+# training and test. Shared by every noise pool: the fractions are a policy
+# about how much of *a* pool each split gets, not a property of one pool.
+NOISE_BLOCKS = {
+    "training": (0.0, 0.7),
+    "validation": (0.7, 0.85),
+    "test": (0.85, 1.0),
+}
+
 
 def stderr_logger(level: int = logging.DEBUG) -> logging.Logger:
     """Create a simple stderr logger for debugging purposes."""
@@ -57,29 +73,27 @@ def stderr_logger(level: int = logging.DEBUG) -> logging.Logger:
 
 
 def preprocess_relations(row: pd.Series) -> pd.Series:
-    """Transform the relations columns.
+    """Transform the relations column into `(subject, object) -> label` dicts.
 
-    Relations are coded like this on the relations column:
-
-    {'HasEnzyme': [{'subject': 2681, 'object': 26836},
-    {'subject': 5301, 'object': 26836},
-    {'subject': 6140, 'object': 26836}]}
-
-    :return:
-        In this example, [{
-            ("oth2681", "enz26836"): "HasEnzyme",
-            ("oth5301", "enz26836"): "HasEnzyme",
-            ("oth6140", "enz26836"): "HasEnzyme",
-        }]
+    :param relations: the column as BRENDA stores it, keyed by relation name.
+    :return: one dict per document, keyed by the prefixed argument pair.
     """
+
+    def canonical(first: str, second: str) -> tuple[str, str]:
+        """The one order every key in `pairs` is spelled in.
+
+        Both the typed keys and the `none` fill go through here, so the
+        fill's membership test compares a pair against the spelling a typed
+        key of that pair would have.
+        """
+        low, high = sorted((first, second))
+        return low, high
 
     def get_key(
         entities: tuple[int, int], prefixes: tuple[str, str]
     ) -> tuple[str, str]:
-        return tuple(
-            sorted(
-                (f"{prefixes[0]}{entities[0]}", f"{prefixes[1]}{entities[1]}")
-            )
+        return canonical(
+            f"{prefixes[0]}{entities[0]}", f"{prefixes[1]}{entities[1]}"
         )
 
     relations = ast.literal_eval(row["relations"])
@@ -107,8 +121,9 @@ def preprocess_relations(row: pd.Series) -> pd.Series:
                 break
 
     for entity_pair in itertools.combinations(row["entities"], r=2):
-        if entity_pair not in pairs:
-            pairs[entity_pair] = np.array([0, 0, 1], dtype=np.float16)
+        key = canonical(*entity_pair)
+        if key not in pairs:
+            pairs[key] = np.array([0, 0, 1], dtype=np.float16)
 
     row.loc["relations"] = [pairs]
     return row
@@ -142,8 +157,27 @@ def preprocess_labels(df: pd.DataFrame) -> pd.DataFrame:
     return df.apply(preprocess_relations, axis=1)
 
 
-def load_split(split: str, noise: int = 0, limit: int = 0) -> pd.DataFrame:
-    """Load dataset split."""
+def load_split(
+    split: str, noise: int = 0, enzyme_noise: int = 0, limit: int = 0
+) -> pd.DataFrame:
+    """Load dataset split.
+
+    :param split: the split name (`training`, `validation` or `test`).
+    :param noise: how many psycholinguistics noise documents to append.
+    :param enzyme_noise: how many enzyme-negative noise documents to append,
+        on top of `noise` — a second, independent pool, not drawn from the
+        same budget.
+    :param limit: keep only the first `limit` rows; 0 or unset keeps all.
+    :return: the split, with noise appended.
+    :raises ValueError: if `limit` is negative — truncating a `RangeIndex`
+        at a negative bound keeps zero rows rather than refusing the call,
+        which would otherwise size a training run's entity vocabulary to
+        nothing far from the argument that caused it.
+    """
+    if limit < 0:
+        msg = f"limit must be non-negative; got {limit}."
+        raise ValueError(msg)
+
     path = DATA_DIR / f"{split}_data.csv"
     split_data = pd.read_csv(path, index_col=0)
 
@@ -154,17 +188,94 @@ def load_split(split: str, noise: int = 0, limit: int = 0) -> pd.DataFrame:
         split_data.dropna(subset=["abstract", "fulltext"])
     )
 
-    noise_data = pd.DataFrame(itertools.islice(psycholinguistics_data(), noise))
-    return pd.concat((split_data, noise_data), axis=0, ignore_index=True)
+    return pd.concat(
+        (
+            split_data,
+            noise_documents(split, noise),
+            enzyme_negative_documents(split, enzyme_noise),
+        ),
+        axis=0,
+        ignore_index=True,
+    )
+
+
+CONTAMINATED_PMC_IDS = frozenset(
+    {
+        5152542,
+        5402676,
+        5502579,
+        5771508,
+        7255050,
+        7335431,
+        7451337,
+        7451372,
+        7453160,
+        7540002,
+        7879075,
+        7932037,
+        8317543,
+        8317549,
+        8608229,
+        8702868,
+        8835384,
+        8835387,
+        8835388,
+        9135004,
+        9159671,
+        9490936,
+        9887656,
+        10039723,
+        10171844,
+        10226771,
+        10597387,
+        10640881,
+        10640887,
+        10713020,
+        11144449,
+        11332681,
+        11332686,
+        11585907,
+        11790113,
+        11815351,
+    }
+)
+"""`pmc_id`s of noise-pool rows that name an enzyme.
+
+The pool is meant to be enzyme-free by construction, but rescreening it with
+the same surface-form index and descriptive-match reading the labelling
+pipeline itself matches against turns up genuine and near-genuine enzyme
+mentions: liver-panel and oxidative-stress transaminases, ACE2 in COVID
+papers, and a handful of same-spelling collisions a dictionary match cannot
+tell from a real name without reading the sentence (a cited author surnamed
+after an enzyme, a psychometric "factor I", a coagulation "complex, I").
+Excluded rather than left in, because the pool's whole purpose is to
+guarantee an enzyme-free negative for every row it hands out.
+"""
 
 
 @cache
-def psycholinguistics_data() -> Iterable[tuple[Any, ...]]:
-    """Load psycholinguistics articles for noise."""
+def psycholinguistics_data() -> pd.DataFrame:
+    """The whole noise pool, permuted once under a fixed seed.
+
+    Returns the frame rather than an iterator, and seeds the permutation,
+    because `@cache` memoizes whatever this hands back and two callers must see
+    the same pool: an iterator is *consumed*, so a sweep's later trials drew no
+    noise at all, and an unseeded permutation differs per process, so
+    `evaluate` scored the model on noise `train` had trained on.
+
+    Dropping `CONTAMINATED_PMC_IDS` before the permutation changes the pool's
+    size, so which article each `NOISE_BLOCKS` fraction draws into training,
+    validation or test also changes.
+
+    :return: the permuted pool, contaminated rows excluded.
+    """
     path = DATA_DIR / "pmc_linguistics_articles.json"
     psyling = pd.read_json(path, lines=True).rename(
         columns={"body": "fulltext"}
     )
+    psyling = psyling[
+        ~psyling["pmc_id"].isin(CONTAMINATED_PMC_IDS)
+    ].reset_index(drop=True)
     psyling["abstract"] = psyling["abstract"].apply(xmlparser.remove_tags)
     for col in (
         "bacteria",
@@ -175,28 +286,145 @@ def psycholinguistics_data() -> Iterable[tuple[Any, ...]]:
         "relations",
     ):
         psyling[col] = [[]] * len(psyling)
-    return psyling.sample(n=len(psyling), replace=False).itertuples(index=False)
+    return psyling.sample(
+        n=len(psyling), replace=False, random_state=NOISE_SEED
+    ).reset_index(drop=True)
 
 
-def validation_data(noise: int = 0, limit: int = 0) -> pd.DataFrame:
+@cache
+def enzyme_negative_data() -> pd.DataFrame:
+    """The enzyme-negative noise pool, permuted once under its own seed.
+
+    Every row survives `scripts/build_enzyme_negative_pool.py`'s literal
+    screen, so it names no enzyme under the same surface-form index the
+    positives are labelled with; `enzymes` is a true negative here, not a
+    free one. `bacteria` and `strains` are blanked the same as
+    `psycholinguistics_data`'s, but for a different reason: these documents
+    are real microbiology articles that were never curated for those
+    entities, so a blank column is an *unknown*, not a verified absence.
+    A run drawing on this pool wants `class_negative_abstention` on for
+    `bacteria` and `strains`, so the loss abstains where the dictionary
+    still finds a mention, while the genuine `enzymes` negative is kept at
+    full weight.
+
+    :return: the permuted pool.
+    """
+    path = DATA_DIR / "enzyme_negative_pool.json"
+    pool = pd.read_json(path, lines=True).rename(columns={"body": "fulltext"})
+    pool["abstract"] = pool["abstract"].apply(xmlparser.remove_tags)
+    for col in (
+        "bacteria",
+        "enzymes",
+        "strains",
+        "other_organisms",
+        "entities",
+        "relations",
+    ):
+        pool[col] = [[]] * len(pool)
+    return pool.sample(
+        n=len(pool), replace=False, random_state=ENZYME_NOISE_SEED
+    ).reset_index(drop=True)
+
+
+def _pool_block(
+    pool: pd.DataFrame,
+    split: str,
+    noise: int,
+    blocks: Mapping[str, tuple[float, float]] = NOISE_BLOCKS,
+) -> pd.DataFrame:
+    """The first `noise` rows of `split`'s own block of an already-permuted pool.
+
+    Each split draws from a disjoint block, so no article can be trained on and
+    then evaluated on. The bounds are fixed fractions of the pool rather than a
+    running offset, which would slide one split's block into another's the
+    moment a caller changed how much noise it wanted.
+
+    :param pool: an already-permuted noise pool, as `psycholinguistics_data`
+        or `enzyme_negative_data` returns.
+    :param split: the split to draw for.
+    :param noise: how many rows to draw.
+    :param blocks: split name -> the `[first, last)` fraction of `pool` it
+        draws from.
+    :return: the rows.
+    :raises ValueError: if `split` has no block, or its block is smaller than
+        `noise` — running short must fail rather than quietly return fewer.
+    """
+    if noise <= 0:
+        return pd.DataFrame()
+
+    if split not in blocks:
+        msg = f"{split!r} has no noise block; expected one of {sorted(blocks)}"
+        raise ValueError(msg)
+
+    first_fraction, last_fraction = blocks[split]
+    start = int(first_fraction * len(pool))
+    end = int(last_fraction * len(pool))
+
+    if end - start < noise:
+        msg = (
+            f"{split!r}'s noise block holds {end - start} rows, fewer "
+            f"than the {noise} requested"
+        )
+        raise ValueError(msg)
+
+    return pool.iloc[start : start + noise]
+
+
+def noise_documents(split: str, noise: int) -> pd.DataFrame:
+    """The first `noise` articles of `split`'s own block of the noise pool.
+
+    :param split: the split to draw for.
+    :param noise: how many articles to draw.
+    :return: the articles.
+    :raises ValueError: if `split` has no block, or its block is smaller than
+        `noise`.
+    """
+    return _pool_block(psycholinguistics_data(), split, noise)
+
+
+def enzyme_negative_documents(split: str, noise: int) -> pd.DataFrame:
+    """The first `noise` articles of `split`'s own block of the enzyme pool.
+
+    :param split: the split to draw for.
+    :param noise: how many articles to draw.
+    :return: the articles.
+    :raises ValueError: if `split` has no block, or its block is smaller than
+        `noise`.
+    """
+    return _pool_block(enzyme_negative_data(), split, noise)
+
+
+def validation_data(
+    noise: int = 0, enzyme_noise: int = 0, limit: int = 0
+) -> pd.DataFrame:
     """Load validation data."""
-    val = load_split("validation", noise=noise, limit=limit)
+    val = load_split(
+        "validation", noise=noise, enzyme_noise=enzyme_noise, limit=limit
+    )
     return val[
         ~(val["bacteria"].astype("bool") & ~val["strains"].astype("bool"))
     ]
 
 
-def training_data(noise: int = 0, limit: int = 0) -> pd.DataFrame:
+def training_data(
+    noise: int = 0, enzyme_noise: int = 0, limit: int = 0
+) -> pd.DataFrame:
     """Load training data."""
-    train = load_split("training", noise=noise, limit=limit)
+    train = load_split(
+        "training", noise=noise, enzyme_noise=enzyme_noise, limit=limit
+    )
     return train[
         ~(train["bacteria"].astype("bool") & ~train["strains"].astype("bool"))
     ]
 
 
-def test_data(noise: int = 0, limit: int = 0) -> pd.DataFrame:  # noqa: PT028
+def test_data(  # noqa: PT028
+    noise: int = 0, enzyme_noise: int = 0, limit: int = 0
+) -> pd.DataFrame:
     """Load test data."""
-    test = load_split("test", noise=noise, limit=limit)
+    test = load_split(
+        "test", noise=noise, enzyme_noise=enzyme_noise, limit=limit
+    )
     return test[
         ~(test["bacteria"].astype("bool") & ~test["strains"].astype("bool"))
     ]
@@ -206,13 +434,11 @@ async def add_abstracts(
     docs: Iterable[Document],
     adapter: AsyncNCBIAdapter,
 ) -> list[Document]:
-    """Add abstracts to the documents in `docs` when they are available.
+    """Add abstracts to the documents in `docs` where they are available.
 
-    :param docs: Document models to be augmented with a retrieved abstract
-    :param adapter: The API adapter connecting to NCBI
-
-    :return: The documents in `docs` are returned in the same order, but with
-             abstracts added to then, when are available
+    :param docs: the documents to augment.
+    :param adapter: the API adapter connecting to NCBI.
+    :return: the same documents in the same order, abstracts added where found.
     """
     # Ensure that we have an indexable sequence
     docs = list(docs)
@@ -298,12 +524,10 @@ async def add_document(
 ) -> None:
     """Add document metadata to the JSON database, retrieving from NCBI.
 
-    :param docdb: The JSON database
-    :param ncbi: The API adapter connecting to NCBI
-    :param reference: SQLModel containing the initial metadata retrieved
-        from BRENDA.
-
-    :return: Document model containing all the metadata retrieved.
+    :param docdb: the JSON database.
+    :param ncbi: the API adapter connecting to NCBI.
+    :param reference: the initial metadata retrieved from BRENDA.
+    :return: the document, with all the metadata retrieved.
     """
     doc = await expand_doc(
         ncbi, Document.model_validate(reference.model_dump())
@@ -320,9 +544,9 @@ def store_enzyme_synonyms(
 ) -> None:
     """Store enzyme data in the JSON database.
 
-    :param docdb: The JSON database
-    :param enzyme: EC model linked describing an enzyme
-    :param synonyms: set of synonyms for that EC Class retrieved from BRENDA
+    :param docdb: the JSON database.
+    :param enzyme: the EC model describing the enzyme.
+    :param synonyms: its synonyms as retrieved from BRENDA.
     """
     enzyme = enzyme.model_copy(update={"synonyms": frozenset(synonyms)})
     docdb.table("enzymes").upsert(
@@ -345,15 +569,11 @@ def store_bacteria(docdb: AIOTinyDB, bacteria: Iterable[Bacteria]) -> None:
 
 
 async def sync_doc_db() -> None:
-    """Ensure that references in BRENDA are processed into the Doc database.
+    """Process BRENDA's references into the JSON document database.
 
-    For each reference, store into the JSON database the entities that are
-    linked to it in BRENDA, as well as the relations between these entities
-    that are annotated in the database.
-
-    At this point, we are not performing any checks as to whether information
-    on BRENDA has changed since the last time we visited it, except as to
-    whether new references were added to it.
+    For each reference, stores the entities linked to it in BRENDA and the
+    relations between them. No check is made for information changed on BRENDA
+    since the last visit, only for references newly added.
     """
     async with (
         AIOTinyDB(
@@ -387,7 +607,7 @@ async def sync_doc_db() -> None:
                     synonyms = brenda.ec_synonyms(enzyme.id)
                     store_enzyme_synonyms(docdb, enzyme, synonyms)
 
-            straininfo.store_strains(
+            await straininfo.store_strains(
                 [
                     strain
                     for strain in relations["strains"]
@@ -416,3 +636,14 @@ async def sync_doc_db() -> None:
             docdb.table("documents").update(
                 document.model_dump(), doc_ids=[doc.doc_id]
             )
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Synchronous entry point for `sync_doc_db`, which is a coroutine.
+
+    :param argv: `None` reads `sys.argv` as an installed console script should;
+        a test passes `[]` to call this in-process without inheriting pytest's
+        own arguments.
+    """
+    argparse.ArgumentParser(description=sync_doc_db.__doc__).parse_args(argv)
+    asyncio.run(sync_doc_db())
