@@ -1,6 +1,6 @@
 [project]
 name = "brenda_references"
-version = "0.1.0"
+dynamic = ["version"]
 description = ""
 authors = [{ name = "Emanuel Quadros", email = "emanuel.quadros@dsmz.de" }]
 requires-python = ">=3.12,<3.13"
@@ -43,8 +43,17 @@ statistics = "scripts.statistics:main"
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.scripts]
+changelog = "git-cliff --output CHANGELOG.md"
+next-version = "git-cliff --bumped-version"
+release = "python scripts/release.py"
+
 [dependency-groups]
 dev = [
+  "git-cliff>=2.13.1",
   "ipython-autotime>=0.3.2",
   "pandas-stubs>=2.3.2.250827",
   "pip-check>=3.1",
